@@ -74,10 +74,13 @@ test('domain rows show icon, name and tagline in their color, and flood on hover
   else await row.hover();
   await expect(row).toHaveAttribute('data-engaged', 'true');
   await expect(row.locator('svg.domain-icon')).toHaveAttribute('data-play', 'true');
-  // The flood is fully in after the base duration.
-  await page.waitForTimeout(350);
-  const flood = await row.evaluate((el) => getComputedStyle(el, '::before').transform);
-  expect(flood === 'none' || flood === 'matrix(1, 0, 0, 1, 0, 0)').toBe(true);
+  // Jump the running transition to its end and read where the flood lands. Waiting a fixed time instead flakes
+  // on a busy machine, because a tap only holds the flood for 600ms.
+  const flood = await row.evaluate((el) => {
+    el.getAnimations({ subtree: true }).forEach((a) => a.finish());
+    return getComputedStyle(el, '::before').transform;
+  });
+  expect(flood).toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
 });
 
 test('Apply now opens the Error 404 alertdialog; Esc closes it and focus returns', async ({ page }) => {

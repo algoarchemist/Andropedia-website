@@ -16,6 +16,25 @@ export function CloseIcon({ className }: { className?: string }) {
   );
 }
 
+/** Check mark for completed progress stages (SHL-01). */
+export function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={4}
+      strokeLinecap="square"
+      strokeLinejoin="miter"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 12.5l5 5L20 6.5" />
+    </svg>
+  );
+}
+
 /** Flat 8 point burst used as the stamp on the final process step. */
 export function BurstIcon({ className }: { className?: string }) {
   return (

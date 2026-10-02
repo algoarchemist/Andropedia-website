@@ -169,6 +169,23 @@
   }
 }
 
+/* ---- Invalid Next: the first invalid field shakes once, fast (SHL-03, DSN-08) ---- */
+.shake {
+  animation: shake var(--motion-fast) linear;
+}
+
+@keyframes shake {
+  25% {
+    transform: translateX(-6px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-3px);
+  }
+}
+
 /* ---- Reduced motion: no movement; domain flood becomes a fade, icons stay still ---- */
 @media (prefers-reduced-motion: reduce) {
   .domain-row::before {
@@ -195,5 +212,9 @@
 
   .stamp[data-in='true'] {
     animation: fade-in var(--motion-fast) linear;
+  }
+
+  .shake {
+    animation: none;
   }
 }

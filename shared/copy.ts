@@ -63,6 +63,22 @@ export const copy = {
   draft: {
     restored: 'Picked up where you left off.', // added
     reset: 'Start over', // added
+    confirmTitle: 'Start over?', // added, SHL-04 confirmation
+    confirmBody: 'This clears every answer you have filled in so far.', // added
+    confirmYes: 'Yes, start over', // added
+    confirmNo: 'Keep my answers', // added
+  },
+  shell: {
+    siteTitle: 'Andropedia Recruitment', // added, document title outside the steps
+    docTitle: 'Step {n} · Andropedia Recruitment', // added, SHL-06
+    doneTitle: 'Done · Andropedia Recruitment', // added
+    guarded: 'Finish this step first. We brought you back to it.', // added, SHL-05
+    placeholder: 'Step {n} coming in Phase {phase}.', // added, temporary until each step is built
+  },
+  progress: {
+    label: 'Application progress', // added, SHL-01 landmark name
+    completed: 'completed', // added, screen reader suffix
+    locked: 'locked', // added, screen reader suffix
   },
   you: {
     title: 'Who are you?',

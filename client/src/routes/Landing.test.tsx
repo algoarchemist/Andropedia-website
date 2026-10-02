@@ -3,8 +3,10 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DOMAINS, copy } from '@andropedia/shared';
+import { DOMAINS, DRAFT_KEY, copy } from '@andropedia/shared';
 import { resetConfigCache } from '../state/config';
+import { DraftProvider } from '../state/draft';
+import { validYou } from '../test/fixtures';
 import Landing from './Landing';
 
 function mockConfig(body: unknown, ok = true) {
@@ -21,10 +23,12 @@ function Where() {
 function renderLanding() {
   return render(
     <MemoryRouter initialEntries={['/']}>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="*" element={<Where />} />
-      </Routes>
+      <DraftProvider>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="*" element={<Where />} />
+        </Routes>
+      </DraftProvider>
     </MemoryRouter>,
   );
 }
@@ -101,7 +105,18 @@ describe('Apply now (LND-02, LND-06, LND-07)', () => {
     await waitFor(() => expect(applyButtons()).toHaveLength(2));
     await user.click(applyButtons()[0]!);
     await user.click(screen.getByRole('button', { name: copy.modal.continue }));
-    expect(screen.getByTestId('where').textContent).toBe('/apply/you');
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/apply/you'));
+  });
+
+  it('with a saved draft, continue resumes at the first incomplete step', async () => {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(validYou));
+    mockConfig({ recruitmentOpen: true, whatsappUrl: '' });
+    const user = userEvent.setup();
+    renderLanding();
+    await waitFor(() => expect(applyButtons()).toHaveLength(2));
+    await user.click(applyButtons()[0]!);
+    await user.click(screen.getByRole('button', { name: copy.modal.continue }));
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/apply/domain'));
   });
 });
 

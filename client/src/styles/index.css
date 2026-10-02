@@ -41,4 +41,9 @@
     padding-left: max(1rem, env(safe-area-inset-left));
     padding-right: max(1rem, env(safe-area-inset-right));
   }
+
+  /* SHL-01 locked stage outline: ink at 30%, mixed onto paper so it stays a flat, opaque color. */
+  .border-ink-30 {
+    border-color: color-mix(in srgb, var(--ink) 30%, var(--paper));
+  }
 }

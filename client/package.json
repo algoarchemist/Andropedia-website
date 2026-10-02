@@ -14,9 +14,11 @@
     "@andropedia/shared": "*",
     "@fontsource/archivo-black": "^5.3.0",
     "@fontsource/instrument-sans": "^5.3.0",
+    "motion": "^14.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.18.4"
+    "react-router-dom": "^7.18.4",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

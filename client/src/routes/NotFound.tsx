@@ -2,8 +2,10 @@
 import { Link } from 'react-router-dom';
 import { copy } from '@andropedia/shared';
 import { buttonClass } from '../components/Button';
+import { useDocumentTitle } from '../lib/useDocumentTitle';
 
 export default function NotFound() {
+  useDocumentTitle(copy.shell.siteTitle);
   return (
     <main className="gutter mx-auto flex min-h-dvh w-full max-w-[720px] flex-col justify-center py-12">
       <p aria-hidden="true" className="font-display text-[clamp(3rem,14vw,7rem)] leading-[0.9] tracking-[-0.02em]">

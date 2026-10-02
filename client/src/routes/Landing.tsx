@@ -3,6 +3,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { copy } from '@andropedia/shared';
 import { ErrorModal } from '../components/ErrorModal';
+import { useDocumentTitle } from '../lib/useDocumentTitle';
+import { useDraft } from '../state/draft';
+import { loadApplyRoutes } from './apply/preload';
+import { resumePath } from './apply/steps';
 import { About } from './landing/About';
 import { ClosingCta } from './landing/ClosingCta';
 import { Domains } from './landing/Domains';
@@ -12,8 +16,15 @@ import { Process } from './landing/Process';
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { data } = useDraft();
   const [modalOpen, setModalOpen] = useState(false);
-  const openModal = () => setModalOpen(true);
+  useDocumentTitle(copy.shell.siteTitle);
+
+  const openModal = () => {
+    setModalOpen(true);
+    // Fetch the application chunk while the modal is being read.
+    void loadApplyRoutes().catch(() => {});
+  };
 
   return (
     // overflow-x: clip, so rotated rows can never create a horizontal scrollbar.
@@ -34,13 +45,14 @@ export default function Landing() {
 
       <Footer />
 
-      {/* LND-07: every Apply now opens the Error 404 modal. Draft-aware resume arrives with the application shell (SHL-04). */}
+      {/* LND-07: every Apply now opens the Error 404 modal. Continue goes to step 01, or with a saved draft to the first incomplete step (SHL-04). */}
       {modalOpen && (
         <ErrorModal
           onClose={() => setModalOpen(false)}
           onContinue={() => {
             setModalOpen(false);
-            navigate('/apply/you');
+            // `from` lets step 01's Back return through history (SHL-05).
+            navigate(resumePath(data), { state: { from: '/' } });
           }}
         />
       )}

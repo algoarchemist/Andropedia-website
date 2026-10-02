@@ -36,6 +36,9 @@ const PRD_KEYS = [
 const ADDED_KEYS = [
   'err.server', 'err.rateLimit', 'err.unauthorized',
   'brand.name', 'modal.close', 'footer.body', // phase 3
+  'draft.confirmTitle', 'draft.confirmBody', 'draft.confirmYes', 'draft.confirmNo', // phase 4
+  'shell.siteTitle', 'shell.docTitle', 'shell.doneTitle', 'shell.guarded', 'shell.placeholder',
+  'progress.label', 'progress.completed', 'progress.locked',
 ];
 const ALL_KEYS = [...PRD_KEYS, ...ADDED_KEYS];
 

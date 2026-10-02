@@ -7,8 +7,12 @@ const proxy = {
   '/uploads': 'http://localhost:4000',
 };
 
+// Bind IPv4 explicitly: on this Node, "localhost" resolves to ::1 only, and browsers that reach localhost
+// over 127.0.0.1 could not connect. Every browser falls back to 127.0.0.1 for localhost.
+const host = '127.0.0.1';
+
 export default defineConfig({
   plugins: [react()],
-  server: { proxy },
-  preview: { proxy },
+  server: { host, proxy },
+  preview: { host, proxy },
 });
