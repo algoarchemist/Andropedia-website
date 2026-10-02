@@ -1,0 +1,13 @@
+/* DSN-03 color tokens. All fills are flat. One light theme, no dark mode (DSN-01). */
+:root {
+  --paper: #f2ede4;
+  --ink: #121212;
+  --muted: #5c5a55;
+  --cobalt: #2340e0;
+  --red: #e5372a;
+  --yellow: #f7c51e;
+  --orange: #f46a1e;
+  --pink: #f49ac1;
+  --green: #17773f;
+  --error: #c1271b;
+}
