@@ -32,15 +32,19 @@ const PRD_KEYS = [
   'err.duplicate', 'err.photoType', 'err.photoSize', 'err.network',
 ];
 
+// Server-only messages added after the PRD table (phase 2). Tagged `// added` in copy.ts.
+const ADDED_KEYS = ['err.server', 'err.rateLimit', 'err.unauthorized'];
+const ALL_KEYS = [...PRD_KEYS, ...ADDED_KEYS];
+
 describe('copy deck', () => {
   const flat = flatten(copy);
 
   it('contains every PRD section 9 key', () => {
-    expect(PRD_KEYS.filter((k) => !(k in flat))).toEqual([]);
+    expect(ALL_KEYS.filter((k) => !(k in flat))).toEqual([]);
   });
 
-  it('has no keys beyond the PRD table', () => {
-    expect(Object.keys(flat).filter((k) => !PRD_KEYS.includes(k))).toEqual([]);
+  it('has no keys beyond the PRD table and the logged additions', () => {
+    expect(Object.keys(flat).filter((k) => !ALL_KEYS.includes(k))).toEqual([]);
   });
 
   it('has no empty strings', () => {

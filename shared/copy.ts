@@ -126,6 +126,9 @@ export const copy = {
     photoType: 'Use a JPG, PNG, WebP or HEIC photo.', // added
     photoSize: 'That photo is over 8 MB. Try a smaller one.', // added
     network: "Couldn't reach us. Your answers are saved, try again.", // added
+    server: 'Something broke on our side. Try again in a bit.', // added
+    rateLimit: 'Too many tries. Give it a little while and try again.', // added
+    unauthorized: 'Not allowed.', // added
   },
 } as const;
 

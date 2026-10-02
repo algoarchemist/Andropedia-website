@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Domain {
+  TECHNICAL
+  WEB_DEV
+  MEDIA
+  PR
+  DESIGN
+  RND
+}
+enum Department {
+  CSE
+  CC
+  BDA
+  IOT
+  CSBS
+  CYBERSECURITY
+  AI
+  AIML
+  GT
+  IT
+  ECE
+  ECE_DS
+  EEE
+  BIOTECH
+  BIOMEDICAL
+  CIVIL
+  MECHANICAL
+}
+enum ApplicationStatus {
+  SUBMITTED
+  SHORTLISTED
+  INTERVIEWED
+  ACCEPTED
+  REJECTED
+}  // (added) for later rounds
+
+model Application {
+  id                String            @id @default(uuid())
+  createdAt         DateTime          @default(now())
+  status            ApplicationStatus @default(SUBMITTED)
+  name              String
+  registerNumber    String            @unique
+  email             String            @unique
+  phone             String
+  department        Department
+  section           String
+  domainPref1       Domain
+  domainPref2       Domain
+  aboutYou          String
+  whyDomain         String
+  skills            String
+  techStack         String[]
+  outsideAcademics  String
+  whyAndropedia     String
+  oneYearVision     String
+  workUrl           String
+  portfolioUrl      String?
+  achievements      Json              // [{ title, description }], 1 to 3
+  photoId           String            @unique
+  photo             Photo             @relation(fields: [photoId], references: [id])
+  hoursPerWeek      Int               // 0 to 7, 7 means 7+
+  responsibility    Int               // 0 to 5
+  inOtherClub       Boolean
+  otherClubs        String?
+  clubShouldProvide String
+  rememberUs        String
+}
+
+model Photo {
+  id          String       @id @default(uuid())
+  url         String
+  createdAt   DateTime     @default(now())
+  application Application?
+}

@@ -46,4 +46,11 @@ export const LIMITS = {
   responsibilityMin: 0, responsibilityMax: 5,
 } as const;
 
+// PRD 11 (API-02, API-03, API-04, SEC-01). Per IP, per window.
+export const RATE_LIMITS = { windowMs: 60 * 60 * 1000, check: 30, photo: 20, submit: 5 } as const;
+export const JSON_BODY_LIMIT = '100kb'; // SEC-01
+
+/** Accepted photo types, sniffed from magic bytes on the server (API-03). */
+export const PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'] as const;
+
 export const DRAFT_KEY = 'andropedia.apply.draft.v1';
