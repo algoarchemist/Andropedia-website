@@ -34,3 +34,22 @@ One line per decision the PRD was silent on.
 - Request logging (SEC-02): method, path without query string, status, duration. Enabled by `src/index.ts`, off in tests.
 - Env loading: `process.loadEnvFile('../.env')` in the server entry and in `prisma.config.ts`; real environment variables take precedence. Prisma migrations are run with `npm run db:migrate -w server`.
 - ESLint: names starting with `_` are allowed to be unused.
+
+## Phase 3: Landing page
+
+- `landing_page_idea.md` does not exist. The closest file, `hero page idea.md`, is a prompt for a different site ("Mainframe" agency): video background, nav menu, blurred text, `backdrop-blur` overlay, pill buttons, third-party font CDN. Every one conflicts with PRD section 4 (LND-01 no nav) or the CLAUDE.md design bans, so none of it was used; the layout follows PRD section 4 and DSN-02 to DSN-10.
+- DSN-03 token change: `--red` #E5372A to #E9402F. Ink text on the old red was 4.38:1, under AA 4.5:1 for 18px button text (caught by axe). New value is 4.68:1 with ink. Visually near identical.
+- The red `|` separators in hero lines 3 and 4 are about 3.5:1 on paper. They are punctuation, not words, and pass the 3:1 large-text bar from 430px up; at 360px they are 18px. Kept as the brief's accent.
+- Hero line 2 sits on one tilted yellow block (inline-block), not an inline highlight. An inline background with 0.9 line height painted over the bottom of each previous line.
+- Hero and header use up to 1280px (`max-w-screen-xl`, PRD allows a wider hero); every other section is capped at 720px. At 1280x800 this keeps all four lines and Apply now above the fold.
+- Accent color for hero separators and the section-title underline: `--red` (the primary button color). Line 2 highlight: `--yellow` (DSN-03 "highlights").
+- Section color bands: What we do on yellow, closing CTA on ink (focus ring switches to paper there via `--focus`), everything else on paper.
+- New copy, tagged `// added`: `brand.name` (wordmark), `modal.close` (accessible name of the close icon), `footer.body` (`TODO_CONTENT`, LND-09 P2, needs owner). The 404 page's home button reuses `nav.back`.
+- Motion is CSS only (transitions and keyframes in `styles/motion.css`), no Motion library on the landing page, to keep the initial bundle small (NFR-01). Build: 80 KB JS gzipped.
+- Domain row interaction: mouse hover floods while the pointer is over the row; touch and pen press floods and holds 600ms after release so the tap is visible. Rows are not focusable (they are not controls), so keyboard users see no flood.
+- The process stamp (final step) lands once, the first time the step is 60% in view (IntersectionObserver).
+- Config (API-01) loads once per session. While loading, the Apply slot reserves 56px and shows nothing. If the API cannot be reached, the page falls back to open (the apply flow will surface the network error); the failure is not cached.
+- Apply now's modal button navigates to `/apply/you`. Resuming at the first incomplete step from a draft (LND-07) comes with the shell in phase 4, as does the closed-state redirect of `/apply/*`. Until then `/apply/*` shows the 404 page.
+- Vite proxies `/api` and `/uploads` to :4000 in both `dev` and `preview`, so local runs are same origin. Production still uses `VITE_API_BASE_URL`.
+- Playwright (`npm run test:e2e -w client`) runs against the production build in the locally installed Chrome (`channel: 'chrome'`), at 360x640, 390x844, 430x932 and 1280x800. It is not part of `npm test` because it needs a browser.
+- Lighthouse mobile (production build, real API): Performance 98, Accessibility 100, Best Practices 100. SEO 82 (missing meta description, which needs owner copy, and no robots.txt); SEO is not a phase 3 target.

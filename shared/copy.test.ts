@@ -32,8 +32,11 @@ const PRD_KEYS = [
   'err.duplicate', 'err.photoType', 'err.photoSize', 'err.network',
 ];
 
-// Server-only messages added after the PRD table (phase 2). Tagged `// added` in copy.ts.
-const ADDED_KEYS = ['err.server', 'err.rateLimit', 'err.unauthorized'];
+// Server-only messages added after the PRD table (phases 2 and 3). Tagged `// added` in copy.ts.
+const ADDED_KEYS = [
+  'err.server', 'err.rateLimit', 'err.unauthorized',
+  'brand.name', 'modal.close', 'footer.body', // phase 3
+];
 const ALL_KEYS = [...PRD_KEYS, ...ADDED_KEYS];
 
 describe('copy deck', () => {

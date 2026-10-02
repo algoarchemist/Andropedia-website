@@ -4,3 +4,5 @@ dist
 *.log
 uploads
 server/src/generated
+client/e2e/.results
+playwright-report

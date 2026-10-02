@@ -4,7 +4,7 @@
   --ink: #121212;
   --muted: #5c5a55;
   --cobalt: #2340e0;
-  --red: #e5372a;
+  --red: #e9402f; /* DSN-03 was #E5372A: 4.38:1 with ink, under AA for 18px button text. See DECISIONS. */
   --yellow: #f7c51e;
   --orange: #f46a1e;
   --pink: #f49ac1;

@@ -3,6 +3,9 @@
 // Domain names and taglines live in DOMAINS (constants.ts), not here.
 
 export const copy = {
+  brand: {
+    name: 'Andropedia', // added, LND-01
+  },
   hero: {
     l1: "WE'RE LOOKING FOR",
     l2: 'THE NEXT BUNCH OF WEIRDOS',
@@ -45,9 +48,13 @@ export const copy = {
     title: 'Error 404',
     body: 'Boring applications are not accepted',
     continue: "I'm not boring. Let me in.", // added
+    close: 'Close', // added, accessible name of the close icon
   },
   closed: {
     body: 'Applications are closed. Catch us next round.', // added
+  },
+  footer: {
+    body: 'TODO_CONTENT', // added, LND-09 (P2), needs owner: Instagram and contact links
   },
   nav: {
     next: 'Next', // added

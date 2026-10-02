@@ -1,12 +1,15 @@
-import { copy } from '@andropedia/shared';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import Landing from './routes/Landing';
+import NotFound from './routes/NotFound';
 
-// Foundation placeholder. The landing page replaces this in phase 3.
+// The application routes (/apply/*) arrive with the application shell. Until then they show the 404 page.
 export default function App() {
   return (
-    <main className="px-4 py-8">
-      <h1 className="font-display text-[clamp(3rem,14vw,7rem)] leading-[0.9] tracking-[-0.02em]">
-        {copy.hero.l1}
-      </h1>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
