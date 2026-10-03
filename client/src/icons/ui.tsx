@@ -117,3 +117,61 @@ export function WhatsAppIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** Right-pointing arrow in the set's square stroke style; rotate it for other directions. */
+export function ArrowIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={3}
+      strokeLinecap="square"
+      strokeLinejoin="miter"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+/** LND-09: LinkedIn glyph in our stroke style (framed "in"), not the official mark. */
+export function LinkedInIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="square"
+      strokeLinejoin="miter"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <rect x="7" y="6.5" width="2" height="2" fill="currentColor" stroke="none" />
+      <path d="M8 11v6M12 17v-6M12 13.8c0-1.7 1.1-2.8 2.5-2.8S17 12 17 13.8V17" />
+    </svg>
+  );
+}
+
+/** Plus sign; turned 45 degrees it reads as a close mark (FAQ open state). */
+export function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={3}
+      strokeLinecap="square"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}

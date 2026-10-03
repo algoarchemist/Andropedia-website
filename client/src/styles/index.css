@@ -102,7 +102,7 @@
 
 /* LND-02: the club logo, large and centred behind the hero. A mask, so it is painted with a flat theme token. */
 .hero-mark {
-  background-color: var(--cobalt-wash);
+  background-color: var(--cobalt-deep);
   -webkit-mask: url('../assets/andropedia-mark.svg') center / contain no-repeat;
   mask: url('../assets/andropedia-mark.svg') center / contain no-repeat;
 }
@@ -156,4 +156,41 @@
   background-color: var(--stage, transparent);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.25rem), 0 100%);
   pointer-events: none;
+}
+
+/* LND-06 the one Apply now sits raised on a flat ink block (a solid offset shape, not a shadow: DSN-06).
+   Hover lifts it a little further off the block; press pushes it flat onto the block. Unlayered, so it wins
+   over the Button press utilities. */
+.cta-lift {
+  transition: transform var(--motion-fast) var(--ease);
+}
+@media (hover: hover) {
+  .cta-lift:hover {
+    transform: translate(-2px, -2px);
+  }
+}
+.cta-lift:active {
+  transform: translate(6px, 6px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cta-lift,
+  .cta-lift:hover,
+  .cta-lift:active {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Stage numeral: a faint, tilted watermark in the band's ink behind the step title (z-index -1 puts it under the
+   title and progress text and over the band). Solid and faint, not outlined, so no sharp lines cross the text. */
+.stage-numeral {
+  position: absolute;
+  z-index: -1;
+  right: -0.25rem;
+  bottom: -0.75rem;
+  color: var(--stage-ink, var(--ink));
+  opacity: 0.14;
+  transform: rotate(-6deg);
+  pointer-events: none;
+  user-select: none;
 }

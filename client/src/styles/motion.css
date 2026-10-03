@@ -265,3 +265,29 @@
     animation: fade-in var(--motion-fast) linear;
   }
 }
+
+/* ---- Ticker tapes (owner request, across the site): a tape drifts sideways while it crosses the screen, driven by
+   the page scroll, so nothing moves on its own (WCAG 2.2.2). Static on reduced motion or where scroll timelines
+   are unsupported. ---- */
+@keyframes ticker {
+  to {
+    transform: translateX(-25%);
+  }
+}
+@keyframes ticker-reverse {
+  from {
+    transform: translateX(-25%);
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .ticker-track {
+      animation: ticker linear both;
+      animation-timeline: view();
+      animation-range: cover;
+    }
+    .ticker-track.ticker-reverse {
+      animation-name: ticker-reverse;
+    }
+  }
+}

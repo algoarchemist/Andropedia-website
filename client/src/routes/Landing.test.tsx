@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DOMAINS, DRAFT_KEY, INSTAGRAM_URL, copy } from '@andropedia/shared';
+import { DOMAINS, DRAFT_KEY, INSTAGRAM_URL, LINKEDIN_URL, copy } from '@andropedia/shared';
 import { resetConfigCache } from '../state/config';
 import { DraftProvider } from '../state/draft';
 import { validYou } from '../test/fixtures';
@@ -55,14 +55,20 @@ describe('Landing copy (PRD 9)', () => {
     expect(screen.getByRole('heading', { level: 2, name: copy.about.title })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 2, name: copy.domains.title })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 2, name: copy.process.title })).toBeTruthy();
-    // about.body and footer.body both ship as TODO_CONTENT until the owner fills them.
-    expect(screen.getByRole('region', { name: copy.about.title }).textContent).toContain(copy.about.body);
+    // about.body is the owner's text; footer.body still ships as TODO_CONTENT until the owner fills it.
+    const about = screen.getByRole('region', { name: copy.about.title });
+    expect(about.textContent).toContain(copy.about.body);
+    expect(about.textContent).toContain(copy.about.bodyMore);
+    expect(about.textContent).toContain(copy.about.bodyCrew);
     expect(screen.getByRole('contentinfo').textContent).toBe(copy.footer.body);
     // LND-09: the Instagram logo is a link to the club profile, named for screen readers, opening in a new tab.
     const instagram = within(screen.getByRole('contentinfo')).getByRole('link', { name: copy.footer.instagram });
     expect(instagram.getAttribute('href')).toBe(INSTAGRAM_URL);
     expect(instagram.getAttribute('target')).toBe('_blank');
     expect(instagram.getAttribute('rel')).toBe('noopener noreferrer');
+    const linkedin = within(screen.getByRole('contentinfo')).getByRole('link', { name: copy.footer.linkedin });
+    expect(linkedin.getAttribute('href')).toBe(LINKEDIN_URL);
+    expect(linkedin.getAttribute('target')).toBe('_blank');
 
     const steps = within(document.querySelector('ol') as HTMLElement).getAllByRole('listitem');
     expect(steps.map((li) => li.textContent?.replace(/^\d/, '').trim())).toEqual([...copy.process.steps]);
@@ -72,7 +78,7 @@ describe('Landing copy (PRD 9)', () => {
       expect(screen.getByText(domain.tagline)).toBeTruthy();
     }
 
-    await waitFor(() => expect(applyButtons()).toHaveLength(2));
+    await waitFor(() => expect(applyButtons()).toHaveLength(1));
   });
 
   it('has one h1 and section headings in order', async () => {
@@ -83,16 +89,61 @@ describe('Landing copy (PRD 9)', () => {
       copy.about.title,
       copy.domains.title,
       copy.process.title,
+      copy.faq.title,
+      copy.cta.lead,
     ]);
   });
 });
 
-describe('Apply now (LND-02, LND-06, LND-07)', () => {
-  it('shows two Apply now buttons, each opening the Error 404 modal', async () => {
+describe('FAQ (owner request)', () => {
+  it('lists every question closed, and a question opens to show its answer', async () => {
     mockConfig({ recruitmentOpen: true, whatsappUrl: '' });
     const user = userEvent.setup();
     renderLanding();
-    await waitFor(() => expect(applyButtons()).toHaveLength(2));
+    const faq = screen.getByRole('region', { name: copy.faq.title });
+    const questions = within(faq).getAllByText((_, el) => el?.tagName === 'SUMMARY');
+    expect(questions.map((q) => q.textContent)).toEqual(copy.faq.items.map((i) => i.q));
+    const first = questions[0]!.closest('details')!;
+    expect(first.open).toBe(false);
+    await user.click(questions[0]!);
+    expect(first.open).toBe(true);
+    expect(within(first).getByText(copy.faq.items[0]!.a)).toBeTruthy();
+  });
+
+  it('sits between the process and Apply now', () => {
+    mockConfig({ recruitmentOpen: true, whatsappUrl: '' });
+    renderLanding();
+    const order = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+    expect(order.indexOf(copy.faq.title)).toBe(order.indexOf(copy.process.title) + 1);
+    expect(order.indexOf(copy.cta.lead)).toBe(order.indexOf(copy.faq.title) + 1);
+  });
+});
+
+describe('Closing Apply now copy (LND-06)', () => {
+  it('sells it above, reassures below, and the hero points down to it', async () => {
+    mockConfig({ recruitmentOpen: true, whatsappUrl: '' });
+    renderLanding();
+    expect(await screen.findByText(copy.cta.reassure)).toBeTruthy();
+    const nudge = screen.getByRole('link', { name: copy.hero.nudge });
+    expect(nudge.getAttribute('href')).toBe('#apply');
+    expect(document.getElementById('apply')?.contains(applyButtons()[0]!)).toBe(true);
+  });
+
+  it('when closed, hides the reassurance and the hero pointer', async () => {
+    mockConfig({ recruitmentOpen: false, whatsappUrl: '' });
+    renderLanding();
+    expect(await screen.findByText(copy.closed.body)).toBeTruthy();
+    expect(screen.queryByText(copy.cta.reassure)).toBeNull();
+    expect(screen.queryByRole('link', { name: copy.hero.nudge })).toBeNull();
+  });
+});
+
+describe('Apply now (LND-02, LND-06, LND-07)', () => {
+  it('shows one Apply now, after the process (OD-02), opening the Error 404 modal', async () => {
+    mockConfig({ recruitmentOpen: true, whatsappUrl: '' });
+    const user = userEvent.setup();
+    renderLanding();
+    await waitFor(() => expect(applyButtons()).toHaveLength(1));
 
     for (const button of applyButtons()) {
       await user.click(button);
@@ -107,7 +158,7 @@ describe('Apply now (LND-02, LND-06, LND-07)', () => {
     mockConfig({ recruitmentOpen: true, whatsappUrl: '' });
     const user = userEvent.setup();
     renderLanding();
-    await waitFor(() => expect(applyButtons()).toHaveLength(2));
+    await waitFor(() => expect(applyButtons()).toHaveLength(1));
     await user.click(applyButtons()[0]!);
     await user.click(screen.getByRole('button', { name: copy.modal.continue }));
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/apply/you'));
@@ -118,7 +169,7 @@ describe('Apply now (LND-02, LND-06, LND-07)', () => {
     mockConfig({ recruitmentOpen: true, whatsappUrl: '' });
     const user = userEvent.setup();
     renderLanding();
-    await waitFor(() => expect(applyButtons()).toHaveLength(2));
+    await waitFor(() => expect(applyButtons()).toHaveLength(1));
     await user.click(applyButtons()[0]!);
     await user.click(screen.getByRole('button', { name: copy.modal.continue }));
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/apply/domain'));
@@ -129,7 +180,7 @@ describe('Closed state (LND-08)', () => {
   it('replaces every Apply now with the closed message', async () => {
     mockConfig({ recruitmentOpen: false, whatsappUrl: '' });
     renderLanding();
-    await waitFor(() => expect(screen.getAllByText(copy.closed.body)).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByText(copy.closed.body)).toHaveLength(1));
     expect(applyButtons()).toHaveLength(0);
   });
 
@@ -143,6 +194,6 @@ describe('Closed state (LND-08)', () => {
   it('falls back to open if the API cannot be reached', async () => {
     mockConfig({}, false);
     renderLanding();
-    await waitFor(() => expect(applyButtons()).toHaveLength(2));
+    await waitFor(() => expect(applyButtons()).toHaveLength(1));
   });
 });

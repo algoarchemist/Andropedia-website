@@ -2,7 +2,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { copy } from '@andropedia/shared';
 import { BurstIcon } from '../../icons/ui';
+import { Ticker } from '../../components/Ticker';
 import { SectionTitle } from '../../components/SectionTitle';
+
+// The hero's two small lines, one role per word on the tape.
+const ROLES = [copy.hero.l3, copy.hero.l4].flatMap((line) => line.split(' | '));
 
 export function Process() {
   const steps = copy.process.steps;
@@ -31,7 +35,7 @@ export function Process() {
 
   return (
     <section aria-labelledby="process-title" className="band bg-yellow">
-      <div className="gutter mx-auto w-full max-w-[720px] pb-14 pt-12 md:pb-20 md:pt-16">
+      <div className="gutter mx-auto w-full max-w-[720px] pb-14 pt-12 md:pb-16 md:pt-16">
         <SectionTitle id="process-title">{copy.process.title}</SectionTitle>
         <ol className="relative m-0 mt-10 list-none p-0 [--half:2rem] md:[--half:2.5rem]">
           {/* The track: a 4px ink line from the first number's center to the last. */}
@@ -64,6 +68,9 @@ export function Process() {
             );
           })}
         </ol>
+      </div>
+      <div className="pb-12 md:pb-16">
+        <Ticker items={ROLES} tone="ink" tilt="down" reverse />
       </div>
     </section>
   );

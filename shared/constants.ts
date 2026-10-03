@@ -52,6 +52,8 @@ export const PHONE_PREFIX = '+91';
 
 /** LND-09: the club's official Instagram profile. The share token from the copied link is dropped. */
 export const INSTAGRAM_URL = 'https://www.instagram.com/andropedia_srm.rmp/';
+/** LND-09: the club's LinkedIn company page. */
+export const LINKEDIN_URL = 'https://www.linkedin.com/company/andropedia-club/';
 
 // PRD 11 (API-02, API-03, API-04, SEC-01). Per IP, per window.
 export const RATE_LIMITS = { windowMs: 60 * 60 * 1000, check: 30, photo: 20, submit: 5 } as const;

@@ -10,8 +10,8 @@
   --pink: #f49ac1;
   --green: #17773f;
   --error: #c1271b;
-  /* LND-02 hero logo: 30% cobalt on paper, precomputed (no color-mix on iOS 16.0). Ink on it is 9.8:1. (added) */
-  --cobalt-wash: #b4b9e3;
+  /* LND-02 hero logo: a deeper cobalt, tone on tone on the cobalt hero. Paper text on it is 8.7:1. (added) */
+  --cobalt-deep: #1a2fb0;
   /* DONE Instagram box (added): flat Instagram colors, never blended. Paper text on --insta is 5.4:1. */
   --insta: #b5246b;
 }

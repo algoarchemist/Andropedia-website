@@ -139,7 +139,7 @@ test('a closed round sends /apply/you back to the landing page', async ({ page }
   await stubConfig(page, false);
   await page.goto('/apply/you');
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByText(copy.closed.body)).toHaveCount(2);
+  await expect(page.getByText(copy.closed.body)).toHaveCount(1);
 });
 
 test('layout: progress bar fits, no horizontal scroll, buttons 56px and in normal flow', async ({ page, isMobile }) => {

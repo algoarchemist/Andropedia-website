@@ -4,7 +4,7 @@
 // SHL-06: on step change, scroll to top and set the document title.
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { copy, fmt } from '@andropedia/shared';
+import { PROGRESS_STAGES, copy, fmt } from '@andropedia/shared';
 import {
   ServerErrorsContext,
   StepErrorsContext,
@@ -19,6 +19,7 @@ import { cameFrom, serverErrorsFrom, type FromState } from '../routes/apply/guar
 import { nextPath, prevPath, type Step } from '../routes/apply/steps';
 import { useDraft } from '../state/draft';
 import { Button } from './Button';
+import { StageNumeral } from './StageNumeral';
 
 const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
@@ -152,6 +153,7 @@ export function StepLayout({ step, helper, children, onNext, nextLabel, busyLabe
                 {step.title}
               </h1>
               {helper && <p className="mt-3 text-sm">{helper}</p>}
+              <StageNumeral n={PROGRESS_STAGES[step.stage]!.n} />
             </div>
 
             <div className="mt-8">{children}</div>

@@ -167,3 +167,37 @@ test('DSN-10: every control on every form step is at least 44px in both directio
     expect(small, `/apply/${step}`).toEqual([]);
   }
 });
+
+test.describe('ticker tapes (owner request): landing only, decorative, scroll-driven only', () => {
+  const pages: [string, number][] = [
+    ['/', 3],
+    ['/apply/you', 0],
+    ['/this-page-does-not-exist', 0],
+  ];
+
+  for (const [path, count] of pages) {
+    test(`${path}: ${count} tape(s), hidden from assistive tech, scroll-linked, no sideways scroll`, async ({ page }) => {
+      await page.goto(path);
+      const tracks = page.locator('.ticker-track');
+      await expect(tracks).toHaveCount(count);
+      for (const track of await tracks.all()) {
+        expect(await track.evaluate((el) => el.closest('[aria-hidden="true"]') !== null)).toBe(true);
+        const motion = await track.evaluate((el) => {
+          const s = getComputedStyle(el);
+          return { name: s.animationName, timeline: s.getPropertyValue('animation-timeline') };
+        });
+        expect(motion.name).toMatch(/^ticker(-reverse)?$/);
+        expect(motion.timeline).toBe('view()');
+      }
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(overflow).toBeLessThanOrEqual(0);
+    });
+  }
+
+  test('under reduced motion every tape stands still', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    const names = await page.locator('.ticker-track').evaluateAll((els) => els.map((el) => getComputedStyle(el).animationName));
+    expect(names).toEqual(['none', 'none', 'none']);
+  });
+});

@@ -28,7 +28,7 @@ type DomainPickerProps = {
 
 export function DomainPicker({ name, label, value, onChange, exclude = [], error }: DomainPickerProps) {
   return (
-    <Field name={name} label={label} error={error}>
+    <Field name={name} label={label} error={error} stamp={false}>
       {({ labelId, ...control }) => (
         <Picker control={control} labelId={labelId} value={value} onChange={onChange} exclude={exclude} />
       )}

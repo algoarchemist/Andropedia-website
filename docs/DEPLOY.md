@@ -65,6 +65,6 @@ Client env vars are read at build time. Redeploy the client after changing them.
 
 ## Before launch (PRD section 15)
 
-- Replace `TODO_CONTENT` in `shared/copy.ts`: `about.body` and `footer.body` (`LND-09`, Instagram and contact links).
+- Replace `TODO_CONTENT` in `shared/copy.ts`: `footer.body` (`LND-09`, contact links). `about.body` is done.
 - Open the WhatsApp link on an Android phone and an iPhone.
 - Run the `NFR-04` device checks on a small Android, a large Android and a notched iPhone.

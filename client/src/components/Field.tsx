@@ -5,7 +5,7 @@
 import { useId, type ReactNode } from 'react';
 import { LIMITS, copy, fmt } from '@andropedia/shared';
 import { useFieldError } from '../hooks';
-import { AlertIcon } from '../icons/ui';
+import { AlertIcon, CheckIcon } from '../icons/ui';
 
 /** DSN-07: 52px tall, 2px ink border, 2px radius. 16px text so iOS does not zoom on focus. Cobalt border on focus. */
 export const CONTROL_CLASS =
@@ -33,9 +33,11 @@ type FieldProps = {
    */
   counter?: { length: number; max: number; always?: boolean };
   children: (control: FieldControlProps & { labelId: string }) => ReactNode;
+  /** Owner request: a check stamps in beside the label once the field is done. Off where the control stamps itself. */
+  stamp?: boolean;
 };
 
-export function Field({ name, label, helper, error: forced, counter, children }: FieldProps) {
+export function Field({ name, label, helper, error: forced, counter, children, stamp = true }: FieldProps) {
   const uid = useId();
   const id = `${uid}-control`;
   const labelId = `${uid}-label`;
@@ -43,7 +45,7 @@ export function Field({ name, label, helper, error: forced, counter, children }:
   const errorId = `${uid}-error`;
   const counterId = `${uid}-counter`;
 
-  const { error, onBlur } = useFieldError(name, forced);
+  const { error, onBlur, done } = useFieldError(name, forced);
 
   // APP-00: 800 of 1000 for long text; the same proportion for shorter limits (an achievement's 400).
   const showCounter =
@@ -55,6 +57,17 @@ export function Field({ name, label, helper, error: forced, counter, children }:
     <div data-field={name} onBlur={onBlur}>
       <label id={labelId} htmlFor={id} className="block font-semibold leading-snug">
         {label}
+        {stamp && done && (
+          // Reuses the pick stamp landing (DSN-08); a fade under reduced motion. Hidden from the label's name.
+          <span
+            aria-hidden="true"
+            data-fresh="true"
+            data-done-stamp
+            className="pick-stamp ml-2 inline-flex h-5 w-5 -rotate-6 items-center justify-center border-2 border-ink bg-yellow align-[-0.2em] text-ink"
+          >
+            <CheckIcon className="h-3.5 w-3.5" />
+          </span>
+        )}
       </label>
       {helper && (
         <p id={helperId} className="mt-1 text-sm text-muted">

@@ -36,8 +36,11 @@ const PRD_KEYS = [
 const ADDED_KEYS = [
   'err.server', 'err.rateLimit', 'err.unauthorized',
   'brand.name', 'modal.close', 'footer.body', // phase 3
-  'footer.instagram', // LND-09
+  'footer.instagram', 'footer.linkedin', // LND-09
   'done.whatsappSoon', 'done.instagram', // success screen boxes
+  'hero.nudge', 'cta.lead', 'cta.reassure', // closing Apply now
+  'about.bodyMore', 'about.bodyCrew', // LND-03 paragraphs after the lead
+  'faq.title', 'faq.items', // landing FAQ
   'draft.confirmTitle', 'draft.confirmBody', 'draft.confirmYes', 'draft.confirmNo', // phase 4
   'shell.siteTitle', 'shell.docTitle', 'shell.doneTitle', 'shell.guarded', 'shell.placeholder',
   'progress.label', 'progress.completed', 'progress.locked',
@@ -73,8 +76,9 @@ describe('copy deck', () => {
     expect(copy.process.steps).toHaveLength(5);
   });
 
-  it('flags the unwritten about body for the owner', () => {
-    expect(copy.about.body).toBe('TODO_CONTENT');
+  it('has the owner about text, not the placeholder (LND-03)', () => {
+    expect(copy.about.body).not.toBe('TODO_CONTENT');
+    expect(copy.about.bodyCrew).toContain('SKYLINX');
   });
 });
 

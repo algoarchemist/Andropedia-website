@@ -13,7 +13,7 @@ const applyButtons = (page: Page) => page.getByRole('button', { name: copy.cta.a
 test.beforeEach(async ({ page }) => {
   await stubConfig(page, true);
   await page.goto('/');
-  await expect(applyButtons(page)).toHaveCount(2);
+  await expect(applyButtons(page)).toHaveCount(1);
 });
 
 test('no horizontal scroll at this width', async ({ page }) => {
@@ -24,13 +24,16 @@ test('no horizontal scroll at this width', async ({ page }) => {
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth);
 });
 
-test('hero lines and Apply now fit on the first screen', async ({ page }) => {
+test('hero lines fit on the first screen, with no Apply now in the hero (OD-02)', async ({ page }) => {
   const viewport = page.viewportSize()!;
   const h1 = await page.getByRole('heading', { level: 1 }).boundingBox();
-  const apply = await applyButtons(page).first().boundingBox();
   expect(h1!.x).toBeGreaterThanOrEqual(0);
   expect(h1!.x + h1!.width).toBeLessThanOrEqual(viewport.width);
-  expect(apply!.y + apply!.height).toBeLessThanOrEqual(viewport.height);
+  expect(h1!.y + h1!.height).toBeLessThanOrEqual(viewport.height);
+  await expect(applyButtons(page)).toHaveCount(1);
+  const apply = await applyButtons(page).boundingBox();
+  const process = await page.getByRole('heading', { level: 2, name: copy.process.title }).boundingBox();
+  expect(apply!.y).toBeGreaterThan(process!.y);
 });
 
 test('lines 1 and 2 are the largest type on the page', async ({ page }) => {
@@ -135,7 +138,7 @@ test('closed state replaces every Apply now with the closed message (LND-08)', a
   await page.unroute('**/api/config');
   await stubConfig(page, false);
   await page.reload();
-  await expect(page.getByText(copy.closed.body)).toHaveCount(2);
+  await expect(page.getByText(copy.closed.body)).toHaveCount(1);
   await expect(applyButtons(page)).toHaveCount(0);
 });
 

@@ -1,7 +1,8 @@
 // Success screen (DONE). Only reachable with a submission id from this session (SHL-05). The shell's progress
 // bar shows every stage completed, and the stamps land in sequence once (DONE-01, DSN-08).
 import { useEffect } from 'react';
-import { INSTAGRAM_URL, copy, fmt } from '@andropedia/shared';
+import { INSTAGRAM_URL, PROGRESS_STAGES, copy, fmt } from '@andropedia/shared';
+import { StageNumeral } from '../../components/StageNumeral';
 import { InstagramIcon, WhatsAppIcon } from '../../icons/ui';
 import { useDocumentTitle } from '../../lib/useDocumentTitle';
 import { useConfig } from '../../state/config';
@@ -29,6 +30,7 @@ export default function Done() {
       <div className="step-head on-band">
         <h1 className="font-display text-[clamp(2rem,9vw,3.5rem)] leading-[0.95] tracking-[-0.02em]">{copy.done.title}</h1>
         <p className="mt-4 text-lg">{copy.done.body}</p>
+        <StageNumeral n={PROGRESS_STAGES[PROGRESS_STAGES.length - 1]!.n} />
       </div>
 
       {/* DONE-03: full width, at least 72px, display type, flat green. Its height is reserved while config loads.

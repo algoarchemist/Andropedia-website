@@ -64,6 +64,7 @@ export function useServerError(path: string): string | undefined {
  * What a field shows (APP-00, SHL-03): a forced error first (duplicate check, domain reset), then a server
  * error still about the current value, then the schema error once the field was left or Next failed.
  * Spread `onBlur` on the field wrapper; focus moving inside the wrapper does not count as leaving it.
+ * `done` (owner request, the per-field stamp): the field was left with a value and nothing wrong with it.
  */
 export function useFieldError(name: string, forced?: string) {
   const [touched, setTouched] = useState(false);
@@ -71,9 +72,14 @@ export function useFieldError(name: string, forced?: string) {
   const live = useLiveStepErrors();
   const server = useServerError(name);
   const error = forced ?? server ?? (touched || name in submitted ? live[name] : undefined);
+  const { data } = useDraft();
+  const value = (data as Record<string, unknown>)[name];
+  const filled = value !== undefined && value !== null && value !== '' && !(Array.isArray(value) && value.length === 0);
+  const clean = !Object.keys(live).some((key) => key === name || key.startsWith(`${name}.`));
+  const done = touched && filled && clean && !forced && !server;
 
   const onBlur = (event: FocusEvent<HTMLElement>) => {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setTouched(true);
   };
-  return { error, onBlur };
+  return { error, onBlur, done };
 }

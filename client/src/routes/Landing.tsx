@@ -10,6 +10,7 @@ import { resumePath } from './apply/steps';
 import { About } from './landing/About';
 import { ClosingCta } from './landing/ClosingCta';
 import { Domains } from './landing/Domains';
+import { Faq } from './landing/Faq';
 import { Footer } from './landing/Footer';
 import { Hero } from './landing/Hero';
 import { Process } from './landing/Process';
@@ -30,16 +31,20 @@ export default function Landing() {
     // overflow-x: clip, so rotated rows can never create a horizontal scrollbar.
     <div className="overflow-x-clip">
       {/* LND-01: wordmark only. The page has nothing to navigate between, so no menu. */}
-      <header className="gutter mx-auto flex w-full max-w-screen-xl items-center gap-3 pb-2 pt-[max(1rem,env(safe-area-inset-top))]">
-        <span aria-hidden="true" className="block h-5 w-5 -rotate-6 border-2 border-ink bg-red" />
-        <span className="font-display text-xl leading-none tracking-[-0.01em]">{copy.brand.name}</span>
+      {/* On the hero's cobalt, so the top of the page reads as one block. */}
+      <header className="bg-cobalt text-paper">
+        <div className="gutter mx-auto flex w-full max-w-screen-xl items-center gap-3 pb-2 pt-[max(1rem,env(safe-area-inset-top))]">
+          <span aria-hidden="true" className="block h-5 w-5 -rotate-6 border-2 border-ink bg-red" />
+          <span className="font-display text-xl leading-none tracking-[-0.01em]">{copy.brand.name}</span>
+        </div>
       </header>
 
       <main>
-        <Hero onApply={openModal} />
+        <Hero />
         <About />
         <Domains />
         <Process />
+        <Faq />
         <ClosingCta onApply={openModal} />
       </main>
 

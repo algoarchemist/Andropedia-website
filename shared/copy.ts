@@ -11,13 +11,19 @@ export const copy = {
     l2: 'THE NEXT BUNCH OF WEIRDOS',
     l3: 'DESIGNERS | DEVELOPERS | BUILDERS',
     l4: 'PROBLEM SOLVERS | CHAOS MANAGERS',
+    nudge: 'Keep scrolling. The apply button is waiting at the bottom.', // added, OD-02: the hero has no Apply now
   },
   cta: {
     apply: 'Apply now',
+    lead: "Still reading? That's weird. We like weird.", // added
+    reassure: 'No experience needed. Your answers save as you go.', // added
   },
   about: {
     title: 'What we do',
-    body: 'TODO_CONTENT', // needs owner
+    // Owner-supplied text, rewritten in the site voice (LND-03).
+    body: "Andropedia isn't just a club. It's your way into real tech.",
+    bodyMore: 'Lectures hand you the theory. We help you turn it into things that actually work, built the way the industry builds them.', // added
+    bodyCrew: 'Six domains, one very weird crew: coders, designers, storytellers, hype makers and tinkerers. Together we go hands-on with Cloud, AI and Machine Learning through programs like SKYLINX.', // added
     stepTitle: 'Tell us about yourself',
     notFound: 'error 404: boring application not found',
     self: 'Tell us about yourself',
@@ -47,6 +53,37 @@ export const copy = {
       "Woohoo you're a member",
     ],
   },
+  // Owner request: only answers the site itself backs up (the form, the process, the success screen). Club facts
+  // such as eligibility, deadline, time commitment, cost and results date wait for the owner.
+  faq: {
+    title: 'Questions? Fair enough.', // added
+    items: [
+      {
+        q: 'Do I need experience?',
+        a: "Nope. No experience needed, just curiosity. Show us what you've tried, even the messy stuff.",
+      },
+      {
+        q: 'Why do I pick two domains?',
+        a: "Your first pick is the one you want most and your second is the backup. We'll ask why you chose the first one, so pick the one you really mean.",
+      },
+      {
+        q: 'What do I need before I start?',
+        a: "Your register number, email and phone number, a photo of yourself, a link to your work (GitHub, Drive or a portfolio) and at least one thing you're proud of. That's it.",
+      },
+      {
+        q: 'Can I stop halfway and finish later?',
+        a: "Yes. Your answers save as you type. Come back on the same phone or laptop, in the same browser, and you'll pick up right where you left off.",
+      },
+      {
+        q: 'What happens after I apply?',
+        a: 'Next up: a task for your domain, then a shortlist, then an online interview. Join our community from the screen you see after submitting, because that is where the domain tasks drop.',
+      },
+      {
+        q: 'Can I apply more than once?',
+        a: 'One application per person. Each register number and email can only be used once, so make it count.',
+      },
+    ],
+  }, // added
   modal: {
     title: 'Error 404',
     body: 'Boring applications are not accepted',
@@ -59,6 +96,7 @@ export const copy = {
   footer: {
     body: 'TODO_CONTENT', // added, LND-09 (P2), needs owner: contact links
     instagram: 'Andropedia on Instagram', // added, LND-09: name of the Instagram logo link
+    linkedin: 'Andropedia on LinkedIn', // added, LND-09: name of the LinkedIn logo link
   },
   nav: {
     next: 'Next', // added
