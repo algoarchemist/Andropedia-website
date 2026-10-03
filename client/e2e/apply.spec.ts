@@ -1,4 +1,4 @@
-// Phase 4: application shell, routes, guards, draft persistence (SHL-01 to SHL-06).
+// Phase 4 (updated in Phase 5 for the real step 01 fields): application shell, routes, guards, draft persistence (SHL-01 to SHL-06).
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { DRAFT_KEY, PROGRESS_STAGES, copy } from '@andropedia/shared';
@@ -11,7 +11,7 @@ async function stubConfig(page: Page, recruitmentOpen: boolean) {
   );
 }
 
-/** Steps 01 to 02b have no fields until Phase 5, so "filling" a step means seeding its draft values. */
+/** Seeds the draft directly, for tests that are about the shell rather than the fields. */
 async function seedDraft(page: Page, data: object) {
   await page.evaluate(([key, value]) => window.localStorage.setItem(key!, value!), [DRAFT_KEY, JSON.stringify(data)]);
 }
@@ -31,6 +31,7 @@ async function noAxeViolations(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await stubConfig(page, true);
+  await page.route('**/api/applications/check', (route) => route.fulfill({ json: { registerNumberTaken: false, emailTaken: false } }));
 });
 
 test('Apply now, then continue, opens step 01 inside the shell', async ({ page }) => {
@@ -42,7 +43,7 @@ test('Apply now, then continue, opens step 01 inside the shell', async ({ page }
   await expect(page.getByRole('heading', { level: 1, name: copy.you.title })).toBeVisible();
   await expect(progress(page).locator('[aria-current="step"]')).toContainText('01');
   await expect(page).toHaveTitle('Step 01 · Andropedia Recruitment');
-  await expect(page.getByText('Step 01 coming in Phase 5.')).toBeVisible();
+  await expect(page.getByLabel(copy.you.name)).toBeVisible();
 });
 
 test('with a saved draft, Apply now resumes at the first incomplete step (LND-07)', async ({ page }) => {
@@ -78,7 +79,7 @@ test('refreshing restores the draft and shows the banner; Start over asks, then 
   // The draft really is empty: Next now fails on step 01.
   await next(page).click();
   await expect(page).toHaveURL(/\/apply\/you$/);
-  await expect(page.locator('[data-field="name"]')).toBeFocused();
+  await expect(page.getByLabel(copy.you.name)).toBeFocused();
 });
 
 test('Next moves on with a valid step; Back and the browser back button return with data intact', async ({ page }) => {
@@ -194,7 +195,7 @@ test('layout: progress bar fits, no horizontal scroll, buttons 56px and in norma
 test('invalid Next lists the errors and focuses the first, with no axe violations', async ({ page }) => {
   await page.goto('/apply/you');
   await next(page).click();
-  await expect(page.locator('[data-field="name"]')).toBeFocused();
+  await expect(page.getByLabel(copy.you.name)).toBeFocused();
   await expect(page.getByText(copy.err.regno)).toBeVisible();
   await noAxeViolations(page);
 });

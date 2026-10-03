@@ -43,3 +43,32 @@ export function BurstIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** Error marker shown before field error text (DSN-07): a filled square with an exclamation mark. */
+export function AlertIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <rect x="2" y="2" width="20" height="20" fill="currentColor" />
+      <path d="M12 7v6.5M12 16.5v1" stroke="var(--paper)" strokeWidth={3} strokeLinecap="square" fill="none" />
+    </svg>
+  );
+}
+
+/** Select chevron (DSN-07 Select). */
+export function ChevronIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={3}
+      strokeLinecap="square"
+      strokeLinejoin="miter"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M5 9l7 7 7-7" />
+    </svg>
+  );
+}

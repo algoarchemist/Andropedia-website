@@ -2,34 +2,19 @@
 // document flow (never fixed to the viewport bottom, so the mobile keyboard cannot cover them).
 // SHL-03: Next validates the whole step; on failure the first invalid field is scrolled to, focused and shaken.
 // SHL-06: on step change, scroll to top and set the document title.
-import { createContext, useContext, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import type { ZodError } from 'zod';
 import { copy, fmt } from '@andropedia/shared';
+import { StepErrorsContext, StepSchemaContext, toFieldErrors, type FieldErrors } from '../hooks';
 import { useDocumentTitle } from '../lib/useDocumentTitle';
 import { cameFrom, type FromState } from '../routes/apply/guard';
 import { nextPath, prevPath, type Step } from '../routes/apply/steps';
 import { useDraft } from '../state/draft';
 import { Button } from './Button';
 
-/** Field path (dotted, e.g. `achievements.0.title`) to its first error message. */
-export type FieldErrors = Record<string, string>;
-
-const StepErrorsContext = createContext<FieldErrors>({});
-
-/** Errors from the last failed Next, for fields to show inline (SHL-03). */
-export const useStepErrors = () => useContext(StepErrorsContext);
-
-export function toFieldErrors(error: ZodError): FieldErrors {
-  const out: FieldErrors = {};
-  for (const issue of error.issues) {
-    const path = issue.path.join('.');
-    out[path] ??= issue.message;
-  }
-  return out;
-}
-
 const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+export { useStepErrors } from '../hooks';
 
 /**
  * Fields mark their wrapper with data-field="<path>". Focuses the first invalid one that is on screen,
@@ -123,7 +108,8 @@ export function StepLayout({ step, helper, children, onNext }: StepLayoutProps) 
   }
 
   return (
-    <StepErrorsContext.Provider value={errors}>
+    <StepSchemaContext.Provider value={step.schema}>
+      <StepErrorsContext.Provider value={errors}>
       <form ref={formRef} noValidate onSubmit={handleSubmit} aria-labelledby={titleId}>
         <h1
           ref={titleRef}
@@ -148,5 +134,6 @@ export function StepLayout({ step, helper, children, onNext }: StepLayoutProps) 
         </div>
       </form>
     </StepErrorsContext.Provider>
+    </StepSchemaContext.Provider>
   );
 }

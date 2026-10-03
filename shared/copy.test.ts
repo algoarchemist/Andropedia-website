@@ -39,6 +39,8 @@ const ADDED_KEYS = [
   'draft.confirmTitle', 'draft.confirmBody', 'draft.confirmYes', 'draft.confirmNo', // phase 4
   'shell.siteTitle', 'shell.docTitle', 'shell.doneTitle', 'shell.guarded', 'shell.placeholder',
   'progress.label', 'progress.completed', 'progress.locked',
+  'you.departmentPrompt', 'you.phonePrefix', 'field.counter', // phase 5
+  'about.stackRemove', 'about.stackFull', 'about.stackList',
 ];
 const ALL_KEYS = [...PRD_KEYS, ...ADDED_KEYS];
 

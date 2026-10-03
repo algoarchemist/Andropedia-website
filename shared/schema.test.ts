@@ -140,3 +140,14 @@ describe('applicationSchema', () => {
     expect(applicationSchema.safeParse({ ...valid, website: 'x' }).success).toBe(false);
   });
 });
+
+// Fields never typed into are missing keys, and must report our copy, not zod's English default.
+describe('missing keys', () => {
+  it('report err.required, never zod defaults', () => {
+    for (const schema of [youSchema, domainSchema, aboutSchema]) {
+      const result = schema.safeParse({});
+      expect(result.success).toBe(false);
+      if (!result.success) for (const issue of result.error.issues) expect(issue.message).not.toBe('Required');
+    }
+  });
+});

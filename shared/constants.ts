@@ -46,6 +46,10 @@ export const LIMITS = {
   responsibilityMin: 0, responsibilityMax: 5,
 } as const;
 
+/** Input attribute limits (APP-01). The regexes above are what actually validate; these only cap what can be typed. */
+export const INPUT_MAX = { name: 80, registerNumber: 15, phoneDigits: 10, section: 4 } as const;
+export const PHONE_PREFIX = '+91';
+
 // PRD 11 (API-02, API-03, API-04, SEC-01). Per IP, per window.
 export const RATE_LIMITS = { windowMs: 60 * 60 * 1000, check: 30, photo: 20, submit: 5 } as const;
 export const JSON_BODY_LIMIT = '100kb'; // SEC-01

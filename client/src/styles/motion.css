@@ -186,6 +186,12 @@
   }
 }
 
+@keyframes shake-calm {
+  50% {
+    opacity: 0.4;
+  }
+}
+
 /* ---- Reduced motion: no movement; domain flood becomes a fade, icons stay still ---- */
 @media (prefers-reduced-motion: reduce) {
   .domain-row::before {
@@ -215,6 +221,17 @@
   }
 
   .shake {
-    animation: none;
+    animation: shake-calm var(--motion-fast) linear;
+  }
+}
+
+/* ---- Domain picker: the check stamp lands on the trigger after a pick (APP-02, DSN-08) ---- */
+.pick-stamp[data-fresh="true"] {
+  animation: stamp-land var(--motion-slow) var(--ease-pop) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pick-stamp[data-fresh="true"] {
+    animation: fade-in var(--motion-fast) linear;
   }
 }

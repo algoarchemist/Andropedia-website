@@ -31,21 +31,22 @@ const toPhonePayload = (v: unknown) => {
   return PHONE_IN_REGEX.test(digits) ? `+91${digits}` : digits;
 };
 
-const required = z.string().trim().min(1, copy.err.required);
+// A missing key (never typed into) is undefined, which zod reports with its own English default unless told otherwise.
+const str = () => z.string({ required_error: copy.err.required, invalid_type_error: copy.err.required });
+const required = str().trim().min(1, copy.err.required);
 
 const longText = required
   .min(LIMITS.longTextMin, copy.err.minLength)
   .max(LIMITS.longTextMax, copy.err.minLength);
 
-const httpsUrl = z
-  .string()
+const httpsUrl = str()
   .trim()
   .url(copy.err.url)
   .refine((u) => u.startsWith('https://'), copy.err.url);
 
 // Step shapes. Cross-field rules are attached below and on the merged schema.
 const youShape = {
-  name: z.string().trim().min(1, copy.err.required).regex(NAME_REGEX, copy.err.required),
+  name: str().trim().min(1, copy.err.required).regex(NAME_REGEX, copy.err.required),
   registerNumber: z.preprocess(upper, z.string().regex(REG_NO_REGEX, copy.err.regno)),
   email: z.preprocess(
     (v) => asString(v).trim().toLowerCase(),
@@ -67,7 +68,8 @@ const aboutShape = {
   skills: longText,
   techStack: z
     .array(
-      z.string().trim().min(1, copy.err.required).max(LIMITS.stackTagMaxLen, copy.err.minLength),
+      str().trim().min(1, copy.err.required).max(LIMITS.stackTagMaxLen, copy.err.minLength),
+      { required_error: copy.err.required, invalid_type_error: copy.err.required },
     )
     .min(LIMITS.stackTagsMin, copy.err.required)
     .max(LIMITS.stackTagsMax),

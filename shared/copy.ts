@@ -30,6 +30,9 @@ export const copy = {
     outsideHelp: "Good at something we didn't list? We're listening.",
     whyClub: 'Why Andropedia?',
     oneYear: 'Where do you see yourself in 1 year after joining this club?',
+    stackRemove: 'Remove {tag}', // added, screen reader name of a tag's remove button
+    stackFull: 'That is {max} tags. Remove one to add another.', // added
+    stackList: 'Your tags', // added, screen reader name of the tag list
   },
   domains: {
     title: 'Domains', // added
@@ -88,6 +91,11 @@ export const copy = {
     phone: 'Contact number',
     department: 'Department',
     section: 'Section',
+    departmentPrompt: 'Choose your department', // added, first option of the select
+    phonePrefix: 'Country code', // added, screen reader name of the fixed +91
+  },
+  field: {
+    counter: '{n} / {max}', // added, APP-00 character counter
   },
   domain: {
     title: 'Domain selection',

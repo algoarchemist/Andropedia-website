@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DRAFT_KEY, copy, fmt } from '@andropedia/shared';
+import { DRAFT_KEY, copy } from '@andropedia/shared';
 import { resetConfigCache } from '../../state/config';
 import { DraftProvider, type DraftData } from '../../state/draft';
 import { validDomain, validYou } from '../../test/fixtures';
@@ -46,11 +46,11 @@ afterEach(() => {
 });
 
 describe('application shell', () => {
-  it('every step shows the progress bar, its title and the phase placeholder', () => {
+  it('every step shows the progress bar and its title', () => {
     renderApp('/apply/you');
     expect(screen.getByRole('navigation', { name: copy.progress.label })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 1, name: copy.you.title })).toBeTruthy();
-    expect(screen.getByText(fmt(copy.shell.placeholder, { n: '01', phase: '5' }))).toBeTruthy();
+    expect(screen.getByLabelText(copy.you.name)).toBeTruthy();
   });
 
   it('a guarded redirect says why (SHL-05)', async () => {
@@ -59,11 +59,11 @@ describe('application shell', () => {
     expect(screen.getByRole('alert').textContent).toBe(copy.shell.guarded);
   });
 
-  it('a placeholder Next with an empty draft lists the step errors and focuses the first', async () => {
+  it('Next with an empty draft shows the step errors and focuses the first field', async () => {
     const user = userEvent.setup();
     renderApp('/apply/you');
     await user.click(screen.getByRole('button', { name: copy.nav.next }));
-    expect(document.activeElement?.getAttribute('data-field')).toBe('name');
+    expect(document.activeElement?.closest('[data-field]')?.getAttribute('data-field')).toBe('name');
     expect(where()).toBe('/apply/you');
   });
 
@@ -71,7 +71,7 @@ describe('application shell', () => {
     const user = userEvent.setup();
     renderApp('/apply/you', validYou);
     await user.click(screen.getByRole('button', { name: copy.nav.next }));
-    expect(where()).toBe('/apply/domain');
+    await waitFor(() => expect(where()).toBe('/apply/domain'));
     expect(screen.getByRole('heading', { level: 1, name: copy.domain.title })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: copy.nav.back }));
     expect(where()).toBe('/apply/you');

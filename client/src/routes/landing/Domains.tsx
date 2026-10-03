@@ -17,7 +17,7 @@ export const DOMAIN_FILL: Record<Domain['color'], string> = {
 };
 
 // DSN-03: text on cobalt and green is paper, on everything else it is ink.
-const DARK = new Set<Domain['color']>(['cobalt', 'green']);
+export const DARK = new Set<Domain['color']>(['cobalt', 'green']);
 
 // DSN-05: fixed per index, never random per render. Degrees, within +-0.5.
 const TILT = [-0.5, 0.4, -0.3, 0.5, -0.4, 0.3];
