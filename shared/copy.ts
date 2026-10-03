@@ -57,7 +57,8 @@ export const copy = {
     body: 'Applications are closed. Catch us next round.', // added
   },
   footer: {
-    body: 'TODO_CONTENT', // added, LND-09 (P2), needs owner: Instagram and contact links
+    body: 'TODO_CONTENT', // added, LND-09 (P2), needs owner: contact links
+    instagram: 'Andropedia on Instagram', // added, LND-09: name of the Instagram logo link
   },
   nav: {
     next: 'Next', // added
@@ -116,7 +117,17 @@ export const copy = {
       link: '+ Pin your work', // added
       proud: "+ Pin something you're proud of", // added
       photo: '+ Pin your best drip', // added
+      portfolio: '+ Pin your portfolio or LinkedIn', // added
     },
+    save: 'Pin it', // added, closes a tile editor
+    remove: 'Remove', // added
+    replace: 'Replace photo', // added
+    removePhoto: 'Remove photo', // added
+    retry: 'Try again', // added
+    uploading: 'Uploading {n}%', // added
+    linkTile: '{label}: {link}', // added, screen reader name of a filled link tile
+    proudTile: 'Achievement {n}: {title}', // added, screen reader name of a filled achievement tile
+    photoAlt: 'Photo of {name}', // added
   },
   us: {
     title: 'Team & Commitment',
@@ -128,6 +139,14 @@ export const copy = {
     otherClub: 'Are you part of any other club, now or before?', // edited
     otherClubList: 'If yes, mention them',
     goodClub: 'What do you think a good technical club should provide its members?',
+    yes: 'Yes', // added
+    no: 'No', // added
+    hoursTickMax: '7+', // added, rightmost hours tick (APP-05 F1)
+    hoursValue: '{n} hours a week', // added, slider aria-valuetext
+    hoursOne: '1 hour a week', // added
+    hoursMaxValue: '7 or more hours a week', // added
+    respValue: '{n} out of 5', // added
+    notAnswered: 'Not answered', // added, DSN-07 slider before first use
   },
   last: {
     title: 'One last thing',
@@ -135,11 +154,15 @@ export const copy = {
     remember: 'In 30 words, tell us why we should remember you.', // edited
     submit: 'Submit application', // added
     sending: 'Sending it to the core team...', // added
+    retry: 'Try again', // added, APP-06-R2 network failure
+    honeypot: 'Leave this empty', // added, SEC-04 label, hidden from people and assistive tech
   },
   done: {
     title: 'We have received your application.',
     body: 'Join our community and stay tuned for the domain challenges.',
     whatsapp: 'Join the WhatsApp community', // added
+    whatsappSoon: 'Join our community for further updates', // added, shown until the community link is final
+    instagram: 'Follow us on Instagram', // added
     signoff: 'See you around, {firstName}.', // added, P2
   },
   notfound: {

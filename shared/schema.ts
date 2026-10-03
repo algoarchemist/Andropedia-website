@@ -135,6 +135,24 @@ const checkClubs = (v: ClubInfo, ctx: z.RefinementCtx) => {
 };
 
 export const youSchema = z.object(youShape);
+
+/** SEC-05 (OD-04): `ALLOWED_EMAIL_DOMAIN` as written in env (`@srmist.edu.in`, any case) to `srmist.edu.in`; blank is off. */
+export function normalizeEmailDomain(raw: string | undefined): string | undefined {
+  return raw?.trim().toLowerCase().replace(/^@/, '') || undefined;
+}
+
+/** SEC-05: with no domain set every email passes; otherwise it must end in `@domain`. */
+export function emailInDomain(email: string, domain: string | undefined): boolean {
+  return !domain || email.toLowerCase().endsWith(`@${domain}`);
+}
+
+/** Step 01 with the SEC-05 lock, so the client blocks at step 01 what the server would reject at submit. */
+export function youSchemaFor(domain: string | undefined) {
+  if (!domain) return youSchema;
+  return youSchema.superRefine((v, ctx) => {
+    if (!emailInDomain(v.email, domain)) ctx.addIssue({ code: 'custom', path: ['email'], message: copy.err.email });
+  });
+}
 export const domainSchema = z.object(domainShape).superRefine(checkDomains);
 export const aboutSchema = z.object(aboutShape);
 export const workSchema = z.object(workShape);

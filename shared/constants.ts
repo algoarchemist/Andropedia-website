@@ -50,11 +50,18 @@ export const LIMITS = {
 export const INPUT_MAX = { name: 80, registerNumber: 15, phoneDigits: 10, section: 4 } as const;
 export const PHONE_PREFIX = '+91';
 
+/** LND-09: the club's official Instagram profile. The share token from the copied link is dropped. */
+export const INSTAGRAM_URL = 'https://www.instagram.com/andropedia_srm.rmp/';
+
 // PRD 11 (API-02, API-03, API-04, SEC-01). Per IP, per window.
 export const RATE_LIMITS = { windowMs: 60 * 60 * 1000, check: 30, photo: 20, submit: 5 } as const;
 export const JSON_BODY_LIMIT = '100kb'; // SEC-01
 
 /** Accepted photo types, sniffed from magic bytes on the server (API-03). */
 export const PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'] as const;
+/** Some browsers give HEIC files no MIME type, so the extension is checked too (API-03, client side). */
+export const PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] as const;
+/** API-03: the client downscales to photoClientMaxEdge as JPEG at this quality before upload. */
+export const PHOTO_JPEG_QUALITY = 0.8;
 
 export const DRAFT_KEY = 'andropedia.apply.draft.v1';

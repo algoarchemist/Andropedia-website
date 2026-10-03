@@ -35,7 +35,7 @@ function DomainRow({ domain, index }: { domain: Domain; index: number }) {
 
   return (
     <li
-      className={`domain-row flex min-h-[72px] items-center gap-4 rounded-sm border-2 border-ink bg-paper p-3 ${
+      className={`domain-row domain-row-dark flex min-h-[72px] items-center gap-4 rounded-sm border-2 bg-ink p-3 [border-color:var(--flood)] ${
         index % 2 === 1 ? 'ml-4 md:ml-16' : 'mr-4 md:mr-16'
       }`}
       style={style}
@@ -75,13 +75,17 @@ function DomainRow({ domain, index }: { domain: Domain; index: number }) {
 
 export function Domains() {
   return (
-    <section aria-labelledby="domains-title" className="gutter mx-auto w-full max-w-[720px] py-12 md:py-16">
-      <SectionTitle id="domains-title">{copy.domains.title}</SectionTitle>
-      <ul className="m-0 mt-8 list-none space-y-4 p-0">
-        {DOMAINS.map((domain, i) => (
-          <DomainRow key={domain.id} domain={domain} index={i} />
-        ))}
-      </ul>
+    <section aria-labelledby="domains-title" className="band band-alt bg-ink text-paper [--focus:var(--paper)]">
+      <div className="gutter mx-auto w-full max-w-[720px] py-12 md:py-16">
+        <SectionTitle id="domains-title" underline="text-yellow">
+          {copy.domains.title}
+        </SectionTitle>
+        <ul className="m-0 mt-8 list-none space-y-4 p-0">
+          {DOMAINS.map((domain, i) => (
+            <DomainRow key={domain.id} domain={domain} index={i} />
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }

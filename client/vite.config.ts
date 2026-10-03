@@ -13,6 +13,8 @@ const host = '127.0.0.1';
 
 export default defineConfig({
   plugins: [react()],
+  // SEC-05: ALLOWED_EMAIL_DOMAIN is shared with the server (PRD 13), so it keeps its name instead of a VITE_ prefix.
+  envPrefix: ['VITE_', 'ALLOWED_EMAIL_DOMAIN'],
   server: { host, proxy },
   preview: { host, proxy },
 });

@@ -5,11 +5,14 @@ import {
   aboutSchema,
   applicationSchema,
   countWords,
+  emailInDomain,
   domainSchema,
   lastSchema,
+  normalizeEmailDomain,
   usSchema,
   workSchema,
   youSchema,
+  youSchemaFor,
 } from './schema';
 
 const long = 'This is a long enough answer.';
@@ -149,5 +152,30 @@ describe('missing keys', () => {
       expect(result.success).toBe(false);
       if (!result.success) for (const issue of result.error.issues) expect(issue.message).not.toBe('Required');
     }
+  });
+});
+
+describe('SEC-05 email domain lock (OD-04)', () => {
+  it('normalises the env value and treats blank as off', () => {
+    expect(normalizeEmailDomain(' @SRMIST.edu.in ')).toBe('srmist.edu.in');
+    expect(normalizeEmailDomain('')).toBeUndefined();
+    expect(normalizeEmailDomain(undefined)).toBeUndefined();
+  });
+
+  it('passes everything when off, and only the exact domain when on', () => {
+    expect(emailInDomain('a@gmail.com', undefined)).toBe(true);
+    expect(emailInDomain('a@srmist.edu.in', 'srmist.edu.in')).toBe(true);
+    expect(emailInDomain('a@notsrmist.edu.in', 'srmist.edu.in')).toBe(false);
+    expect(emailInDomain('a@srmist.edu.in.evil.com', 'srmist.edu.in')).toBe(false);
+  });
+
+  it('step 01 reports err.email on the email field for another domain', () => {
+    const step = { name: valid.name, registerNumber: valid.registerNumber, phone: valid.phone, department: valid.department, section: valid.section };
+    expect(youSchemaFor(undefined)).toBe(youSchema);
+    const locked = youSchemaFor('srmist.edu.in');
+    expect(locked.safeParse({ ...step, email: ' Asha@SRMIST.edu.in ' }).success).toBe(true);
+    const res = locked.safeParse({ ...step, email: valid.email });
+    expect(res.success).toBe(false);
+    expect(res.error?.issues).toEqual([expect.objectContaining({ path: ['email'], message: copy.err.email })]);
   });
 });

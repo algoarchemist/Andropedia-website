@@ -36,6 +36,8 @@ export default function ApplyShell() {
   if (!allowed || (closed && !onDone)) return null;
 
   const { states, parts } = progressFor(pathname, data, Boolean(submissionId));
+  // The band color follows the current stage; the success screen is the last (green) stage.
+  const stage = onDone ? states.length - 1 : Math.max(0, states.indexOf('current'));
 
   const startOver = () => {
     // Every later step needs step 01, so starting over always lands there (SHL-05).
@@ -50,20 +52,25 @@ export default function ApplyShell() {
   };
 
   return (
-    <div className="gutter mx-auto w-full max-w-[720px] pb-16 pt-[max(1rem,env(safe-area-inset-top))]">
-      <ProgressBar states={states} parts={parts} />
+    // overflow-x: clip keeps the full-width stage band from adding a horizontal scrollbar.
+    <div className="apply-shell overflow-x-clip" data-stage={stage}>
+      <div className="gutter mx-auto w-full max-w-[720px] pb-[max(4rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="on-band">
+          <ProgressBar states={states} parts={parts} celebrate={onDone && Boolean(submissionId)} />
 
-      {draftNoticeOpen && !onDone && <DraftBanner onReset={startOver} />}
+          {draftNoticeOpen && !onDone && <DraftBanner onReset={startOver} />}
 
-      {isGuardState(state) && (
-        <p role="alert" className="mt-5 rounded-sm border-2 border-ink bg-orange px-4 py-3 font-semibold">
-          {copy.shell.guarded}
-        </p>
-      )}
+          {isGuardState(state) && (
+            <p role="alert" className="mt-5 rounded-sm border-2 border-ink bg-orange px-4 py-3 font-semibold text-ink">
+              {copy.shell.guarded}
+            </p>
+          )}
+        </div>
 
-      <main className="mt-8">
-        <Outlet />
-      </main>
+        <main className="mt-8">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

@@ -123,6 +123,23 @@ describe('GET /api/admin/applications.csv (ADM-01)', () => {
     expect(get('phone')).toBe("'+919876543210");
   });
 
+  it('round-trips multi-line, quoted and non-ASCII answers as one row each (opens cleanly in Excel and Sheets)', async () => {
+    const ctx = makeTestApp();
+    const photoId = await seedPhoto(ctx);
+    const aboutYou = 'Line one, still me.\r\nLine two says "hello".\nLine three.';
+    const whyAndropedia = 'தமிழ் and café people, naïve plans';
+    await request(ctx.app).post('/api/applications').send(validPayload(photoId, { aboutYou, whyAndropedia })).expect(201);
+
+    const res = await request(ctx.app).get('/api/admin/applications.csv').set(auth);
+    expect(res.text.endsWith('\r\n')).toBe(true);
+    const rows = parseCsv(res.text.slice(1));
+    expect(rows).toHaveLength(2);
+    expect(rows.every((r) => r.length === CSV_COLUMNS.length)).toBe(true);
+    const get = (col: (typeof CSV_COLUMNS)[number]) => rows[1]![CSV_COLUMNS.indexOf(col)];
+    expect(get('aboutYou')).toBe(aboutYou);
+    expect(get('whyAndropedia')).toBe(whyAndropedia);
+  });
+
   it('returns just the header when there are no applications', async () => {
     const res = await request(makeTestApp().app).get('/api/admin/applications.csv').set(auth);
     expect(res.status).toBe(200);

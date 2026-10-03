@@ -1,0 +1,30 @@
+# OD-08: the API on Render. The database is Neon (DATABASE_URL) and photos go to Cloudinary (OD-09):
+# Render's disk is wiped on every deploy, so the local storage driver is for development only.
+services:
+  - type: web
+    name: andropedia-recruitment-api
+    runtime: node
+    plan: free
+    # tsx and prisma are dev dependencies, so the build installs them too.
+    buildCommand: npm ci --include=dev && npm run db:generate -w server && npm run db:deploy -w server
+    startCommand: npm run start -w server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: WHATSAPP_COMMUNITY_URL
+        sync: false
+      - key: RECRUITMENT_OPEN
+        value: "true"
+      - key: ADMIN_EXPORT_TOKEN
+        generateValue: true
+      - key: STORAGE_DRIVER
+        value: cloudinary
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: ALLOWED_EMAIL_DOMAIN
+        sync: false

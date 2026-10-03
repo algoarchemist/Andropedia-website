@@ -5,9 +5,17 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { copy, fmt } from '@andropedia/shared';
-import { StepErrorsContext, StepSchemaContext, toFieldErrors, type FieldErrors } from '../hooks';
+import {
+  ServerErrorsContext,
+  StepErrorsContext,
+  StepSchemaContext,
+  draftValueAt,
+  toFieldErrors,
+  type FieldErrors,
+  type ServerErrors,
+} from '../hooks';
 import { useDocumentTitle } from '../lib/useDocumentTitle';
-import { cameFrom, type FromState } from '../routes/apply/guard';
+import { cameFrom, serverErrorsFrom, type FromState } from '../routes/apply/guard';
 import { nextPath, prevPath, type Step } from '../routes/apply/steps';
 import { useDraft } from '../state/draft';
 import { Button } from './Button';
@@ -17,15 +25,16 @@ const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion:
 export { useStepErrors } from '../hooks';
 
 /**
- * Fields mark their wrapper with data-field="<path>". Focuses the first invalid one that is on screen,
- * in schema order, scrolls it into view and shakes it once.
+ * Fields mark their wrapper with data-field="<path>". Focuses the first invalid one in screen order,
+ * scrolls it into view and shakes it once.
  */
 export function focusFirstInvalid(root: HTMLElement | null, paths: string[]) {
   if (!root) return;
-  const fields = Array.from(root.querySelectorAll<HTMLElement>('[data-field]'));
-  for (const path of paths) {
-    const field = fields.find((el) => el.dataset.field === path);
-    if (!field) continue;
+  // Screen order, not schema order: the first invalid field the user sees (the wall puts the photo first).
+  // A field matches its own path or owns a child path (a wall tile `achievements.0` owns `achievements.0.title`).
+  const owns = (el: HTMLElement) => paths.some((p) => p === el.dataset.field || p.startsWith(`${el.dataset.field}.`));
+  for (const field of Array.from(root.querySelectorAll<HTMLElement>('[data-field]'))) {
+    if (!owns(field)) continue;
     const control = field.matches('input, select, textarea, button, [tabindex]')
       ? field
       : (field.querySelector<HTMLElement>('input, select, textarea, button, [tabindex]') ?? field);
@@ -44,20 +53,40 @@ type StepLayoutProps = {
   helper?: ReactNode;
   children?: ReactNode;
   /**
-   * Extra async work after the step schema passes (for example the duplicate check on step 01).
+   * Extra async work after the step schema passes (the duplicate check on step 01, the submit on step 06).
    * Return false to stay on the step.
    */
   onNext?: () => boolean | Promise<boolean>;
+  /** Label of the primary button (step 06 says Submit application). Defaults to Next. */
+  nextLabel?: string;
+  /** Shown on the primary button while onNext runs (step 06: Sending it to the core team...). */
+  busyLabel?: string;
+  /** APP-06-R1: Submit is disabled while the answer is over 30 words. */
+  nextDisabled?: boolean;
 };
 
-export function StepLayout({ step, helper, children, onNext }: StepLayoutProps) {
+export function StepLayout({ step, helper, children, onNext, nextLabel, busyLabel, nextDisabled = false }: StepLayoutProps) {
   const navigate = useNavigate();
   const { key, state } = useLocation();
   const { data } = useDraft();
   const [errors, setErrors] = useState<FieldErrors>({});
+
+  // APP-06-R2 400: a rejected submit lands here with the server's errors for this step. Each is kept with the
+  // value it was about, so it disappears as soon as the user changes that value.
+  const [serverErrors] = useState<ServerErrors>(() => {
+    const out: ServerErrors = {};
+    for (const [path, message] of Object.entries(serverErrorsFrom(state) ?? {})) {
+      out[path] = { message, value: draftValueAt(data, path) };
+    }
+    return out;
+  });
+
   // A new object on every failed Next, so the same errors twice still refocus and shake,
   // while other error updates (such as on-blur checks) never move focus.
-  const [focusRequest, setFocusRequest] = useState<{ paths: string[] } | null>(null);
+  const [focusRequest, setFocusRequest] = useState<{ paths: string[] } | null>(() => {
+    const paths = Object.keys(serverErrors);
+    return paths.length ? { paths } : null;
+  });
   const [busy, setBusy] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -72,13 +101,14 @@ export function StepLayout({ step, helper, children, onNext }: StepLayoutProps) 
   }, [step.id, key]);
 
   // After the errors render, so fields that only show markup when invalid can be found.
+  // Declared after the title effect, so server errors on arrival win over focusing the title.
   useEffect(() => {
     if (focusRequest) focusFirstInvalid(formRef.current, focusRequest.paths);
   }, [focusRequest]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || nextDisabled) return;
 
     const result = step.schema.safeParse(data);
     if (!result.success) {
@@ -110,30 +140,39 @@ export function StepLayout({ step, helper, children, onNext }: StepLayoutProps) 
   return (
     <StepSchemaContext.Provider value={step.schema}>
       <StepErrorsContext.Provider value={errors}>
-      <form ref={formRef} noValidate onSubmit={handleSubmit} aria-labelledby={titleId}>
-        <h1
-          ref={titleRef}
-          id={titleId}
-          tabIndex={-1}
-          className="font-display text-[clamp(2rem,9vw,3.5rem)] leading-[0.95] tracking-[-0.02em] focus:outline-none"
-        >
-          {step.title}
-        </h1>
-        {helper && <p className="mt-3 text-sm text-muted">{helper}</p>}
+        <ServerErrorsContext.Provider value={serverErrors}>
+          <form ref={formRef} noValidate onSubmit={handleSubmit} aria-labelledby={titleId}>
+            <div className="step-head on-band">
+              <h1
+                ref={titleRef}
+                id={titleId}
+                tabIndex={-1}
+                className="font-display text-[clamp(2rem,9vw,3.5rem)] leading-[0.95] tracking-[-0.02em] focus:outline-none"
+              >
+                {step.title}
+              </h1>
+              {helper && <p className="mt-3 text-sm">{helper}</p>}
+            </div>
 
-        <div className="mt-8">{children}</div>
+            <div className="mt-8">{children}</div>
 
-        {/* Next first in the DOM, so it is the first stop after the fields and sits on top when stacked. */}
-        <div className="mt-10 flex flex-col gap-3 sm:flex-row-reverse sm:justify-between">
-          <Button type="submit" aria-busy={busy || undefined} className="w-full sm:w-auto sm:min-w-[11rem]">
-            {copy.nav.next}
-          </Button>
-          <Button variant="secondary" onClick={handleBack} className="w-full sm:w-auto sm:min-w-[11rem]">
-            {copy.nav.back}
-          </Button>
-        </div>
-      </form>
-    </StepErrorsContext.Provider>
+            {/* Next first in the DOM, so it is the first stop after the fields and sits on top when stacked. */}
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row-reverse sm:justify-between">
+              <Button
+                type="submit"
+                disabled={nextDisabled || undefined}
+                aria-busy={busy || undefined}
+                className="w-full disabled:cursor-not-allowed disabled:border-muted disabled:bg-paper disabled:text-muted sm:w-auto sm:min-w-[11rem]"
+              >
+                {busy && busyLabel ? busyLabel : (nextLabel ?? copy.nav.next)}
+              </Button>
+              <Button variant="secondary" onClick={handleBack} className="w-full sm:w-auto sm:min-w-[11rem]">
+                {copy.nav.back}
+              </Button>
+            </div>
+          </form>
+        </ServerErrorsContext.Provider>
+      </StepErrorsContext.Provider>
     </StepSchemaContext.Provider>
   );
 }

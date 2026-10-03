@@ -3,7 +3,10 @@ import { copy } from '@andropedia/shared';
 import { Button } from '../../components/Button';
 import { useConfig } from '../../state/config';
 
-export function ApplyCta({ onApply, className = '' }: { onApply: () => void; className?: string }) {
+type ApplyCtaProps = { onApply: () => void; className?: string; variant?: 'primary' | 'secondary' };
+
+/** `secondary` (paper) is for the red band, where the red primary button would disappear. */
+export function ApplyCta({ onApply, className = '', variant = 'primary' }: ApplyCtaProps) {
   const config = useConfig();
 
   // Reserve the button's height while the config loads so the page does not jump.
@@ -18,7 +21,7 @@ export function ApplyCta({ onApply, className = '' }: { onApply: () => void; cla
   }
 
   return (
-    <Button onClick={onApply} className={`w-full sm:w-auto ${className}`}>
+    <Button onClick={onApply} variant={variant} className={`w-full sm:w-auto ${className}`}>
       {copy.cta.apply}
     </Button>
   );

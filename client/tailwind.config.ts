@@ -24,6 +24,7 @@ const config: Config = {
       pink: 'var(--pink)',
       green: 'var(--green)',
       error: 'var(--error)',
+      insta: 'var(--insta)',
     },
   },
   plugins: [],

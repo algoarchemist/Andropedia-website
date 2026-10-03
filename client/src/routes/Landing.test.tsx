@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DOMAINS, DRAFT_KEY, copy } from '@andropedia/shared';
+import { DOMAINS, DRAFT_KEY, INSTAGRAM_URL, copy } from '@andropedia/shared';
 import { resetConfigCache } from '../state/config';
 import { DraftProvider } from '../state/draft';
 import { validYou } from '../test/fixtures';
@@ -58,6 +58,11 @@ describe('Landing copy (PRD 9)', () => {
     // about.body and footer.body both ship as TODO_CONTENT until the owner fills them.
     expect(screen.getByRole('region', { name: copy.about.title }).textContent).toContain(copy.about.body);
     expect(screen.getByRole('contentinfo').textContent).toBe(copy.footer.body);
+    // LND-09: the Instagram logo is a link to the club profile, named for screen readers, opening in a new tab.
+    const instagram = within(screen.getByRole('contentinfo')).getByRole('link', { name: copy.footer.instagram });
+    expect(instagram.getAttribute('href')).toBe(INSTAGRAM_URL);
+    expect(instagram.getAttribute('target')).toBe('_blank');
+    expect(instagram.getAttribute('rel')).toBe('noopener noreferrer');
 
     const steps = within(document.querySelector('ol') as HTMLElement).getAllByRole('listitem');
     expect(steps.map((li) => li.textContent?.replace(/^\d/, '').trim())).toEqual([...copy.process.steps]);

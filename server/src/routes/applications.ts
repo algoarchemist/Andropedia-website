@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Router, type RequestHandler } from 'express';
-import { RATE_LIMITS, applicationSchema, copy, youSchema } from '@andropedia/shared';
+import { RATE_LIMITS, applicationSchema, copy, emailInDomain, youSchema } from '@andropedia/shared';
 import type { AppConfig } from '../config';
 import { DuplicateError, type Db } from '../db';
 import { HttpError, apiError, zodToErrors } from '../middleware/errors';
@@ -19,7 +19,7 @@ export function applicationsRouter(config: AppConfig, db: Db) {
     next();
   };
 
-  const emailAllowed = (email: string) => !config.allowedEmailDomain || email.endsWith(`@${config.allowedEmailDomain}`); // SEC-05
+  const emailAllowed = (email: string) => emailInDomain(email, config.allowedEmailDomain); // SEC-05
 
   // API-02
   router.post('/applications/check', makeLimiter(RATE_LIMITS.check), requireOpen, async (req, res) => {

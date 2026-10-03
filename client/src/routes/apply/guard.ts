@@ -21,6 +21,15 @@ export const cameFrom = (state: unknown): string | undefined =>
     ? (state as FromState).from
     : undefined;
 
+/** Location state set when a rejected submit (APP-06-R2, 400) sends someone to the step that owns the error. */
+export type ServerErrorState = { serverErrors: Record<string, string> };
+
+export function serverErrorsFrom(state: unknown): Record<string, string> | undefined {
+  const errors = typeof state === 'object' && state !== null ? (state as Partial<ServerErrorState>).serverErrors : undefined;
+  if (typeof errors !== 'object' || errors === null) return undefined;
+  return Object.fromEntries(Object.entries(errors).filter(([, m]) => typeof m === 'string'));
+}
+
 /**
  * Where a visit to `pathname` must go instead, or null if it may stay.
  * A step needs every earlier step valid. The success screen needs a submission id from this session.

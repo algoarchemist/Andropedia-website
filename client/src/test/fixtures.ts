@@ -22,3 +22,22 @@ export const validAbout = {
   whyAndropedia: 'Good people and real projects.',
   oneYearVision: 'Leading a small project team.',
 } satisfies DraftData;
+
+/** Passes workSchema (stage 03). The photo id must be a uuid. */
+export const validWork = {
+  workUrl: 'https://github.com/asha',
+  achievements: [{ title: 'Hackathon', description: 'Second place.' }],
+  photoId: '6f1c2b1e-8d5a-4c3e-9f7a-2b4c6d8e0a1b',
+  photoUrl: 'http://127.0.0.1:4173/stub-photo.png',
+} satisfies DraftData;
+
+/** Passes usSchema (stage 04). */
+export const validUs = {
+  hoursPerWeek: 4,
+  responsibility: 3,
+  inOtherClub: false,
+  clubShouldProvide: 'Real projects and mentors.',
+} satisfies DraftData;
+
+/** Every step up to step 06. */
+export const validThroughUs = { ...validYou, ...validDomain, ...validAbout, ...validWork, ...validUs } satisfies DraftData;

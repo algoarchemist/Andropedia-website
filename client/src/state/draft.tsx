@@ -133,6 +133,9 @@ export type DraftContextValue = {
   /** Kept in memory only (CLAUDE.md: browser storage is for the draft). Guards /apply/done (SHL-05). */
   submissionId: string | undefined;
   setSubmissionId: (id: string | undefined) => void;
+  /** DONE-04 sign-off: the first name, kept after the draft is cleared on submit. Memory only. */
+  submittedFirstName: string | undefined;
+  setSubmittedFirstName: (name: string | undefined) => void;
 };
 
 const DraftContext = createContext<DraftContextValue | null>(null);
@@ -143,6 +146,7 @@ export function DraftProvider({ children }: { children: ReactNode }) {
   const [isDraft, setIsDraft] = useState(() => !isEmpty(initial));
   const [draftNoticeOpen, setDraftNoticeOpen] = useState(isDraft);
   const [submissionId, setSubmissionId] = useState<string>();
+  const [submittedFirstName, setSubmittedFirstName] = useState<string>();
 
   // The latest unsaved value. Written after the debounce, on pagehide and on unmount, so a quick refresh loses nothing.
   const pending = useRef<DraftData | null>(null);
@@ -203,8 +207,10 @@ export function DraftProvider({ children }: { children: ReactNode }) {
       closeDraftNotice,
       submissionId,
       setSubmissionId,
+      submittedFirstName,
+      setSubmittedFirstName,
     }),
-    [data, setData, restoreDraft, clearDraft, isDraft, draftNoticeOpen, closeDraftNotice, submissionId],
+    [data, setData, restoreDraft, clearDraft, isDraft, draftNoticeOpen, closeDraftNotice, submissionId, submittedFirstName],
   );
 
   return <DraftContext.Provider value={value}>{children}</DraftContext.Provider>;

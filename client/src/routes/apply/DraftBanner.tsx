@@ -7,7 +7,7 @@ export function DraftBanner({ onReset }: { onReset: () => void }) {
   const [confirming, setConfirming] = useState(false);
 
   return (
-    <div role="status" className="mt-5 flex flex-wrap items-center justify-between gap-x-4 rounded-sm border-2 border-ink bg-yellow py-1 pl-4 pr-2">
+    <div role="status" className="mt-5 flex flex-wrap items-center justify-between gap-x-4 rounded-sm border-2 border-ink bg-yellow py-1 pl-4 pr-2 text-ink [--focus:var(--cobalt)]">
       <p className="py-2 font-semibold">{copy.draft.restored}</p>
       <button
         type="button"

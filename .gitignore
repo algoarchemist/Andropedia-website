@@ -6,3 +6,5 @@ uploads
 server/src/generated
 client/e2e/.results
 playwright-report
+# ADM-01 CSV exports: applicants' personal data
+exports/

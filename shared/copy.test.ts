@@ -36,11 +36,17 @@ const PRD_KEYS = [
 const ADDED_KEYS = [
   'err.server', 'err.rateLimit', 'err.unauthorized',
   'brand.name', 'modal.close', 'footer.body', // phase 3
+  'footer.instagram', // LND-09
+  'done.whatsappSoon', 'done.instagram', // success screen boxes
   'draft.confirmTitle', 'draft.confirmBody', 'draft.confirmYes', 'draft.confirmNo', // phase 4
   'shell.siteTitle', 'shell.docTitle', 'shell.doneTitle', 'shell.guarded', 'shell.placeholder',
   'progress.label', 'progress.completed', 'progress.locked',
   'you.departmentPrompt', 'you.phonePrefix', 'field.counter', // phase 5
   'about.stackRemove', 'about.stackFull', 'about.stackList',
+  'work.empty.portfolio', 'work.save', 'work.remove', 'work.replace', 'work.removePhoto', 'work.retry', // phase 6
+  'work.uploading', 'work.linkTile', 'work.proudTile', 'work.photoAlt',
+  'us.yes', 'us.no', 'us.hoursTickMax', 'us.hoursValue', 'us.hoursOne', 'us.hoursMaxValue', // phase 7
+  'us.respValue', 'us.notAnswered', 'last.retry', 'last.honeypot',
 ];
 const ALL_KEYS = [...PRD_KEYS, ...ADDED_KEYS];
 

@@ -105,7 +105,8 @@ describe('draft banner (SHL-04)', () => {
     renderApp('/apply/you', validYou);
     expect(screen.getByRole('status').textContent).toContain(copy.draft.restored);
     await user.click(screen.getByRole('button', { name: copy.nav.next }));
-    expect(screen.queryByText(copy.draft.restored)).toBeNull();
+    // Step 01's Next waits for the duplicate check (APP-01-R1) before moving on.
+    await waitFor(() => expect(screen.queryByText(copy.draft.restored)).toBeNull());
     await user.click(screen.getByRole('button', { name: copy.nav.back }));
     expect(screen.queryByText(copy.draft.restored)).toBeNull();
   });

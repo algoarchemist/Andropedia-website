@@ -68,9 +68,17 @@ test('step 01: errors show on blur and a failed Next shakes and focuses the firs
   await page.getByLabel(copy.you.email).blur();
   await expect(page.getByText(copy.err.email)).toBeVisible();
 
+  // The shake class lives for 150ms, too short to poll for on a busy machine, so record it as it is added.
+  await page.locator('[data-field="name"]').evaluate((el) => {
+    const w = window as unknown as { shook?: boolean };
+    w.shook = false;
+    new MutationObserver(() => {
+      if (el.classList.contains('shake')) w.shook = true;
+    }).observe(el, { attributes: true, attributeFilter: ['class'] });
+  });
   await next(page).click();
   await expect(page.getByLabel(copy.you.name)).toBeFocused();
-  await expect(page.locator('[data-field="name"]')).toHaveClass(/shake/);
+  expect(await page.evaluate(() => (window as unknown as { shook?: boolean }).shook)).toBe(true);
   await noAxeViolations(page);
 });
 

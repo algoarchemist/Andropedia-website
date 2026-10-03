@@ -24,9 +24,13 @@ type ProgressBarProps = {
   states: readonly StageState[];
   /** Stage 02 ticks: part a (domain) and part b (about) done. */
   parts: readonly boolean[];
+  /** Success screen (DONE-01, DSN-08): every stage's stamp lands again, one after another, once. */
+  celebrate?: boolean;
 };
 
-export function ProgressBar({ states, parts }: ProgressBarProps) {
+const CELEBRATE_STAGGER_SECONDS = 0.12;
+
+export function ProgressBar({ states, parts, celebrate = false }: ProgressBarProps) {
   const reduce = useReducedMotion() ?? false;
 
   return (
@@ -70,20 +74,25 @@ export function ProgressBar({ states, parts }: ProgressBarProps) {
                     <AnimatePresence initial={false}>
                       {state === 'completed' && (
                         <m.span
-                          key="stamp"
+                          // A new key on the success screen remounts the stamp, so all five land in sequence.
+                          key={celebrate ? 'stamp-done' : 'stamp'}
                           data-stamp
                           className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-sm border-2 border-ink bg-yellow text-ink"
                           initial={reduce ? { opacity: 0, rotate: -8 } : { opacity: 0, scale: 2, rotate: -32 }}
                           animate={{ opacity: 1, scale: 1, rotate: -8 }}
                           exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                          transition={{ duration: reduce ? 0.15 : STAMP_SECONDS, ease: EASE }}
+                          transition={{
+                            duration: reduce ? 0.15 : STAMP_SECONDS,
+                            ease: EASE,
+                            delay: celebrate && !reduce ? k * CELEBRATE_STAGGER_SECONDS : 0,
+                          }}
                         >
                           <CheckIcon className="h-4 w-4" />
                         </m.span>
                       )}
                     </AnimatePresence>
                   </span>
-                  <span className={`mt-1.5 block text-center text-xs font-semibold uppercase tracking-[0.04em] ${state === 'locked' ? 'text-muted' : 'text-ink'}`}>
+                  <span className="mt-1.5 block text-center text-xs font-semibold uppercase tracking-[0.04em]">
                     {stage.label}
                   </span>
                 </span>

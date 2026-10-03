@@ -19,13 +19,14 @@ export function Underline({ className = '' }: { className?: string }) {
   );
 }
 
-export function SectionTitle({ children, id }: { children: ReactNode; id?: string }) {
+/** `underline` is the hand-drawn line's color class; dark bands use yellow. */
+export function SectionTitle({ children, id, underline = 'text-red' }: { children: ReactNode; id?: string; underline?: string }) {
   return (
     <div>
       <h2 id={id} className="font-display text-[clamp(2rem,9vw,3.5rem)] leading-[0.95] tracking-[-0.02em]">
         {children}
       </h2>
-      <Underline className="mt-2 text-red" />
+      <Underline className={`mt-2 ${underline}`} />
     </div>
   );
 }

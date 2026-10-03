@@ -5,14 +5,18 @@ import {
   copy,
   domainSchema,
   lastSchema,
+  normalizeEmailDomain,
   usSchema,
   workSchema,
-  youSchema,
+  youSchemaFor,
 } from '@andropedia/shared';
-import type { ZodTypeAny } from 'zod';
+import { ZodEffects, ZodObject, type ZodTypeAny } from 'zod';
 import type { DraftData } from '../../state/draft';
 
 export const DONE_PATH = '/apply/done';
+
+// SEC-05 (OD-04): the same ALLOWED_EMAIL_DOMAIN the server reads, exposed at build time (vite envPrefix).
+const youSchema = youSchemaFor(normalizeEmailDomain(import.meta.env.ALLOWED_EMAIL_DOMAIN));
 
 const DEFS = [
   { id: 'you', schema: youSchema, title: copy.you.title },
@@ -54,6 +58,19 @@ export const stepByPath = (pathname: string) => STEPS.find((s) => s.path === pat
 /** Where Back goes: the previous step, or the landing page from step 01 (SHL-02). */
 export const prevPath = (step: Step) => STEPS[step.index - 1]?.path ?? '/';
 export const nextPath = (step: Step) => STEPS[step.index + 1]?.path ?? DONE_PATH;
+
+/** Top-level payload keys a step schema owns (unwraps the cross-field refinements). */
+function keysOf(schema: ZodTypeAny): string[] {
+  let inner: ZodTypeAny = schema;
+  while (inner instanceof ZodEffects) inner = inner.innerType();
+  return inner instanceof ZodObject ? Object.keys(inner.shape) : [];
+}
+
+/** APP-06-R2 400: the step that owns a server error path such as `achievements.0.title`. */
+export function stepForField(path: string): Step | undefined {
+  const key = path.split('.')[0]!;
+  return STEPS.find((s) => keysOf(s.schema).includes(key));
+}
 
 /** Index of the first step whose schema fails on the draft, or STEPS.length when all pass. */
 export function firstInvalidStep(data: DraftData): number {

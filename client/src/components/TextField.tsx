@@ -5,7 +5,7 @@ import type { DraftData } from '../state/draft';
 import { CONTROL_CLASS, Field } from './Field';
 
 type TextFieldProps = {
-  name: keyof DraftData & ('name' | 'registerNumber' | 'email' | 'phone' | 'section');
+  name: keyof DraftData & ('name' | 'registerNumber' | 'email' | 'phone' | 'section' | 'workUrl' | 'portfolioUrl');
   label: string;
   type?: HTMLInputTypeAttribute;
   /** Cleans the value as it is typed (uppercase, digits only). The draft stores the cleaned value. */
@@ -16,7 +16,7 @@ type TextFieldProps = {
   /** Called after every change, for example to drop a stale duplicate error. */
   onValue?: (value: string) => void;
   helper?: ReactNode;
-} & Pick<InputHTMLAttributes<HTMLInputElement>, 'autoComplete' | 'autoCapitalize' | 'inputMode' | 'maxLength' | 'spellCheck'>;
+} & Pick<InputHTMLAttributes<HTMLInputElement>, 'autoComplete' | 'autoCapitalize' | 'inputMode' | 'maxLength' | 'spellCheck' | 'autoFocus'>;
 
 export function TextField({ name, label, type = 'text', clean, prefix, error, onValue, helper, ...attrs }: TextFieldProps) {
   const [value, setValue] = useDraftText(name);

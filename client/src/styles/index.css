@@ -46,4 +46,114 @@
   .border-ink-30 {
     border-color: color-mix(in srgb, var(--ink) 30%, var(--paper));
   }
+
+  /* DSN-07 Slider: 6px ink track, square 28px thumb. Unset (APP-05): a dashed ghost thumb. */
+  .slider {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 44px; /* DSN-10 touch target; the 28px thumb sits centred in it */
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+    touch-action: pan-y;
+  }
+  .slider::-webkit-slider-runnable-track {
+    height: 6px;
+    background: var(--ink);
+  }
+  .slider::-moz-range-track {
+    height: 6px;
+    background: var(--ink);
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    width: 28px;
+    height: 28px;
+    margin-top: -11px;
+    border: 2px solid var(--ink);
+    border-radius: 0;
+    background: var(--yellow);
+  }
+  .slider::-moz-range-thumb {
+    box-sizing: border-box;
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--ink);
+    border-radius: 0;
+    background: var(--yellow);
+  }
+  .slider[data-unset='true']::-webkit-slider-thumb {
+    border-style: dashed;
+    background: var(--paper);
+  }
+  .slider[data-unset='true']::-moz-range-thumb {
+    border-style: dashed;
+    background: var(--paper);
+  }
+  .slider[aria-invalid='true']::-webkit-slider-thumb {
+    border-color: var(--error);
+  }
+  .slider[aria-invalid='true']::-moz-range-thumb {
+    border-color: var(--error);
+  }
+}
+
+/* LND-02: the club logo, large and centred behind the hero. A mask, so it is painted with a flat theme token. */
+.hero-mark {
+  background-color: var(--cobalt-wash);
+  -webkit-mask: url('../assets/andropedia-mark.svg') center / contain no-repeat;
+  mask: url('../assets/andropedia-mark.svg') center / contain no-repeat;
+}
+
+/* DSN-05 color bands: each landing section is a full-width flat color whose top edge is cut at a slight angle.
+   A band pulls itself up over the previous section by --slant, so the cut reads as the boundary between them.
+   Never used on form controls. */
+.band {
+  --slant: 1.25rem;
+  margin-top: calc(var(--slant) * -1);
+  padding-top: var(--slant);
+  clip-path: polygon(0 var(--slant), 100% 0, 100% 100%, 0 100%);
+}
+.band-alt {
+  clip-path: polygon(0 0, 100% var(--slant), 100% 100%, 0 100%);
+}
+@media (min-width: 768px) {
+  .band {
+    --slant: 2.5rem;
+  }
+}
+
+/* SHL-01 stage bands: every /apply/* screen sits under a full-width band in its progress stage color, the same
+   colors the progress bar uses. Text on the band flips to paper on the dark stages (DSN-03). */
+.apply-shell[data-stage='0'] { --stage: var(--cobalt); --stage-ink: var(--paper); }
+.apply-shell[data-stage='1'] { --stage: var(--red); --stage-ink: var(--ink); }
+.apply-shell[data-stage='2'] { --stage: var(--yellow); --stage-ink: var(--ink); }
+.apply-shell[data-stage='3'] { --stage: var(--orange); --stage-ink: var(--ink); }
+.apply-shell[data-stage='4'] { --stage: var(--green); --stage-ink: var(--paper); }
+
+/* Anything drawn on the band: text and focus rings take the band's ink. */
+.on-band {
+  color: var(--stage-ink, var(--ink));
+  --focus: var(--stage-ink, var(--cobalt));
+}
+
+/* The band itself hangs off the step title block: from the top of the page down to just under the title, full
+   width (the shell clips the overflow), with an angled bottom edge that stays clear of the first field. */
+.step-head {
+  position: relative;
+}
+.step-head::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: -1.75rem;
+  width: 200vw;
+  height: 400vh;
+  transform: translateX(-50%);
+  background-color: var(--stage, transparent);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.25rem), 0 100%);
+  pointer-events: none;
 }

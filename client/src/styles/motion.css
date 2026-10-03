@@ -31,6 +31,14 @@
   transform: scaleX(1);
 }
 
+/* Landing rows rest on the ink band with paper text; a light domain color flips them to ink once flooded. */
+.domain-row-dark {
+  color: var(--paper);
+}
+.domain-row-dark[data-engaged='true'][data-tone='light'] {
+  color: var(--ink);
+}
+
 /* Cobalt and green are dark: their text flips to paper once flooded (DSN-03). */
 .domain-row[data-engaged='true'][data-tone='dark'] {
   color: var(--paper);
@@ -222,6 +230,28 @@
 
   .shake {
     animation: shake-calm var(--motion-fast) linear;
+  }
+}
+
+/* ---- Wall tiles (APP-04-R3): fixed tilt; a newly filled tile drops onto the wall and settles (DSN-08) ---- */
+.wall-tile {
+  transform: rotate(var(--tilt, 0deg));
+}
+
+.wall-tile[data-fresh="true"] {
+  animation: tile-drop var(--motion-slow) var(--ease-pop) backwards;
+}
+
+@keyframes tile-drop {
+  from {
+    transform: translateY(-28px) rotate(calc(var(--tilt, 0deg) * 4));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wall-tile[data-fresh="true"] {
+    animation: fade-in var(--motion-fast) linear;
   }
 }
 

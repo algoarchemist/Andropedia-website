@@ -14,7 +14,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "test": "vitest run",
-    "check:design": "bash scripts/check-design.sh"
+    "check:design": "bash scripts/check-design.sh",
+    "export:csv": "node scripts/export-csv.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,4 +1,5 @@
 // Env parsing (PRD section 13). Everything the app needs is read here once and injected.
+import { normalizeEmailDomain } from '@andropedia/shared';
 
 export type AppConfig = {
   port: number;
@@ -49,7 +50,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     recruitmentOpen: parseBool('RECRUITMENT_OPEN', env['RECRUITMENT_OPEN'], true),
     whatsappUrl: env['WHATSAPP_COMMUNITY_URL'] ?? '',
     adminExportToken,
-    allowedEmailDomain: env['ALLOWED_EMAIL_DOMAIN']?.trim().toLowerCase().replace(/^@/, '') || undefined,
+    allowedEmailDomain: normalizeEmailDomain(env['ALLOWED_EMAIL_DOMAIN']),
     storageDriver,
     uploadDir: env['UPLOAD_DIR'] || './uploads',
     cloudinaryUrl,

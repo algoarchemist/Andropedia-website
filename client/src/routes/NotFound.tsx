@@ -1,4 +1,4 @@
-// DSN-11: 404 page, expressive mode.
+// DSN-11: 404 page, expressive mode: the whole page is a red band (ink text 4.6:1), with the paper button.
 import { Link } from 'react-router-dom';
 import { copy } from '@andropedia/shared';
 import { buttonClass } from '../components/Button';
@@ -7,14 +7,16 @@ import { useDocumentTitle } from '../lib/useDocumentTitle';
 export default function NotFound() {
   useDocumentTitle(copy.shell.siteTitle);
   return (
-    <main className="gutter mx-auto flex min-h-dvh w-full max-w-[720px] flex-col justify-center py-12">
-      <p aria-hidden="true" className="font-display text-[clamp(3rem,14vw,7rem)] leading-[0.9] tracking-[-0.02em]">
-        {copy.modal.title}
-      </p>
-      <h1 className="mt-6 max-w-[28ch] font-display text-[clamp(1.5rem,6vw,2.25rem)] leading-tight">{copy.notfound.body}</h1>
-      <Link to="/" className={buttonClass('primary', 'mt-8 w-full sm:w-auto sm:self-start')}>
-        {copy.nav.back}
-      </Link>
-    </main>
+    <div className="min-h-dvh bg-red [--focus:var(--ink)]">
+      <main className="gutter mx-auto flex min-h-dvh w-full max-w-[720px] flex-col justify-center py-12">
+        <p aria-hidden="true" className="font-display text-[clamp(3rem,14vw,7rem)] leading-[0.9] tracking-[-0.02em]">
+          {copy.modal.title}
+        </p>
+        <h1 className="mt-6 max-w-[28ch] font-display text-[clamp(1.5rem,6vw,2.25rem)] leading-tight">{copy.notfound.body}</h1>
+        <Link to="/" className={buttonClass('secondary', 'mt-8 w-full sm:w-auto sm:self-start')}>
+          {copy.nav.back}
+        </Link>
+      </main>
+    </div>
   );
 }
