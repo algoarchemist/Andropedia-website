@@ -35,7 +35,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('Apply now, then continue, opens step 01 inside the shell', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/join');
   await page.getByRole('button', { name: copy.cta.apply }).first().click();
   await page.getByRole('button', { name: copy.modal.continue }).click();
 
@@ -47,7 +47,7 @@ test('Apply now, then continue, opens step 01 inside the shell', async ({ page }
 });
 
 test('with a saved draft, Apply now resumes at the first incomplete step (LND-07)', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/join');
   await seedDraft(page, validYou);
   await page.reload();
   await page.getByRole('button', { name: copy.cta.apply }).first().click();

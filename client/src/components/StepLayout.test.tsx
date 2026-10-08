@@ -68,11 +68,11 @@ describe('StepLayout (SHL-02)', () => {
     expect(document.title).toBe('Step 03 · Andropedia Recruitment');
   });
 
-  it('Back from step 01 goes to the landing page', async () => {
+  it('Back from step 01 goes to Join us, the recruitment landing', async () => {
     const user = userEvent.setup();
     renderStep('you');
     await user.click(back());
-    expect(screen.getByTestId('where').textContent).toBe('/');
+    expect(screen.getByTestId('where').textContent).toBe('/join');
   });
 
   it('Back from a later step goes to the previous step', async () => {

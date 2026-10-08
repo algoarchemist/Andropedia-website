@@ -41,6 +41,17 @@ const ADDED_KEYS = [
   'hero.nudge', 'cta.lead', 'cta.reassure', // closing Apply now
   'about.bodyMore', 'about.bodyCrew', // LND-03 paragraphs after the lead
   'faq.title', 'faq.items', // landing FAQ
+  'site.docTitle', 'site.skip', 'site.navLabel', 'site.nav.home', 'site.nav.events', // club website
+  'site.nav.team', 'site.nav.projects', 'site.nav.blog', 'site.nav.androlink', 'site.nav.join',
+  'site.home.est', 'site.home.eventsTitle', 'site.home.eventsMore', 'site.home.teamTitle', 'site.home.teamBody',
+  'site.home.teamMore', 'site.home.joinTitle', 'site.home.joinCta', 'site.events.title', 'site.events.intro',
+  'site.events.upcoming', 'site.events.archive', 'site.events.noneUpcoming', 'site.team.title', 'site.team.intro',
+  'site.team.core', 'site.team.members', 'site.team.count', 'site.projects.title', 'site.projects.intro',
+  'site.projects.empty', 'site.projects.emptyCta', 'site.projects.by', 'site.projects.open', 'site.blog.title',
+  'site.blog.intro', 'site.blog.empty', 'site.blog.read', 'site.blog.back', 'site.blog.by',
+  'site.androlink.title', 'site.androlink.intro', 'site.androlink.search', 'site.androlink.filterLabel', 'site.androlink.all',
+  'site.androlink.results', 'site.androlink.none', 'site.androlink.noLinks', 'site.androlink.linkLabel', 'site.androlink.sites.github',
+  'site.androlink.sites.linkedin', 'site.androlink.sites.portfolio', 'site.androlink.sites.instagram',
   'draft.confirmTitle', 'draft.confirmBody', 'draft.confirmYes', 'draft.confirmNo', // phase 4
   'shell.siteTitle', 'shell.docTitle', 'shell.doneTitle', 'shell.guarded', 'shell.placeholder',
   'progress.label', 'progress.completed', 'progress.locked',

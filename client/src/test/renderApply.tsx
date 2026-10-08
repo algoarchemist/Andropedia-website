@@ -24,7 +24,7 @@ export function renderApply(path: string, draft: DraftData = {}) {
               </>
             }
           />
-          <Route path="/" element={<Where />} />
+          <Route path="/join" element={<Where />} />
         </Routes>
       </DraftProvider>
     </MemoryRouter>,

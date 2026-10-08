@@ -55,6 +55,18 @@ export const INSTAGRAM_URL = 'https://www.instagram.com/andropedia_srm.rmp/';
 /** LND-09: the club's LinkedIn company page. */
 export const LINKEDIN_URL = 'https://www.linkedin.com/company/andropedia-club/';
 
+/** Club website (club-website branch): the page paths. Join us is the recruitment landing, which used to be `/`. */
+export const SITE_PATHS = {
+  home: '/',
+  events: '/events',
+  team: '/team',
+  projects: '/projects',
+  blog: '/blog',
+  androlink: '/androlink',
+  join: '/join',
+} as const;
+export const JOIN_PATH = SITE_PATHS.join;
+
 // PRD 11 (API-02, API-03, API-04, SEC-01). Per IP, per window.
 export const RATE_LIMITS = { windowMs: 60 * 60 * 1000, check: 30, photo: 20, submit: 5 } as const;
 export const JSON_BODY_LIMIT = '100kb'; // SEC-01

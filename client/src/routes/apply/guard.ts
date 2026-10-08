@@ -1,6 +1,7 @@
 // SHL-05 route guards (PRD section 3).
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { JOIN_PATH } from '@andropedia/shared';
 import { useDraft, type DraftData } from '../../state/draft';
 import { DONE_PATH, STEPS, firstInvalidStep, stepByPath } from './steps';
 
@@ -35,7 +36,7 @@ export function serverErrorsFrom(state: unknown): Record<string, string> | undef
  * A step needs every earlier step valid. The success screen needs a submission id from this session.
  */
 export function guardRedirect(pathname: string, data: DraftData, submissionId: string | undefined): string | null {
-  if (pathname === DONE_PATH) return submissionId ? null : '/';
+  if (pathname === DONE_PATH) return submissionId ? null : JOIN_PATH;
   const step = stepByPath(pathname);
   if (!step) return null;
   const firstInvalid = firstInvalidStep(data);
@@ -53,7 +54,7 @@ export function useRouteGuard(): boolean {
   // Nothing flashes in between, since callers render nothing while this returns false.
   useEffect(() => {
     if (!target) return;
-    const state: GuardState | undefined = target === '/' ? undefined : { guarded: true };
+    const state: GuardState | undefined = target === JOIN_PATH ? undefined : { guarded: true };
     navigate(target, { replace: true, state });
   }, [target, navigate]);
 

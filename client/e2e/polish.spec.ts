@@ -50,7 +50,7 @@ function animationFor(page: Page, className: string, data: Record<string, string
 }
 
 test('every domain icon plays its own animation when its row is engaged', async ({ page, isMobile }) => {
-  await page.goto('/');
+  await page.goto('/join');
   const rows = page.locator('.domain-row');
   for (const [i, domain] of DOMAINS.entries()) {
     const row = rows.nth(i);
@@ -65,7 +65,7 @@ test('every domain icon plays its own animation when its row is engaged', async 
 });
 
 test('motion tokens match DSN-08: fast 150ms, base 250ms, slow 400ms, one easing curve', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/join');
   // Resolve each token through a real transition, so the minifier's spelling (.15s) does not matter.
   const tokens = await page.evaluate(() =>
     ['--motion-fast', '--motion-base', '--motion-slow'].map((t) => {
@@ -82,7 +82,7 @@ test('motion tokens match DSN-08: fast 150ms, base 250ms, slow 400ms, one easing
 });
 
 test('the rest of the table: modal drop, tile drop, stage stamp, shake', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/join');
   await page.getByRole('button', { name: copy.cta.apply }).first().click();
   expect(await page.locator('.modal-box').evaluate((el) => getComputedStyle(el).animationName)).toBe('modal-drop');
   expect(await animationFor(page, 'wall-tile', { fresh: 'true' })).toBe('tile-drop');
@@ -97,7 +97,7 @@ test.describe('prefers-reduced-motion: reduce', () => {
   });
 
   test('domain rows fade instead of sliding, and icons stay still', async ({ page, isMobile }) => {
-    await page.goto('/');
+    await page.goto('/join');
     const row = page.locator('.domain-row').first();
     // The flood layer never moves: it is always full width and only its opacity changes.
     expect(await row.evaluate((el) => getComputedStyle(el, '::before').transform)).toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
@@ -109,7 +109,7 @@ test.describe('prefers-reduced-motion: reduce', () => {
   });
 
   test('Apply now does not press in; the modal, tiles and stamps fade; the shake becomes a pulse', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/join');
     const apply = page.getByRole('button', { name: copy.cta.apply }).first();
     expect(await apply.evaluate((el) => getComputedStyle(el).transitionProperty)).toBe('none');
     await apply.click();
@@ -170,7 +170,8 @@ test('DSN-10: every control on every form step is at least 44px in both directio
 
 test.describe('ticker tapes (owner request): landing only, decorative, scroll-driven only', () => {
   const pages: [string, number][] = [
-    ['/', 3],
+    ['/join', 3],
+    ['/', 1],
     ['/apply/you', 0],
     ['/this-page-does-not-exist', 0],
   ];
@@ -196,7 +197,7 @@ test.describe('ticker tapes (owner request): landing only, decorative, scroll-dr
 
   test('under reduced motion every tape stands still', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/');
+    await page.goto('/join');
     const names = await page.locator('.ticker-track').evaluateAll((els) => els.map((el) => getComputedStyle(el).animationName));
     expect(names).toEqual(['none', 'none', 'none']);
   });

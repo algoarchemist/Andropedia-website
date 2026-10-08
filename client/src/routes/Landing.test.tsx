@@ -8,6 +8,7 @@ import { resetConfigCache } from '../state/config';
 import { DraftProvider } from '../state/draft';
 import { validYou } from '../test/fixtures';
 import Landing from './Landing';
+import SiteLayout from './site/SiteLayout';
 
 function mockConfig(body: unknown, ok = true) {
   vi.stubGlobal(
@@ -22,10 +23,13 @@ function Where() {
 
 function renderLanding() {
   return render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={['/join']}>
       <DraftProvider>
         <Routes>
-          <Route path="/" element={<Landing />} />
+          {/* Join us renders inside the club site frame, which owns the header, <main> and footer. */}
+          <Route element={<SiteLayout />}>
+            <Route path="/join" element={<Landing />} />
+          </Route>
           <Route path="*" element={<Where />} />
         </Routes>
       </DraftProvider>

@@ -45,7 +45,7 @@ const next = (page: Page) => page.getByRole('button', { name: copy.nav.next });
 const emptyTile = (page: Page, prompt: string) => page.getByRole('button', { name: new RegExp(prompt.replace('+', '\\+')) });
 
 test('happy path: Apply now through all six screens to the WhatsApp button', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/join');
   await page.getByRole('button', { name: copy.cta.apply }).first().click();
   await page.getByRole('button', { name: copy.modal.continue }).click();
 

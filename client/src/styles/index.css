@@ -194,3 +194,61 @@
   pointer-events: none;
   user-select: none;
 }
+
+/* Club website blog posts (Markdown from the repo): readable measure, display headings, flat code and quotes. */
+.post-body > * + * {
+  margin-top: 1.1em;
+}
+.post-body h2,
+.post-body h3 {
+  font-family: 'Archivo Black', 'Arial Black', Impact, sans-serif;
+  line-height: 1.1;
+  margin-top: 1.6em;
+}
+.post-body h2 {
+  font-size: 1.75rem;
+}
+.post-body h3 {
+  font-size: 1.35rem;
+}
+.post-body a {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.post-body ul,
+.post-body ol {
+  padding-left: 1.4em;
+}
+.post-body ul {
+  list-style: square;
+}
+.post-body ol {
+  list-style: decimal;
+}
+.post-body blockquote {
+  margin: 1.4em 0;
+  border-left: 6px solid var(--ink);
+  padding-left: 1rem;
+  font-weight: 600;
+}
+.post-body code {
+  background-color: var(--ink);
+  color: var(--paper);
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+.post-body pre {
+  overflow-x: auto;
+  background-color: var(--ink);
+  color: var(--paper);
+  padding: 1rem;
+}
+.post-body pre code {
+  padding: 0;
+}
+.post-body img {
+  max-width: 100%;
+  height: auto;
+  border: 2px solid var(--ink);
+}

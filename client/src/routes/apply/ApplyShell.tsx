@@ -3,7 +3,7 @@
 // a stage completing (stamp) and the next one becoming current (pop).
 import { startTransition, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { copy } from '@andropedia/shared';
+import { JOIN_PATH, copy } from '@andropedia/shared';
 import { ProgressBar } from '../../components/ProgressBar';
 import { useConfig } from '../../state/config';
 import { useDraft } from '../../state/draft';
@@ -22,7 +22,7 @@ export default function ApplyShell() {
   // LND-08: a closed round sends anyone mid-form back to the landing page, which shows the closed message.
   const closed = config?.recruitmentOpen === false;
   useEffect(() => {
-    if (closed && !onDone) navigate('/', { replace: true });
+    if (closed && !onDone) navigate(JOIN_PATH, { replace: true });
   }, [closed, onDone, navigate]);
 
   // The restored-draft banner belongs to the first screen shown; moving to any other step dismisses it.

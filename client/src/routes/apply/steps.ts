@@ -1,5 +1,6 @@
 // PRD section 3: six form routes in five progress stages, then /apply/done.
 import {
+  JOIN_PATH,
   PROGRESS_STAGES,
   aboutSchema,
   copy,
@@ -56,7 +57,7 @@ export function stepById(id: StepId): Step {
 export const stepByPath = (pathname: string) => STEPS.find((s) => s.path === pathname);
 
 /** Where Back goes: the previous step, or the landing page from step 01 (SHL-02). */
-export const prevPath = (step: Step) => STEPS[step.index - 1]?.path ?? '/';
+export const prevPath = (step: Step) => STEPS[step.index - 1]?.path ?? JOIN_PATH;
 export const nextPath = (step: Step) => STEPS[step.index + 1]?.path ?? DONE_PATH;
 
 /** Top-level payload keys a step schema owns (unwraps the cross-field refinements). */

@@ -12,7 +12,7 @@ const applyButtons = (page: Page) => page.getByRole('button', { name: copy.cta.a
 
 test.beforeEach(async ({ page }) => {
   await stubConfig(page, true);
-  await page.goto('/');
+  await page.goto('/join');
   await expect(applyButtons(page)).toHaveCount(1);
 });
 

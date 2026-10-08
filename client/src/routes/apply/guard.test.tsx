@@ -51,7 +51,7 @@ describe('guardRedirect (SHL-05)', () => {
   });
 
   it('sends /apply/done to the landing page without a submission id from this session', () => {
-    expect(guardRedirect(DONE_PATH, { ...validYou, ...validDomain }, undefined)).toBe('/');
+    expect(guardRedirect(DONE_PATH, { ...validYou, ...validDomain }, undefined)).toBe('/join');
     expect(guardRedirect(DONE_PATH, {}, 'b6a1c2d4-0000-4000-8000-000000000000')).toBeNull();
   });
 });
@@ -86,7 +86,7 @@ describe('useRouteGuard', () => {
         <DraftProvider>
           <Routes>
             <Route path="/apply/*" element={<><Step /><Where /></>} />
-            <Route path="/" element={<Where />} />
+            <Route path="/join" element={<Where />} />
           </Routes>
         </DraftProvider>
       </MemoryRouter>,
@@ -113,9 +113,9 @@ describe('useRouteGuard', () => {
     expect(screen.getByTestId('where').dataset.guarded).toBe('false');
   });
 
-  it('redirects /apply/done without a submission id to /', async () => {
+  it('redirects /apply/done without a submission id to /join', async () => {
     renderAt('/apply/done', { ...validYou, ...validDomain });
-    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/'));
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/join'));
     expect(screen.queryByText('step content')).toBeNull();
   });
 });

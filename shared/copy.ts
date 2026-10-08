@@ -110,6 +110,73 @@ export const copy = {
     confirmYes: 'Yes, start over', // added
     confirmNo: 'Keep my answers', // added
   },
+  // Club website (club-website branch, docs/CLUB-SITE.md). All added. Club data lives in shared/content.
+  site: {
+    docTitle: '{page} · Andropedia', // added
+    skip: 'Skip to content', // added
+    navLabel: 'Main', // added
+    nav: {
+      home: 'Home',
+      events: 'Events',
+      team: 'Our team',
+      projects: 'Projects',
+      blog: 'Blog',
+      androlink: 'Androlink',
+      join: 'Join us',
+    }, // added
+    home: {
+      est: 'Est. 2025', // added, from the former site
+      eventsTitle: 'From the archive', // added
+      eventsMore: 'All events', // added
+      teamTitle: 'The crew', // added
+      teamBody: '{people} people across {divisions} divisions, and counting.', // added
+      teamMore: 'Meet the team', // added
+      joinTitle: 'Think you are one of the weirdos?', // added
+      joinCta: 'Join us', // added
+    },
+    events: {
+      title: 'Events', // added
+      intro: 'What we have run so far, and what is coming next.', // added
+      upcoming: 'Coming up', // added
+      archive: 'From the archive', // added
+      noneUpcoming: 'Nothing announced yet. Follow us on Instagram to hear first.', // added
+    },
+    team: {
+      title: 'Our team', // added
+      intro: 'The people who keep Andropedia running.', // added
+      core: 'Core team', // added
+      members: 'Members', // added
+      count: '{n} members', // added
+    },
+    projects: {
+      title: 'Projects', // added
+      intro: 'Things our members build.', // added
+      empty: 'Projects are cooking. Check back soon.', // added
+      emptyCta: 'Want to build one? Join us.', // added
+      by: 'Built by {names}', // added
+      open: 'See {name}', // added
+    },
+    blog: {
+      title: 'Blog', // added
+      intro: 'Notes, write-ups and stories from the club.', // added
+      empty: 'No posts yet. The first one is being written.', // added
+      read: 'Read the post', // added
+      back: 'All posts', // added
+      by: 'By {author}', // added
+    },
+    androlink: {
+      title: 'Androlink', // added
+      intro: 'Find the people behind Andropedia and where they share their work.', // added
+      search: 'Search by name', // added
+      filterLabel: 'Division', // added
+      all: 'Everyone', // added
+      results: '{n} people', // added
+      none: 'Nobody by that name yet.', // added
+      noLinks: 'No links shared yet', // added
+      linkLabel: '{name} on {site}', // added
+      sites: { github: 'GitHub', linkedin: 'LinkedIn', portfolio: 'Portfolio', instagram: 'Instagram' }, // added
+    },
+  },
   shell: {
     siteTitle: 'Andropedia Recruitment', // added, document title outside the steps
     docTitle: 'Step {n} · Andropedia Recruitment', // added, SHL-06

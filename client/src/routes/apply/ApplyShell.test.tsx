@@ -28,7 +28,7 @@ function renderApp(path: string, draft?: DraftData) {
       <DraftProvider>
         <Routes>
           <Route path="/apply/*" element={<><ApplyRoutes /><Where /></>} />
-          <Route path="/" element={<Where />} />
+          <Route path="/join" element={<Where />} />
         </Routes>
       </DraftProvider>
     </MemoryRouter>,
@@ -143,6 +143,6 @@ describe('closed round (LND-08)', () => {
   it('sends anyone on a step back to the landing page', async () => {
     mockConfig(false);
     renderApp('/apply/you');
-    await waitFor(() => expect(where()).toBe('/'));
+    await waitFor(() => expect(where()).toBe('/join'));
   });
 });
