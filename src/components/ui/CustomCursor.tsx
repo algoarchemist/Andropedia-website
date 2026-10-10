@@ -82,7 +82,7 @@ export function CustomCursor() {
   if (!isVisible) return null;
 
   return (
-    <div className="hidden md:block pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
+    <div data-gallery-keep className="hidden md:block pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
       {/* Inner Dot */}
       <div
         ref={dotRef}

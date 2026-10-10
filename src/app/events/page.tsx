@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BlurOrb, GridLines } from "@/components/design/Backdrop";
-import { Calendar, MapPin, Trophy, Sparkles, Check, X, Loader2 } from "lucide-react";
+import { Calendar, MapPin, Trophy, Sparkles, Check, X, Loader2, Images } from "lucide-react";
 import { TeamDialog } from "@/components/events/TeamDialog";
+import { EventDetailDialog } from "@/components/events/EventDetailDialog";
+import { galleryFor } from "@/content/event-gallery";
 import type { EventStatus, PublicEvent } from "@/lib/events";
 
 const BADGE: Record<EventStatus, { label: string; color: string }> = {
@@ -150,6 +152,7 @@ export default function Events() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [, setReserved] = useState<string[]>([]);
   const [dialogFor, setDialogFor] = useState<PublicEvent | null>(null);
+  const [detailFor, setDetailFor] = useState<PublicEvent | null>(null);
 
   const load = useCallback(() => {
     fetch("/api/events", { cache: "no-store" })
@@ -235,11 +238,18 @@ export default function Events() {
         <div className="space-y-6 max-w-5xl mx-auto">
           {currentList.map((ev) => {
             const badge = BADGE[ev.status];
+            const photos = galleryFor(ev.id).length;
+            const open = photos > 0 ? () => setDetailFor(ev) : undefined;
             return (
               <div
                 key={ev.id}
-                className="glass-panel p-8 rounded-3xl border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
-                data-cursor-text="Event"
+                className={`glass-panel p-8 rounded-3xl border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 ${open ? "cursor-pointer" : ""}`}
+                data-cursor-text={open ? "View photos" : "Event"}
+                onClick={open}
+                onKeyDown={open && ((e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open()))}
+                role={open ? "button" : undefined}
+                tabIndex={open ? 0 : undefined}
+                aria-label={open ? `${ev.title}: view event photos` : undefined}
               >
                 <div className="space-y-3 max-w-2xl">
                   <div className="flex flex-wrap items-center gap-2">
@@ -255,6 +265,9 @@ export default function Events() {
                       <div className="flex items-center gap-1.5 text-amber-300 font-semibold"><Trophy className="w-3.5 h-3.5" /><span>{ev.prize}</span></div>
                     )}
                   </div>
+                  {photos > 0 && (
+                    <div className="flex items-center gap-1.5 pt-1 text-xs font-mono text-emerald-300/80"><Images className="w-3.5 h-3.5" /><span>{photos} photos · click to view</span></div>
+                  )}
                 </div>
 
               </div>
@@ -264,6 +277,7 @@ export default function Events() {
       </div>
 
       <AnimatePresence>
+        {detailFor && <EventDetailDialog event={detailFor} when={when(detailFor)} onClose={() => setDetailFor(null)} />}
         {dialogFor && (dialogFor.teamMax != null
           ? <TeamDialog event={dialogFor} onClose={() => setDialogFor(null)} onDone={markReserved} />
           : <RsvpDialog event={dialogFor} onClose={() => setDialogFor(null)} onDone={markReserved} />)}
