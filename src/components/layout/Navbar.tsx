@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
 import { ACCENTS, type Accent } from "@/content/accents";
 import { RotaryDial } from "./RotaryDial";
 import { getPortalDestinationForUser, useAuth } from "@/lib/auth-context";
@@ -20,11 +21,12 @@ interface MenuItem {
   accent: Accent;
 }
 
+// The numbers on the dial follow this order. Recruitment is always last (4), so "Join us" stays the final hole as the menu grows.
 const ITEMS: MenuItem[] = [
-  { name: "Join us", href: "/join#how-selection-works", accent: ACCENTS.indigo },
-  { name: "Events", href: "/events", accent: ACCENTS.purple },
   { name: "Teams", href: "/team", accent: ACCENTS.teal },
+  { name: "Events", href: "/events", accent: ACCENTS.purple },
   { name: "Members", href: "/portal/login", accent: ACCENTS.amber }, // signed-in members go to their portal instead
+  { name: "Join us", href: "/join#how-selection-works", accent: ACCENTS.indigo },
 ];
 
 export function Navbar() {
@@ -91,6 +93,24 @@ export function Navbar() {
     else router.push(href);
   };
 
+  // Count the pages opened inside the site, so Back only uses browser history when there is a page of ours to return to.
+  const pagesOpened = useRef(0);
+  const lastPath = useRef(pathname);
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    pagesOpened.current += 1;
+  }, [pathname]);
+  const goBack = () => {
+    close();
+    if (pagesOpened.current > 0) {
+      pagesOpened.current -= 1;
+      router.back();
+    } else {
+      router.push("/"); // landed here directly (a shared link, a refresh): nothing of ours to go back to
+    }
+  };
+
   const handleLogout = async () => {
     await logout(); // ends the server session, then clears local state
     close();
@@ -101,27 +121,42 @@ export function Navbar() {
     <header className="pointer-events-none fixed inset-x-0 top-0 z-50">
       <div className="flex items-start justify-between px-4 pt-3 sm:px-6 sm:pt-4">
         {/* ---------- left: logo only, touching/clicking returns to home page ---------- */}
-        <div ref={cardRef} className="pointer-events-auto relative flex items-center" onPointerEnter={enter} onPointerLeave={leave}>
-          <Link
-            href="/"
-            onClick={(e) => {
-              if (pathname === "/") {
-                e.preventDefault();
-                jumpToHero();
-              }
-              close();
-            }}
-            data-cursor-text="Home"
-            aria-label="Andropedia home"
-            className="group flex items-center justify-center p-1 transition-transform duration-200 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo.png"
-              alt="Andropedia"
-              className="h-10 w-auto object-contain drop-shadow-[0_0_16px_rgba(0,102,255,0.75)] transition-all duration-300 group-hover:drop-shadow-[0_0_24px_rgba(0,212,255,0.95)]"
-            />
-          </Link>
+        <div className="flex items-center gap-2">
+          <div ref={cardRef} className="pointer-events-auto relative flex items-center" onPointerEnter={enter} onPointerLeave={leave}>
+            <Link
+              href="/"
+              onClick={(e) => {
+                if (pathname === "/") {
+                  e.preventDefault();
+                  jumpToHero();
+                }
+                close();
+              }}
+              data-cursor-text="Home"
+              aria-label="Andropedia home"
+              className="group flex items-center justify-center p-1 transition-transform duration-200 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Andropedia"
+                className="h-10 w-auto object-contain drop-shadow-[0_0_16px_rgba(0,102,255,0.75)] transition-all duration-300 group-hover:drop-shadow-[0_0_24px_rgba(0,212,255,0.95)]"
+              />
+            </Link>
+          </div>
+
+          {/* Back: returns to the page you were just on, with its scroll position, instead of restarting from the hero. */}
+          {pathname !== "/" && (
+            <button
+              type="button"
+              onClick={goBack}
+              data-cursor-text="Back"
+              aria-label="Go back to the previous page"
+              className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] text-white/80 shadow-[inset_0_0_20px_rgba(204,215,255,0.08)] backdrop-blur-[12px] transition-all hover:border-white/40 hover:bg-white/[0.12] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400"
+            >
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            </button>
+          )}
         </div>
 
         <div className="w-10" />

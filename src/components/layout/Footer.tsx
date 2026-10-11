@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUp, Terminal } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { LegalLinks } from "@/components/layout/LegalLinks";
 import { LinkedinIcon, InstagramIcon } from "@/components/ui/SocialIcons";
 
@@ -44,9 +44,9 @@ export function Footer() {
     <footer className="bg-black text-white">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-12 rounded-t-[30px] px-6 py-16 sm:px-12 lg:flex-row lg:justify-between lg:px-24 lg:py-24">
         <div className="max-w-xs space-y-4">
-          <Link href="/" className="inline-flex items-center gap-1.5 p-1" aria-label="Andropedia home">
-            <Terminal className="h-6 w-6" aria-hidden="true" />
-            <span className="text-[18px] font-bold leading-none tracking-[-0.9px]">Andropedia</span>
+          <Link href="/" className="inline-flex items-center p-1" aria-label="Andropedia home">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Andropedia" className="h-14 w-auto object-contain" />
           </Link>
           <p className="text-[13px] leading-5 text-white/70">
             The student technology club building real systems, one weekly sprint at a time.
@@ -86,6 +86,13 @@ export function Footer() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-4 px-6 py-5 text-[13px] leading-5 text-white/70 sm:flex-row sm:px-12 lg:px-24">
           <p>&copy; {new Date().getFullYear()} Andropedia Technology Council</p>
+          <p className="text-center sm:flex-1">
+            Developed and maintained by the{" "}
+            <Link href="/team#web" className="text-white underline-offset-4 transition-colors hover:text-[#8cbfff] hover:underline">
+              Web Team
+            </Link>{" "}
+            @ Andropedia
+          </p>
           <div className="flex items-center gap-8">
             <LegalLinks />
             <a href="#top" aria-label="Back to top" className="btn-circle !h-11 !w-11 !bg-black/60">

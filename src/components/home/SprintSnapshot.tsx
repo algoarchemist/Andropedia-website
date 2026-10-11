@@ -3,106 +3,64 @@ import { ArrowRight } from "lucide-react";
 import { BlurOrb } from "@/components/design/Backdrop";
 import { Reveal } from "@/components/design/Reveal";
 import { CountUp } from "@/components/design/scroll";
-import { getLeaderboard, getWeeks } from "@/lib/data-store";
+import { getLeaderboard, getPublicMembers, getWeeks } from "@/lib/data-store";
+import { featuredLeaders, initialsOf } from "@/lib/home-board";
 import { log } from "@/lib/logger";
-import type { LeaderboardEntry } from "@/lib/types";
 
-// Default mock sprint data with Andro Points
-const DEFAULT_SPRINT_DATA = {
-  sprintNumber: 4,
-  podium: [
-    {
-      rank: 2,
-      name: "Ananya Sharma",
-      role: "WebDev Engineering Lead",
-      domain: "Web Development",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
-      points: "3,120",
-    },
-    {
-      rank: 1,
-      name: "Aryan Kulkarni",
-      role: "Chief of AI Innovations",
-      domain: "R&D / AI Innovations",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
-      points: "3,450",
-      mvpBadge: "SPRINT 04 MVP",
-    },
-    {
-      rank: 3,
-      name: "Kabir Mehta",
-      role: "Design Architecture Lead",
-      domain: "Design & 3D Architecture",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80",
-      points: "2,980",
-    },
-  ],
-  ledger: [
-    { rank: 1, name: "Aryan Kulkarni", domain: "R&D / AI Innovations", points: "3,450 pts", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" },
-    { rank: 2, name: "Ananya Sharma", domain: "WebDev Engineering", points: "3,120 pts", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" },
-    { rank: 3, name: "Kabir Mehta", domain: "Design & 3D Architecture", points: "2,980 pts", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80" },
-    { rank: 4, name: "Marcus Vance", domain: "Tech & Systems", points: "2,840 pts", avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop&q=80" },
-    { rank: 5, name: "Siddharth Roy", domain: "R&D / AI Innovations", points: "2,710 pts", avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&auto=format&fit=crop&q=80" },
-  ],
-};
+interface BoardEntry {
+  rank: number;
+  name: string;
+  /** Under the name on the podium. */
+  role: string;
+  domain: string;
+  avatar: string;
+  points: string;
+}
 
+/** Profile picture, or the person's initials when they have none. */
+function Face({ name, src, className }: { name: string; src: string; className: string }) {
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={name} className={`${className} object-cover`} />;
+  }
+  return (
+    <div role="img" aria-label={name} className={`${className} flex items-center justify-center bg-[#0b1d4d] font-semibold text-[#8cbfff]`}>
+      {initialsOf(name)}
+    </div>
+  );
+}
+
+const SPRINT_FALLBACK = 4;
+
+// The board: the President, the Vice President and the R&D Chief hold the top three places (with placeholder Andro Points
+// between 300 and 400 until real sprint scores exist, see lib/home-board.ts). Members who have real scores follow below them.
 export async function SprintSnapshot() {
-  let dbRows: LeaderboardEntry[] = [];
-  let sprintNumber: number = DEFAULT_SPRINT_DATA.sprintNumber;
+  let sprintNumber = SPRINT_FALLBACK;
+  let leaders: ReturnType<typeof featuredLeaders> = [];
+  let scored: Awaited<ReturnType<typeof getLeaderboard>> = [];
 
   try {
-    const [board, weeks] = await Promise.all([getLeaderboard("All", "all-time"), getWeeks()]);
-    dbRows = board.filter((r) => r.totalScore > 0);
+    const [members, board, weeks] = await Promise.all([getPublicMembers(), getLeaderboard("All", "all-time"), getWeeks()]);
+    leaders = featuredLeaders(members);
+    scored = board.filter((r) => r.totalScore > 0);
     const active = weeks.find((w) => w.isActive);
     if (active) sprintNumber = active.weekNumber;
   } catch (err) {
     log.error("Home leaderboard fetch error", err);
   }
 
-  const hasDbData = dbRows.length >= 3;
-  const podiumData = hasDbData
-    ? [
-        {
-          rank: 2,
-          name: dbRows[1].name,
-          role: `${dbRows[1].domain} Contributor`,
-          domain: dbRows[1].domain,
-          avatar: dbRows[1].avatar || DEFAULT_SPRINT_DATA.podium[0].avatar,
-          points: dbRows[1].totalScore.toLocaleString(),
-        },
-        {
-          rank: 1,
-          name: dbRows[0].name,
-          role: `${dbRows[0].domain} Lead`,
-          domain: dbRows[0].domain,
-          avatar: dbRows[0].avatar || DEFAULT_SPRINT_DATA.podium[1].avatar,
-          points: dbRows[0].totalScore.toLocaleString(),
-          mvpBadge: `SPRINT ${String(sprintNumber).padStart(2, "0")} MVP`,
-        },
-        {
-          rank: 3,
-          name: dbRows[2].name,
-          role: `${dbRows[2].domain} Specialist`,
-          domain: dbRows[2].domain,
-          avatar: dbRows[2].avatar || DEFAULT_SPRINT_DATA.podium[2].avatar,
-          points: dbRows[2].totalScore.toLocaleString(),
-        },
-      ]
-    : DEFAULT_SPRINT_DATA.podium;
+  const leaderIds = new Set(leaders.map((l) => l.id));
+  const entries: BoardEntry[] = [
+    ...leaders.map((l) => ({ name: l.name, role: l.title, domain: l.domain, avatar: l.avatar, points: l.points })),
+    ...scored.filter((r) => !leaderIds.has(r.userId)).map((r) => ({ name: r.name, role: `${r.domain} Contributor`, domain: r.domain, avatar: r.avatar, points: r.totalScore })),
+  ]
+    .slice(0, 5)
+    .map((e, i) => ({ rank: i + 1, name: e.name, role: e.role, domain: e.domain, avatar: e.avatar, points: e.points.toLocaleString("en-US") }));
 
-  const ledgerData = hasDbData
-    ? dbRows.slice(0, 5).map((r, i) => ({
-        rank: i + 1,
-        name: r.name,
-        domain: r.domain,
-        points: `${r.totalScore.toLocaleString()} pts`,
-        avatar: r.avatar || DEFAULT_SPRINT_DATA.ledger[i]?.avatar || "",
-      }))
-    : DEFAULT_SPRINT_DATA.ledger;
+  const ledgerData = entries.map((e) => ({ ...e, points: `${e.points} pts` }));
+  const [card1, card2, card3] = entries;
 
-  const card2 = podiumData.find((p) => p.rank === 2) ?? podiumData[0];
-  const card1 = podiumData.find((p) => p.rank === 1) ?? podiumData[1];
-  const card3 = podiumData.find((p) => p.rank === 3) ?? podiumData[2];
+  if (entries.length === 0) return null; // nothing to show yet (no leadership set and no scores)
 
   return (
     <section id="sprint" className="relative isolate overflow-hidden bg-black px-4 py-16 sm:px-8 sm:py-20 lg:px-12">
@@ -130,6 +88,7 @@ export async function SprintSnapshot() {
           {/* ── Top 3 Podium Cards ── */}
           <div className="relative z-10 grid grid-cols-1 items-end gap-5 sm:grid-cols-3 sm:gap-4 lg:gap-6">
             {/* #2 — Left Card */}
+            {card2 && (
             <div className="order-2 flex flex-col items-center sm:order-1">
               <div className="relative mb-[-16px] z-20 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#0066ff] bg-[#070e24] font-mono text-[12px] font-bold text-[#38bdf8] shadow-[0_0_15px_rgba(0,102,255,0.5)]">
                 2
@@ -137,8 +96,7 @@ export async function SprintSnapshot() {
               <div className="relative flex w-full flex-col items-center overflow-hidden rounded-xl border border-[#0066ff]/25 bg-[#08122c]/70 px-4 pb-5 pt-7 text-center backdrop-blur-md transition-all duration-300 hover:border-[#0066ff]/50 sm:h-[260px]">
                 {/* Avatar */}
                 <div className="relative h-16 w-16 shrink-0 rounded-full border-2 border-[#0066ff]/50 p-0.5 shadow-[0_0_20px_rgba(0,102,255,0.35)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={card2.avatar} alt={card2.name} className="h-full w-full rounded-full object-cover" />
+                  <Face name={card2.name} src={card2.avatar} className="h-full w-full rounded-full" />
                 </div>
                 {/* Info */}
                 <h3 className="mt-3 font-semibold text-white text-[15px] sm:text-[16px]">{card2.name}</h3>
@@ -151,8 +109,10 @@ export async function SprintSnapshot() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* #1 — Center Card (Elevated) */}
+            {card1 && (
             <div className="order-1 flex flex-col items-center sm:order-2">
               <div className="relative mb-[-18px] z-20 flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#00d4ff] bg-[#071330] font-mono text-[14px] font-bold text-[#00d4ff] shadow-[0_0_20px_rgba(0,212,255,0.7)]">
                 1
@@ -167,16 +127,8 @@ export async function SprintSnapshot() {
 
                 {/* Avatar with Ring */}
                 <div className="relative h-20 w-20 shrink-0 rounded-full border-2 border-[#00d4ff] p-0.5 shadow-[0_0_25px_rgba(0,212,255,0.5)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={card1.avatar} alt={card1.name} className="h-full w-full rounded-full object-cover" />
+                  <Face name={card1.name} src={card1.avatar} className="h-full w-full rounded-full" />
                 </div>
-
-                {/* MVP Pill */}
-                {card1.mvpBadge && (
-                  <span className="mt-2 inline-block rounded-full border border-[#00d4ff]/40 bg-[#00d4ff]/10 px-2.5 py-0.5 font-mono text-[9px] font-bold tracking-wider text-[#00d4ff]">
-                    {card1.mvpBadge}
-                  </span>
-                )}
 
                 {/* Info */}
                 <h3 className="mt-2 text-[17px] font-bold text-white sm:text-[18px]">{card1.name}</h3>
@@ -190,8 +142,10 @@ export async function SprintSnapshot() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* #3 — Right Card */}
+            {card3 && (
             <div className="order-3 flex flex-col items-center">
               <div className="relative mb-[-16px] z-20 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#0066ff] bg-[#070e24] font-mono text-[12px] font-bold text-[#38bdf8] shadow-[0_0_15px_rgba(0,102,255,0.5)]">
                 3
@@ -199,8 +153,7 @@ export async function SprintSnapshot() {
               <div className="relative flex w-full flex-col items-center overflow-hidden rounded-xl border border-[#0066ff]/25 bg-[#08122c]/70 px-4 pb-5 pt-7 text-center backdrop-blur-md transition-all duration-300 hover:border-[#0066ff]/50 sm:h-[250px]">
                 {/* Avatar */}
                 <div className="relative h-16 w-16 shrink-0 rounded-full border-2 border-[#0066ff]/50 p-0.5 shadow-[0_0_20px_rgba(0,102,255,0.35)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={card3.avatar} alt={card3.name} className="h-full w-full rounded-full object-cover" />
+                  <Face name={card3.name} src={card3.avatar} className="h-full w-full rounded-full" />
                 </div>
                 {/* Info */}
                 <h3 className="mt-3 font-semibold text-white text-[15px] sm:text-[16px]">{card3.name}</h3>
@@ -213,6 +166,7 @@ export async function SprintSnapshot() {
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           {/* ── Ranking Ledger Table with Andro Points Column and 5 Circles ── */}
@@ -261,12 +215,7 @@ export async function SprintSnapshot() {
 
                   {/* Contributor */}
                   <div className="flex items-center gap-2.5 overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={row.avatar}
-                      alt=""
-                      className="h-7 w-7 shrink-0 rounded-full border border-white/15 object-cover"
-                    />
+                    <Face name={row.name} src={row.avatar} className="h-7 w-7 shrink-0 rounded-full border border-white/15 text-[10px]" />
                     <span className="truncate text-[13px] font-medium text-white">{row.name}</span>
                   </div>
 
