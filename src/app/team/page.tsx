@@ -1,85 +1,135 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Users, Crown, Shield, Star } from "lucide-react";
-import { Avatar, MemberModal, Socials, type Selected } from "@/components/team/MemberProfile";
+import { Users, Crown, Shield, Star, ArrowRight } from "lucide-react";
+import { AvatarRing, MemberModal, RoleChips, RoleIcon, Socials, type Selected } from "@/components/team/MemberProfile";
 import { SoundButton } from "@/components/ui/SoundButton";
 import { armSoundUnlock } from "@/lib/dial-sound";
-import { cardClick, cardHover } from "@/lib/tile-sound";
-import { ACCENTS, DOMAIN_ACCENT, accentVars, type Accent } from "@/content/accents";
+import { cardClick, cardGlow, cardHover } from "@/lib/tile-sound";
+import { accentVars } from "@/content/accents";
+import { DOMAIN_THEME, themeFor, themeVars } from "@/content/team-theme";
 import { POSITION_LABELS, TEAM_DOMAINS, groupTeam, type TeamMember } from "@/lib/team";
 
 type Size = "large" | "medium" | "compact";
 
-
-type Select = (m: TeamMember, title: string | undefined, accent: Accent | undefined) => void;
+type Select = (m: TeamMember, title: string | undefined) => void;
 
 const hoverSpring = { type: "spring", stiffness: 320, damping: 22 } as const;
 
-/** `title` is the line under the name, e.g. "President" or "Chief, Technical". Click or Enter opens the profile. */
-const MemberCard = memo(function MemberCard({ member, size, title, className = "", accent, onSelect }: { member: TeamMember; size: Size; title?: string; className?: string; accent?: Accent; onSelect: Select }) {
-  const open = () => {
-    onSelect(member, title, accent);
+/** Headings take the same colour as the domain's cards. */
+const sectionAccent = (id: keyof typeof DOMAIN_THEME) => accentVars({ name: id, a1: DOMAIN_THEME[id].a1, a2: DOMAIN_THEME[id].a2 });
+
+/**
+ * `title` is the line under the name, e.g. "President" or "Chief, Technical". Click or Enter opens the profile.
+ * Hovering lights the card up from the pointer; clicking sends a ripple of light and a flash across it, with a sound.
+ */
+const MemberCard = memo(function MemberCard({ member, size, title, className = "", onSelect }: { member: TeamMember; size: Size; title?: string; className?: string; onSelect: Select }) {
+  const theme = themeFor(member);
+  const card = useRef<HTMLDivElement>(null);
+  const [ripple, setRipple] = useState<{ id: number; x: number; y: number } | null>(null);
+
+  const open = (x: number, y: number) => {
+    const el = card.current;
+    if (el) {
+      // Restart the flash even if the previous one is still running.
+      el.classList.remove("tc-lit");
+      void el.offsetWidth;
+      el.classList.add("tc-lit");
+    }
+    setRipple({ id: performance.now(), x, y });
+    onSelect(member, title);
     // The sound waits until the profile has had its first frame, so starting audio never delays it.
-    requestAnimationFrame(() => window.setTimeout(cardClick, 0));
+    requestAnimationFrame(() =>
+      window.setTimeout(() => {
+        cardClick();
+        cardGlow();
+      }, 0),
+    );
   };
   const interactive = {
+    ref: card,
     role: "button" as const,
     tabIndex: 0,
     "aria-haspopup": "dialog" as const,
     "aria-label": `Open ${member.name}'s profile`,
-    onClick: open,
+    style: themeVars(theme),
+    "data-cursor-text": "View profile",
+    onClick: (e: React.MouseEvent<HTMLDivElement>) => {
+      const r = e.currentTarget.getBoundingClientRect();
+      open(e.clientX - r.left, e.clientY - r.top);
+    },
     onPointerEnter: (e: React.PointerEvent) => {
       if (e.pointerType !== "touch") cardHover();
     },
-    onKeyDown: (e: React.KeyboardEvent) => {
+    onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      const r = el.getBoundingClientRect();
+      el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      el.style.setProperty("--my", `${e.clientY - r.top}px`);
+    },
+    onAnimationEnd: (e: React.AnimationEvent<HTMLDivElement>) => {
+      if (e.target === e.currentTarget) e.currentTarget.classList.remove("tc-lit");
+    },
+    onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        open();
+        const r = e.currentTarget.getBoundingClientRect();
+        open(r.width / 2, r.height * 0.35);
       }
     },
     whileHover: { y: -6, scale: 1.025 },
     whileTap: { scale: 0.985 },
     transition: hoverSpring,
   };
+  const burst = ripple && (
+    <span key={ripple.id} aria-hidden="true" className="tc-ripple" style={{ left: ripple.x, top: ripple.y }} onAnimationEnd={() => setRipple(null)} />
+  );
 
   if (size === "compact") {
     return (
-      <motion.div
-        {...interactive}
-        className="group dark-card p-4 flex items-center gap-3 cursor-pointer hover:border-white/30 hover:shadow-[0_10px_30px_-10px_rgba(255,255,255,0.15)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/60"
-        data-cursor-text="View profile"
-      >
-        <Avatar member={member} className="w-12 h-12 rounded-xl border border-white/10 shrink-0 text-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-4deg]" />
+      <motion.div {...interactive} className="group tc tc-row cursor-pointer">
+        <AvatarRing member={member} ringClass="tc-ring-sm" textClass="text-sm" />
         <div className="min-w-0 flex-1">
-          <h4 className="text-sm font-semibold uppercase text-white truncate">{member.name}</h4>
-          {member.bio && <p className="text-[11px] text-slate-500 line-clamp-2 leading-snug">{member.bio}</p>}
+          <h4 className="truncate text-sm font-semibold uppercase leading-5 text-white">{member.name}</h4>
+          <span className="tc-chip">{theme.label}</span>
         </div>
-        <Socials member={member} />
+        <Socials member={member} size="sm" />
+        <span className="tc-bar" aria-hidden="true" />
+        {burst}
       </motion.div>
     );
   }
 
   const large = size === "large";
   return (
-    <motion.div
-      {...interactive}
-      className={`group glass-card glass-card-sm is-interactive relative flex flex-col items-center text-center cursor-pointer overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/60 ${large ? "p-10 w-full sm:w-[24rem]" : "p-6"} ${className}`}
-      data-cursor-text="View profile"
-      style={accent ? accentVars(accent) : undefined}
-    >
-      {/* Accent glow that fades in under the cursor */}
-      <span aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(60% 50% at 50% 0%, var(--a1-soft, rgba(255,255,255,0.12)), transparent 70%)" }} />
-      <Avatar
-        member={member}
-        className={`${large ? "w-36 h-36 text-4xl" : "w-20 h-20 text-xl"} rounded-2xl border border-white/30 shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3`}
-      />
-      <h3 className={`${large ? "text-2xl" : "text-lg"} font-bold uppercase text-white mt-5`}>{member.name}</h3>
-      {title && <p className="text-a2 mt-1 text-[13px] font-medium leading-5">{title}</p>}
-      {member.bio && <p className="text-xs text-slate-400 leading-relaxed mt-3 line-clamp-3">{member.bio}</p>}
-      <div className="mt-4"><Socials member={member} /></div>
-      <span className="mt-3 text-[11px] font-medium uppercase tracking-[0.18em] text-white/0 transition-colors duration-300 group-hover:text-white/70">View profile</span>
+    <motion.div {...interactive} className={`group tc ${large ? "tc-lg w-full sm:w-80" : ""} flex cursor-pointer flex-col rounded-[20px] pb-5 text-center ${className}`}>
+      <div className="w-full flex-1 pb-[18px]">
+        <div className="tc-banner">
+          <span className="tc-dom">{theme.label}</span>
+        </div>
+        <AvatarRing member={member} ringClass={`tc-ring-ov ${large ? "tc-ring-lg" : ""}`} textClass={large ? "text-4xl" : "text-3xl"} />
+        <h3 className={`${large ? "text-2xl leading-[30px]" : "text-xl leading-[26px]"} mx-4 mt-3.5 break-words font-semibold uppercase text-white`}>{member.name}</h3>
+        {title && (
+          <p className="mx-4 mt-1 inline-flex items-center gap-1.5 text-[13px] font-medium leading-[18px]" style={{ color: "var(--t2)" }}>
+            <RoleIcon member={member} />
+            {title}
+          </p>
+        )}
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <RoleChips member={member} />
+        </div>
+        {member.bio && <p className="mx-6 mt-4 line-clamp-3 text-xs leading-relaxed text-slate-400">{member.bio}</p>}
+      </div>
+      <div className="tc-foot">
+        <Socials member={member} />
+        <span className="tc-view">
+          Profile
+          <ArrowRight className="h-3 w-3" aria-hidden="true" />
+        </span>
+      </div>
+      <span className="tc-bar" aria-hidden="true" />
+      {burst}
     </motion.div>
   );
 });
@@ -103,7 +153,7 @@ export default function TeamPage() {
   const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<Selected | null>(null);
   // Stable, so the 49 memoised cards don't re-render when a profile opens.
-  const select: Select = useCallback((member, title, accent) => setSelected({ member, title, accent }), []);
+  const select: Select = useCallback((member, title) => setSelected({ member, title }), []);
   const closeProfile = useCallback(() => setSelected(null), []);
 
   useEffect(() => armSoundUnlock(), []); // hover sounds start after the first click or key press
@@ -195,10 +245,10 @@ export default function TeamPage() {
               {(groups.president.length > 0 || groups.vicePresident.length > 0) && (
                 <div className="flex flex-col sm:flex-row flex-wrap items-center sm:items-stretch justify-center gap-6">
                   {groups.president.map((m) => (
-                    <MemberCard key={m.id} onSelect={select} member={m} size="large" title={POSITION_LABELS.president} accent={ACCENTS.amber} />
+                    <MemberCard key={m.id} onSelect={select} member={m} size="large" title={POSITION_LABELS.president} />
                   ))}
                   {groups.vicePresident.map((m) => (
-                    <MemberCard key={m.id} onSelect={select} member={m} size="large" title={POSITION_LABELS.vice_president} accent={ACCENTS.purple} />
+                    <MemberCard key={m.id} onSelect={select} member={m} size="large" title={POSITION_LABELS.vice_president} />
                   ))}
                 </div>
               )}
@@ -208,7 +258,7 @@ export default function TeamPage() {
                   <SubHeading icon={Crown}>Chiefs</SubHeading>
                   <div className="mx-auto flex max-w-[38rem] flex-wrap justify-center gap-5">
                     {groups.chiefs.map((m) => (
-                      <MemberCard key={m.id} onSelect={select} member={m} size="medium" title={`Chief, ${domainLabel(m.domain)}`} className="w-full sm:w-72" accent={DOMAIN_ACCENT[m.domain]} />
+                      <MemberCard key={m.id} onSelect={select} member={m} size="medium" title={`Chief, ${domainLabel(m.domain)}`} className="w-full sm:w-72" />
                     ))}
                   </div>
                 </div>
@@ -217,7 +267,7 @@ export default function TeamPage() {
 
             {/* ---------- Domains ---------- */}
             {groups.domains.map(({ domain, leads, coLeads, members: regular, total }) => (
-              <section key={domain.id} id={domain.slug} className="scroll-mt-32 space-y-6" style={accentVars(DOMAIN_ACCENT[domain.id])} aria-label={`${domain.label} team`}>
+              <section key={domain.id} id={domain.slug} className="scroll-mt-32 space-y-6" style={sectionAccent(domain.id)} aria-label={`${domain.label} team`}>
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-white/10 pb-3">
                   <div>
                     <h2 className="text-accent font-mono text-[28px] sm:text-[38px] font-bold uppercase leading-tight tracking-tight">{domain.label}</h2>
@@ -237,8 +287,8 @@ export default function TeamPage() {
                           {[leads.length > 1 ? "Leads" : leads.length === 1 ? "Lead" : "", coLeads.length === 1 ? "Co-Lead" : ""].filter(Boolean).join(" & ")}
                         </SubHeading>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                          {leads.map((m) => <MemberCard key={m.id} onSelect={select} member={m} size="medium" title={`${POSITION_LABELS.lead}, ${domain.label}`} accent={DOMAIN_ACCENT[domain.id]} />)}
-                          {coLeads.map((m) => <MemberCard key={m.id} onSelect={select} member={m} size="medium" title={`${POSITION_LABELS.co_lead}, ${domain.label}`} accent={DOMAIN_ACCENT[domain.id]} />)}
+                          {leads.map((m) => <MemberCard key={m.id} onSelect={select} member={m} size="medium" title={`${POSITION_LABELS.lead}, ${domain.label}`} />)}
+                          {coLeads.map((m) => <MemberCard key={m.id} onSelect={select} member={m} size="medium" title={`${POSITION_LABELS.co_lead}, ${domain.label}`} />)}
                         </div>
                       </div>
                     ) : (
@@ -247,7 +297,7 @@ export default function TeamPage() {
                           <div className="space-y-3">
                             <SubHeading icon={Shield}>{leads.length > 1 ? "Leads" : "Lead"}</SubHeading>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                              {leads.map((m) => <MemberCard key={m.id} onSelect={select} member={m} size="medium" title={`${POSITION_LABELS.lead}, ${domain.label}`} accent={DOMAIN_ACCENT[domain.id]} />)}
+                              {leads.map((m) => <MemberCard key={m.id} onSelect={select} member={m} size="medium" title={`${POSITION_LABELS.lead}, ${domain.label}`} />)}
                             </div>
                           </div>
                         )}
@@ -255,7 +305,7 @@ export default function TeamPage() {
                           <div className="space-y-3">
                             <SubHeading icon={Star}>Co-Leads</SubHeading>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                              {coLeads.map((m) => <MemberCard key={m.id} onSelect={select} member={m} size="medium" title={`${POSITION_LABELS.co_lead}, ${domain.label}`} accent={DOMAIN_ACCENT[domain.id]} />)}
+                              {coLeads.map((m) => <MemberCard key={m.id} onSelect={select} member={m} size="medium" title={`${POSITION_LABELS.co_lead}, ${domain.label}`} />)}
                             </div>
                           </div>
                         )}

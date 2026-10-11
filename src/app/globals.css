@@ -421,3 +421,178 @@ html:has(body.gallery-open) { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .marquee-track { animation: none !important; }
 }
+
+/* ---- Team member cards and profile popup ----
+   Themed through --t1 (colour), --t2 (light tint), --td (dark), --ts (soft fill), --tl (line), --tb (banner), --tf (chip fill),
+   set inline from src/content/team-theme.ts. */
+.tc {
+  --mx: 50%;
+  --my: 30%;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--tl);
+  background:
+    radial-gradient(ellipse 70% 30% at 50% 0%, var(--ts), transparent 70%),
+    linear-gradient(180deg, rgba(0, 20, 50, 0.55), rgba(0, 10, 25, 0.9)),
+    #000;
+  box-shadow: inset 0 0 50px rgba(0, 102, 255, 0.07), 0 14px 30px rgba(0, 0, 0, 0.6);
+  transition: border-color 0.25s, box-shadow 0.3s;
+}
+.tc > :not(.tc-bar):not(.tc-ripple) { position: relative; z-index: 1; }
+/* The light that follows the pointer across the card, and the edge that catches it. */
+.tc::before,
+.tc::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.tc::before {
+  background:
+    radial-gradient(240px circle at var(--mx) var(--my), var(--ts), transparent 70%),
+    radial-gradient(120px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.1), transparent 70%);
+}
+.tc::after {
+  padding: 1.5px;
+  background: radial-gradient(200px circle at var(--mx) var(--my), var(--t2), transparent 65%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.tc:hover,
+.tc:focus-visible {
+  border-color: var(--t1);
+  box-shadow: 0 0 0 1px var(--t1), 0 0 56px var(--ts), 0 0 22px var(--ts), 0 26px 44px rgba(0, 0, 0, 0.7);
+}
+.tc:hover::before, .tc:hover::after, .tc:focus-visible::before, .tc:focus-visible::after { opacity: 1; }
+.tc:focus-visible { outline: 2px solid #fff; outline-offset: 5px; }
+
+.tc-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; height: 3px; background: linear-gradient(90deg, var(--t1), var(--t2), var(--t1)); transition: height 0.25s; }
+.tc:hover .tc-bar, .tc:focus-visible .tc-bar { height: 6px; }
+
+.tc-banner { position: relative; height: 88px; background: var(--tb); }
+.tc-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.3px);
+  background-size: 14px 14px;
+  -webkit-mask-image: linear-gradient(90deg, #000, transparent 85%);
+  mask-image: linear-gradient(90deg, #000, transparent 85%);
+}
+.tc-lg .tc-banner { height: 104px; }
+
+.tc-dom {
+  position: absolute; top: 12px; right: 12px; z-index: 1;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 99px; background: rgba(0, 0, 0, 0.55);
+  font: 700 10px/14px var(--font-space-mono), monospace; letter-spacing: 0.14em; text-transform: uppercase; color: #fff;
+}
+.tc-dom::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--t1); box-shadow: 0 0 8px var(--t1); }
+
+/* Gradient ring round a photo. The photo inside keeps the same square crop as before. */
+.tc-ring {
+  display: block; flex: none; width: 88px; height: 88px; padding: 3px; border-radius: 22px;
+  background: conic-gradient(from 200deg, var(--t2), var(--t1), #fff, var(--t1), var(--t2));
+  box-shadow: 0 0 22px var(--ts);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.tc-ring > * { border-radius: 19px; }
+.tc-ring-lg { width: 104px; height: 104px; border-radius: 26px; }
+.tc-ring-lg > * { border-radius: 23px; }
+.tc-ring-sm { width: 48px; height: 48px; padding: 2px; border-radius: 14px; }
+.tc-ring-sm > * { border-radius: 12px; }
+.tc-ring-ov { position: relative; margin: -44px auto 0; z-index: 2; }
+.tc-lg .tc-ring-ov { margin-top: -52px; }
+.tc:hover .tc-ring, .tc:focus-visible .tc-ring { transform: rotate(-3deg) scale(1.08); box-shadow: 0 0 34px var(--ts), 0 0 14px var(--t1); }
+.tc-initials { background: linear-gradient(135deg, var(--t1), var(--td)); color: #fff; font-family: var(--font-space-mono), monospace; font-weight: 700; }
+
+.tc-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 99px;
+  border: 1px solid var(--tl); background: var(--ts); color: var(--t2);
+  font: 700 10.5px/16px var(--font-space-mono), monospace; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.tc-chip-fill { background: var(--tf); border-color: var(--tf); color: #000; }
+
+.tc-foot { align-self: stretch; margin: 0 20px; padding-top: 14px; border-top: 1px dashed var(--tl); display: flex; align-items: center; justify-content: space-between; }
+.tc-view { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--t2); font: 700 10.5px/16px var(--font-space-mono), monospace; letter-spacing: 0.16em; text-transform: uppercase; transition: color 0.2s; }
+.tc-view svg { transition: transform 0.25s; }
+.tc:hover .tc-view, .tc:focus-visible .tc-view { color: #fff; }
+.tc:hover .tc-view svg, .tc:focus-visible .tc-view svg { transform: translateX(3px); }
+
+/* Social squares: 36px, with the touch area padded to 44px. */
+.tc-sq {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+  border: 1px solid var(--tl); border-radius: 10px; background: var(--ts); color: var(--t2);
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.tc-sq::after { content: ""; position: absolute; inset: -4px; }
+.tc-sq:hover { background: var(--t1); border-color: var(--t1); color: #000; box-shadow: 0 0 16px var(--t1); }
+.tc-sq-sm { width: 30px; height: 30px; border-radius: 8px; }
+.tc-sq-sm::after { inset: -7px; }
+.tc-sq-lg { width: 40px; height: 40px; border-radius: 12px; }
+@media (max-width: 639px) { .tc-sq-lg { width: 44px; height: 44px; } .tc-sq-lg::after { inset: 0; } }
+
+/* Compact row for regular members */
+.tc-row { display: flex; align-items: center; gap: 12px; height: 72px; padding: 0 14px; border-radius: 16px; }
+.tc-row .tc-chip { padding: 1px 8px; font-size: 9.5px; line-height: 14px; margin-top: 3px; }
+
+/* Click: a ripple of light from the pointer and a flash round the whole card. */
+@keyframes tcRipple {
+  from { transform: translate(-50%, -50%) scale(0); opacity: 0.9; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+.tc-ripple {
+  position: absolute; z-index: 0; width: 640px; height: 640px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55) 0%, var(--t1) 18%, var(--ts) 45%, transparent 70%);
+  animation: tcRipple 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@keyframes tcFlash {
+  0% { border-color: #fff; box-shadow: 0 0 0 2px #fff, 0 0 90px 12px var(--t1), 0 0 36px 4px var(--t2), 0 26px 44px rgba(0, 0, 0, 0.7); }
+  100% { border-color: var(--t1); box-shadow: 0 0 0 1px var(--t1), 0 0 56px var(--ts), 0 0 22px var(--ts), 0 26px 44px rgba(0, 0, 0, 0.7); }
+}
+.tc-lit { animation: tcFlash 0.8s ease-out; }
+
+/* The popup: its glow flares as it opens, then settles. */
+.tc-modal {
+  overflow: hidden;
+  border: 1px solid var(--tl);
+  border-radius: 28px;
+  background:
+    radial-gradient(ellipse 70% 22% at 50% 0%, var(--ts), transparent 70%),
+    linear-gradient(180deg, rgba(0, 20, 50, 0.7), rgba(0, 10, 25, 0.96)),
+    #000;
+}
+@media (min-width: 640px) { .tc-modal { border-radius: 40px; } }
+@media (min-width: 640px) {
+  .tc-ring-resp { width: 104px; height: 104px; border-radius: 26px; }
+  .tc-ring-resp > * { border-radius: 23px; }
+}
+@keyframes tcModalGlow {
+  0% { box-shadow: inset 0 0 60px rgba(0, 102, 255, 0.1), 0 0 0 2px #fff, 0 0 140px 20px var(--t1), 0 30px 60px rgba(0, 0, 0, 0.8); }
+  100% { box-shadow: inset 0 0 60px rgba(0, 102, 255, 0.1), 0 0 70px var(--ts), 0 30px 60px rgba(0, 0, 0, 0.8); }
+}
+.tc-modal { box-shadow: inset 0 0 60px rgba(0, 102, 255, 0.1), 0 0 70px var(--ts), 0 30px 60px rgba(0, 0, 0, 0.8); animation: tcModalGlow 1s ease-out; }
+.tc-modal-banner { position: relative; flex: none; height: 96px; background: var(--tb); }
+@media (min-width: 640px) { .tc-modal-banner { height: 120px; } }
+.tc-modal-banner::after {
+  content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.3px); background-size: 14px 14px;
+  -webkit-mask-image: linear-gradient(90deg, #000, transparent 85%); mask-image: linear-gradient(90deg, #000, transparent 85%);
+}
+.tc-modal .tc-dom { left: 16px; right: auto; top: 16px; }
+@media (min-width: 640px) { .tc-modal .tc-dom { left: 28px; top: 22px; } }
+.tc-about { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font: 700 10.5px/16px var(--font-space-mono), monospace; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); }
+.tc-about::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--t1); }
+.tc-btn {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--t1); background: var(--t1); color: #000;
+  font: 700 11px/16px var(--font-space-mono), monospace; letter-spacing: 0.14em; text-transform: uppercase; transition: box-shadow 0.2s, transform 0.2s;
+}
+.tc-btn:hover { box-shadow: 0 0 22px var(--t1); transform: translateY(-1px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tc:hover .tc-ring, .tc:focus-visible .tc-ring, .tc:hover .tc-view svg, .tc:focus-visible .tc-view svg { transform: none; }
+  .tc-ripple { display: none; }
+}
