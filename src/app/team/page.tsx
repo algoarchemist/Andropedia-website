@@ -53,7 +53,7 @@ const MemberCard = memo(function MemberCard({ member, size, title, className = "
       >
         <Avatar member={member} className="w-12 h-12 rounded-xl border border-white/10 shrink-0 text-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-4deg]" />
         <div className="min-w-0 flex-1">
-          <h4 className="text-sm font-semibold text-white truncate">{member.name}</h4>
+          <h4 className="text-sm font-semibold uppercase text-white truncate">{member.name}</h4>
           {member.bio && <p className="text-[11px] text-slate-500 line-clamp-2 leading-snug">{member.bio}</p>}
         </div>
         <Socials member={member} />
@@ -75,7 +75,7 @@ const MemberCard = memo(function MemberCard({ member, size, title, className = "
         member={member}
         className={`${large ? "w-36 h-36 text-4xl" : "w-20 h-20 text-xl"} rounded-2xl border border-white/30 shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3`}
       />
-      <h3 className={`${large ? "text-2xl" : "text-lg"} font-bold text-white mt-5`}>{member.name}</h3>
+      <h3 className={`${large ? "text-2xl" : "text-lg"} font-bold uppercase text-white mt-5`}>{member.name}</h3>
       {title && <p className="text-a2 mt-1 text-[13px] font-medium leading-5">{title}</p>}
       {member.bio && <p className="text-xs text-slate-400 leading-relaxed mt-3 line-clamp-3">{member.bio}</p>}
       <div className="mt-4"><Socials member={member} /></div>
