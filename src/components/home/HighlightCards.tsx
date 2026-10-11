@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
@@ -8,6 +8,8 @@ import { Stagger, StaggerItem } from "@/components/design/scroll";
 import { EventDetailDialog } from "@/components/events/EventDetailDialog";
 import { EVENT_LOCATION, HOME_HIGHLIGHTS } from "@/content/home";
 import { ACCENTS, accentVars } from "@/content/accents";
+import { armSoundUnlock } from "@/lib/dial-sound";
+import { cardClick, cardHover } from "@/lib/tile-sound";
 
 const CARD_ACCENTS = [ACCENTS.blue, ACCENTS.purple, ACCENTS.teal];
 
@@ -16,12 +18,17 @@ type Highlight = (typeof HOME_HIGHLIGHTS)[number];
 /** The featured event cards. Opening one shows its description and photo carousel. */
 export function HighlightCards() {
   const [open, setOpen] = useState<Highlight | null>(null);
+  useEffect(() => armSoundUnlock(), []); // hover sounds start after the first click or key press
 
   return (
     <>
       <Stagger as="ul" className="grid gap-5 md:grid-cols-3" stagger={0.16}>
         {HOME_HIGHLIGHTS.map((h, i) => {
-          const show = () => setOpen(h);
+          const show = () => {
+            setOpen(h);
+            // The sound waits until the dialog has had its first frame, so starting audio never delays it.
+            requestAnimationFrame(() => window.setTimeout(cardClick, 0));
+          };
           return (
             <StaggerItem as="li" key={h.id} from={i === 0 ? "left" : i === 2 ? "right" : "up"} tilt={3} className="h-full">
               <article
@@ -30,6 +37,7 @@ export function HighlightCards() {
                 aria-label={`${h.name}: view details and photos`}
                 data-cursor-text="View photos"
                 onClick={show}
+                onPointerEnter={(e) => e.pointerType !== "touch" && cardHover()}
                 onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), show())}
                 className="dark-card flex h-full cursor-pointer flex-col justify-between gap-8 p-6 transition-colors hover:border-[rgba(0,102,255,0.5)] sm:p-[30px]"
                 style={accentVars(CARD_ACCENTS[i % 3])}

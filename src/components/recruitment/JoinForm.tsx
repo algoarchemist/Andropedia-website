@@ -19,7 +19,9 @@ import {
   type DomainId,
   type Question,
 } from "@/lib/recruitment/questions";
+import * as sfx from "@/lib/game-sound";
 import { GameBoard } from "./game/GameBoard";
+import { SoundToggle } from "./game/SoundToggle";
 import { AndySays, type Mood } from "./game/Mascot";
 import { PowerBar } from "./game/PowerBar";
 import { StarterChips } from "./game/StarterChips";
@@ -342,6 +344,7 @@ function QuestionField({ q, value, otherText, error, onChange, onOtherText }: Qu
     const min = q.kind === "textarea" ? q.min ?? 0 : 0;
     const used = text.trim().length;
     const pick = (starter: string) => {
+      sfx.select();
       const next = (text.trim() ? text.replace(/\s*$/, " ") : "") + starter;
       onChange(next.slice(0, q.maxLen));
       requestAnimationFrame(() => {
@@ -394,7 +397,11 @@ function QuestionField({ q, value, otherText, error, onChange, onOtherText }: Qu
                   name={id}
                   value={opt}
                   checked={checked}
-                  onChange={() => (multi ? onChange(checked ? picked.filter((p) => p !== opt) : [...picked, opt]) : onChange(opt))}
+                  onChange={() => {
+                    sfx.select();
+                    if (multi) onChange(checked ? picked.filter((p) => p !== opt) : [...picked, opt]);
+                    else onChange(opt);
+                  }}
                 />
                 <span className="sq" aria-hidden="true" />
                 {opt}
@@ -422,7 +429,10 @@ function QuestionField({ q, value, otherText, error, onChange, onOtherText }: Qu
           return (
             <label key={n} className={`pb-sc ${checked ? "on" : ""}`}>
               <input id={`${id}-${n}`} type="radio" name={id} value={n} checked={checked} aria-label={`${n} of ${q.to}`}
-                onChange={() => onChange(String(n))} className="pb-sr" />
+                onChange={() => {
+                  sfx.select((n - q.from) / Math.max(1, q.to - q.from));
+                  onChange(String(n));
+                }} className="pb-sr" />
               <span aria-hidden="true">{n}</span>
             </label>
           );
@@ -615,6 +625,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
     if (!submitted) return;
     headingRef.current?.focus({ preventScroll: true });
     void fireConfetti("big", [accent.a1, accent.a2, "#ffffff"]);
+    sfx.victory();
   }, [submitted, accent.a1, accent.a2]);
 
   const clearError = (key: string) => setErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
@@ -645,6 +656,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
       // A new class means a new round: the domain round is no longer cleared.
       setReached((r) => Math.min(r, ROUND_STEP));
       setAndyMsg(ANDY_CHEER[CLASS_STEP]);
+      sfx.classLock();
     }
     setForm((prev) => {
       if (prev.domain === id) return prev;
@@ -679,6 +691,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
 
   // ---- note actions
   const openNote = (n: NoteDef) => {
+    sfx.unpin();
     setPinned((p) => p.filter((k) => k !== n.key));
     setOpenKey(n.key);
     setAndyMsg(null);
@@ -689,6 +702,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
   const pinNote = (n: NoteDef) => {
     const found = only(validate(form, n.level), n.keys);
     if (Object.keys(found).length > 0) {
+      sfx.error();
       setErrors((prev) => ({ ...prev, ...found }));
       setAndyMsg(null);
       focusLater(n.keys.find((k) => found[k]));
@@ -699,6 +713,9 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
     const nextPinned = pinned.includes(n.key) ? pinned : [...pinned, n.key];
     const cleared = !n.optional && notes.every((x) => x.optional || nextPinned.includes(x.key));
     const skipped = n.optional && !answered(n);
+    if (cleared) sfx.boardClear();
+    else if (skipped) sfx.select();
+    else sfx.pin();
     setPinned(nextPinned);
     setErrors((prev) => {
       const next = { ...prev };
@@ -732,6 +749,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
     }
     setErrors(found);
     if (Object.keys(found).length > 0) {
+      sfx.error();
       const flagged = notes.find((n) => n.keys.some((k) => found[k]) || found[flagKey(n)]);
       if (flagged) {
         setPinned((p) => p.filter((k) => k !== flagged.key));
@@ -746,11 +764,15 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
     if (next > reached) {
       setReached(next);
       void fireConfetti("small", [accent.a1, accent.a2, "#ffffff"]);
+      sfx.levelUp();
+    } else {
+      sfx.tile();
     }
     goToStep(next, ANDY_CHEER[step] || null);
   };
 
   const startOver = () => {
+    sfx.unpin();
     clearDraft();
     setForm(EMPTY);
     setErrors({});
@@ -775,6 +797,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
   const copyReference = async () => {
     try {
       await navigator.clipboard.writeText(reference);
+      sfx.copy();
       push("Reference ID copied.", "success");
     } catch {
       push("Couldn't copy. Please select and copy the ID manually.", "error");
@@ -786,6 +809,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
     const found = validateAll(form);
     setErrors(found);
     if (Object.keys(found).length > 0) {
+      sfx.error();
       const firstStep = [0, 1, 2, 3, 4].find((s) => stepKeys(s, form.domain).some((k) => found[k])) ?? LAST_STEP;
       if (firstStep !== step) openErroredNote(firstStep, found);
       else focusLater(stepKeys(firstStep, form.domain).find((k) => found[k]));
@@ -827,6 +851,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
         return;
       }
 
+      sfx.error();
       if (res.status === 403) {
         void loadCycle(); // closed while the form was open: show the closed state
         setServerError(data?.error || "Applications are not being accepted right now.");
@@ -851,6 +876,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
         setServerError(data?.error || "Something went wrong. Please try again.");
       }
     } catch {
+      sfx.error();
       setServerError("Network error. Please check your connection and try again. Your answers are still here.");
       push("You appear to be offline.", "error");
     } finally {
@@ -1006,7 +1032,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
                   const checked = form.year === y;
                   return (
                     <label key={y} className={`pb-tok ${checked ? "on" : ""}`}>
-                      <input id={i === 0 ? "f-year" : undefined} className="pb-sr" type="radio" name="year" value={y} checked={checked} onChange={() => setField("year", y)} />
+                      <input id={i === 0 ? "f-year" : undefined} className="pb-sr" type="radio" name="year" value={y} checked={checked} onChange={() => { sfx.select(); setField("year", y); }} />
                       {YEAR_LABELS[y]}
                     </label>
                   );
@@ -1188,7 +1214,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
           <span className={`pb-pin ${err("consent") ? "bad" : form.consent ? "on" : "off"}`} aria-hidden="true" />
           <p className="pb-nt">Player&apos;s pledge</p>
           <label className="pb-pledge" htmlFor="consent">
-            <input {...a11y("consent", "consent")} aria-required="true" type="checkbox" checked={form.consent} onChange={(e) => setField("consent", e.target.checked)} />
+            <input {...a11y("consent", "consent")} aria-required="true" type="checkbox" checked={form.consent} onChange={(e) => { if (e.target.checked) sfx.pin(); else sfx.unpin(); setField("consent", e.target.checked); }} />
             <span>I agree that Andropedia may store my application details and contact me by email about my application. *</span>
           </label>
           {err("consent") && <p id="consent-error" className="pb-err-msg">{err("consent")}</p>}
@@ -1283,9 +1309,12 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
 
         <div className="flex items-center justify-between gap-3">
           <p className="pb-eyebrow">Level {step + 1} of {LEVELS.length}<span className="hidden lg:inline"> · {LEVELS[step].label}</span></p>
-          <XpChip xp={xp} />
+          <div className="flex items-center gap-2">
+            <SoundToggle />
+            <XpChip xp={xp} />
+          </div>
         </div>
-        <GameBoard current={step} reached={reached} initial={initial} onSelect={(i) => goToStep(i)} />
+        <GameBoard current={step} reached={reached} initial={initial} onSelect={(i) => { sfx.tile(); goToStep(i); }} />
         <AndySays mood={mood} message={andyText} />
 
         {serverError && (
@@ -1329,7 +1358,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
             </button>
           )}
           {step > 0 && (
-            <button type="button" onClick={() => goToStep(step - 1)} className="pb-btn ghost">
+            <button type="button" onClick={() => { sfx.tile(); goToStep(step - 1); }} className="pb-btn ghost">
               <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={2.5} aria-hidden="true" /> Back
             </button>
           )}

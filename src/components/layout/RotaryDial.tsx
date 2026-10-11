@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { animate, motion, useMotionValue, useReducedMotion } from "framer-motion";
 import type { Accent } from "@/content/accents";
+import { dragMove, dragStart, returnWhirr, ring, startHold, stopHold, stopThunk, unlockSound } from "@/lib/dial-sound";
 import { advance, FINGER_STOP, holeAngle, pointerAngle, polar, reachedStop, requiredRotation, returnSeconds, shortestDelta } from "@/lib/dial";
 
 export interface DialItem {
@@ -28,7 +29,7 @@ type Phase = "idle" | "drag" | "reached" | "dialing";
 export function RotaryDial({ items, onSelect, onDragChange }: { items: DialItem[]; onSelect: (item: DialItem) => void; onDragChange?: (dragging: boolean) => void }) {
   const reduce = useReducedMotion();
   const turn = useMotionValue(0); // how far the dial is turned clockwise, in degrees
-  const drag = useRef<{ hole: number; last: number; turn: number; required: number } | null>(null);
+  const drag = useRef<{ hole: number; last: number; turn: number; required: number; atStop: boolean } | null>(null);
   const locked = useRef(false);
   const [hole, setHole] = useState<number | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -52,7 +53,9 @@ export function RotaryDial({ items, onSelect, onDragChange }: { items: DialItem[
     e.currentTarget.setPointerCapture(e.pointerId);
     const required = requiredRotation(k, items.length);
     turn.stop();
-    drag.current = { hole: k, last: angleOf(e), turn: Math.min(turn.get(), required), required };
+    drag.current = { hole: k, last: angleOf(e), turn: Math.min(turn.get(), required), required, atStop: false };
+    unlockSound();
+    dragStart(drag.current.turn);
     setHole(k);
     setPhase("drag");
     onDragChange?.(true);
@@ -69,33 +72,49 @@ export function RotaryDial({ items, onSelect, onDragChange }: { items: DialItem[
     d.turn = advance(d.turn, shortestDelta(d.last, a), d.required);
     d.last = a;
     turn.set(d.turn);
-    setPhase(reachedStop(d.turn, d.required) ? "reached" : "drag");
+    const atStop = reachedStop(d.turn, d.required);
+    setPhase(atStop ? "reached" : "drag");
+    dragMove(d.turn);
+    if (atStop !== d.atStop) {
+      d.atStop = atStop;
+      if (atStop) {
+        stopThunk();
+        startHold();
+      } else {
+        stopHold();
+      }
+    }
   };
 
   const finish = (e: React.PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d) return;
     drag.current = null;
+    stopHold();
     onDragChange?.(false);
 
     if (e.type === "pointerup" && reachedStop(d.turn, d.required)) {
-      // Dialled: the dial spins back at the speed of a real one, then the page opens.
+      // Dialled: the dial spins back at the speed of a real one, then the phone rings and the page opens.
       locked.current = true;
       setPhase("dialing");
       navigator.vibrate?.(14);
+      const seconds = reduce ? 0.01 : returnSeconds(d.turn);
+      returnWhirr(seconds, d.turn);
       animate(turn, 0, {
-        duration: reduce ? 0.01 : returnSeconds(d.turn),
+        duration: seconds,
         ease: "linear",
         onComplete: () => {
           locked.current = false;
           setPhase("idle");
           setHole(null);
+          ring();
           onSelect(items[d.hole]);
         },
       });
       return;
     }
     // Let go too early: it springs back and nothing happens.
+    if (d.turn > 0) returnWhirr(0.35, d.turn);
     animate(turn, 0, reduce ? { duration: 0.01 } : { type: "spring", stiffness: 240, damping: 20 });
     setPhase("idle");
     setHole(null);

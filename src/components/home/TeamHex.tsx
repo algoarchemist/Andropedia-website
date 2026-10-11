@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Crown } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BlurOrb, GridLines } from "@/components/design/Backdrop";
@@ -11,6 +12,8 @@ import { CountUp, RevealLines, Stagger, StaggerItem } from "@/components/design/
 import { MemberModal, type Selected } from "@/components/team/MemberProfile";
 import { GithubIcon, LinkedinIcon } from "@/components/ui/SocialIcons";
 import { HEX_DOMAINS } from "@/content/home";
+import { armSoundUnlock } from "@/lib/dial-sound";
+import { tileBreak, tileHover } from "@/lib/tile-sound";
 import { ACCENTS, DOMAIN_ACCENT, accentVars, type Accent } from "@/content/accents";
 import { POSITION_LABELS, TEAM_DOMAINS, groupTeam, type TeamMember } from "@/lib/team";
 import "./team-hex.css";
@@ -97,6 +100,51 @@ function Face({ member, imgAlt = "" }: { member: TeamMember; imgAlt?: string }) 
   return <span className="contents" aria-hidden="true">{initials(member.name)}</span>;
 }
 
+// ---------- the break: cracks run through the tile, then it shatters into six shards ----------
+const CRACK_MS = 200; // cracks spread, then the tile breaks
+const GO_MS = 560; // the team page opens once the shards have flown
+
+/** Corners of the hexagon (percent of its box), the same shape as the clip-path in team-hex.css. */
+const HEX_POINTS: Array<[number, number]> = [[25, 0], [75, 0], [100, 50], [75, 100], [25, 100], [0, 50]];
+/** Each shard is a triangle from the centre to one side, flying out sideways, with a different tumble. */
+const SHARDS = HEX_POINTS.map((p, i) => {
+  const q = HEX_POINTS[(i + 1) % 6];
+  const mx = (p[0] + q[0]) / 2 - 50;
+  const my = (p[1] + q[1]) / 2 - 50;
+  const len = Math.hypot(mx, my) || 1;
+  return {
+    clip: `polygon(50% 50%, ${p[0]}% ${p[1]}%, ${q[0]}% ${q[1]}%)`,
+    dx: `${Math.round((mx / len) * 70)}%`,
+    dy: `${Math.round((my / len) * 70)}%`,
+    rot: `${[-38, 26, 44, -22, 34, -46][i]}deg`,
+    delay: `${[0, 30, 12, 45, 20, 38][i]}ms`,
+  };
+});
+
+/** Jagged cracks fanning out from where the tile was clicked to each corner (viewBox 0 0 100 100). */
+function crackPaths(ox: number, oy: number): string[] {
+  const jag = [4, -5, 3, -4, 5, -3];
+  const paths = HEX_POINTS.map(([vx, vy], i) => {
+    const pt = (t: number, off: number) => {
+      const x = ox + (vx - ox) * t;
+      const y = oy + (vy - oy) * t;
+      const nx = -(vy - oy);
+      const ny = vx - ox;
+      const n = Math.hypot(nx, ny) || 1;
+      return `${(x + (nx / n) * off).toFixed(1)} ${(y + (ny / n) * off).toFixed(1)}`;
+    };
+    return `M${ox.toFixed(1)} ${oy.toFixed(1)} L${pt(0.3, jag[i])} L${pt(0.58, -jag[(i + 2) % 6])} L${pt(0.8, jag[(i + 4) % 6] * 0.6)} L${vx} ${vy}`;
+  });
+  // short side branches
+  [0.4, 0.62, 0.5].forEach((t, i) => {
+    const [vx, vy] = HEX_POINTS[i * 2];
+    const bx = ox + (vx - ox) * t;
+    const by = oy + (vy - oy) * t;
+    paths.push(`M${bx.toFixed(1)} ${by.toFixed(1)} l${i % 2 ? -9 : 10} ${i === 1 ? -8 : 9} l${i % 2 ? -4 : 5} 6`);
+  });
+  return paths;
+}
+
 /** A hexagon slot. It flies in from the centre tile and settles into place when the honeycomb scrolls into view. */
 function Slot({ x, y, delay, children }: { x: number; y: number; delay: number; children: React.ReactNode }) {
   const dx = ((CORE_TILE.x - x) / TILE_W) * 100;
@@ -138,15 +186,42 @@ interface HexProps {
 
 /** One hexagon plus its popover. Hover and keyboard focus are pure CSS; a tap on a phone is handled here. */
 function Hex({ info, pos, delay, open, onToggle }: HexProps) {
+  const router = useRouter();
   const [placed, setPlaced] = useState<{ place: Place; shift: number }>({ place: info.prefs[0], shift: 0 });
+  const [phase, setPhase] = useState<"idle" | "cracking" | "broken">("idle");
+  const [cracks, setCracks] = useState<string[]>([]);
+  const timers = useRef<number[]>([]);
+  useEffect(() => {
+    const pending = timers.current;
+    return () => pending.forEach(clearTimeout);
+  }, []);
   const place = (el: HTMLElement) => setPlaced(choosePlace(el, info.prefs));
   const Icon = info.icon;
   const shown = info.people.slice(0, 4);
   const more = (info.count ?? info.people.length) - shown.length;
 
-  const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
-    if (!window.matchMedia("(hover: none)").matches) return; // mouse: the link just goes to the team page
+  /** Crack the tile, break it, then open the team page. Modified clicks (new tab) and reduced motion just follow the link. */
+  const breakAndGo = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      tileBreak();
+      return;
+    }
     e.preventDefault();
+    if (phase !== "idle") return;
+    const box = (e.currentTarget.closest(".th-slot")?.querySelector(".th-hexwrap") ?? e.currentTarget).getBoundingClientRect();
+    const ox = box.width ? Math.min(70, Math.max(30, ((e.clientX - box.left) / box.width) * 100)) : 50;
+    const oy = box.height ? Math.min(70, Math.max(30, ((e.clientY - box.top) / box.height) * 100)) : 50;
+    setCracks(crackPaths(ox, oy));
+    setPhase("cracking");
+    tileBreak();
+    onToggle(null);
+    timers.current.push(window.setTimeout(() => setPhase("broken"), CRACK_MS), window.setTimeout(() => router.push(info.href), GO_MS));
+  };
+
+  const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!window.matchMedia("(hover: none)").matches) return breakAndGo(e); // mouse: break the tile, then the team page
+    e.preventDefault(); // touch: the first tap opens the popover
     place(e.currentTarget.closest(".th-slot") as HTMLElement);
     onToggle(open ? null : info.key);
   };
@@ -157,8 +232,12 @@ function Hex({ info, pos, delay, open, onToggle }: HexProps) {
         className="th-slot h-full w-full"
         data-place={placed.place}
         data-open={open || undefined}
+        data-phase={phase}
         style={{ ...accentVars(info.accent), "--shift": `${placed.shift}px` } as CSSProperties}
-        onPointerEnter={(e) => place(e.currentTarget)}
+        onPointerEnter={(e) => {
+          place(e.currentTarget);
+          if (e.pointerType !== "touch" && phase === "idle") tileHover();
+        }}
         onFocus={(e) => place(e.currentTarget)}
       >
         <Link
@@ -175,6 +254,20 @@ function Hex({ info, pos, delay, open, onToggle }: HexProps) {
               <span className="text-a2 text-[10px] leading-3 sm:text-[12px] sm:leading-[18px]">{info.count ?? "–"}</span>
             </span>
           </span>
+          {phase !== "idle" && (
+            <span className="th-fx" aria-hidden="true">
+              <svg className="th-cracks" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none">
+                {cracks.map((d, i) => (
+                  <path key={i} d={d} pathLength={1} style={{ animationDelay: `${i < 6 ? i * 14 : 70 + i * 12}ms` }} />
+                ))}
+              </svg>
+              {SHARDS.map((sh, i) => (
+                <span key={i} className="th-shard" style={{ "--dx": sh.dx, "--dy": sh.dy, "--rot": sh.rot, animationDelay: sh.delay } as CSSProperties}>
+                  <span className="th-shard-in" style={{ clipPath: sh.clip }} />
+                </span>
+              ))}
+            </span>
+          )}
         </Link>
 
         <div className="th-pop" role="group" aria-label={`About ${info.label}`}>
@@ -196,7 +289,7 @@ function Hex({ info, pos, delay, open, onToggle }: HexProps) {
               {more > 0 && <span className="th-av more">+{more}</span>}
             </div>
           )}
-          <Link href={info.href} className="text-a1 inline-flex items-center gap-1.5 rounded text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70">
+          <Link href={info.href} onClick={breakAndGo} className="text-a1 inline-flex items-center gap-1.5 rounded text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70">
             {info.cta} <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </div>
@@ -263,6 +356,8 @@ export function TeamHex() {
   const [members, setMembers] = useState<TeamMember[] | null>(null);
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [selected, setSelected] = useState<Selected | null>(null);
+
+  useEffect(() => armSoundUnlock(), []); // hover sounds start after the first click or key press
 
   useEffect(() => {
     let cancelled = false;

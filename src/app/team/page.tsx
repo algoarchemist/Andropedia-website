@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Users, Crown, Shield, Star } from "lucide-react";
 import { Avatar, MemberModal, Socials, type Selected } from "@/components/team/MemberProfile";
 import { BlurOrb, GridLines } from "@/components/design/Backdrop";
+import { SoundButton } from "@/components/ui/SoundButton";
+import { armSoundUnlock } from "@/lib/dial-sound";
+import { cardClick, cardHover } from "@/lib/tile-sound";
 import { ACCENTS, DOMAIN_ACCENT, accentVars, type Accent } from "@/content/accents";
 import { POSITION_LABELS, TEAM_DOMAINS, groupTeam, type TeamMember } from "@/lib/team";
 
@@ -16,14 +19,21 @@ type Select = (m: TeamMember, title: string | undefined, accent: Accent | undefi
 const hoverSpring = { type: "spring", stiffness: 320, damping: 22 } as const;
 
 /** `title` is the line under the name, e.g. "President" or "Chief, Technical". Click or Enter opens the profile. */
-function MemberCard({ member, size, title, className = "", accent, onSelect }: { member: TeamMember; size: Size; title?: string; className?: string; accent?: Accent; onSelect: Select }) {
-  const open = () => onSelect(member, title, accent);
+const MemberCard = memo(function MemberCard({ member, size, title, className = "", accent, onSelect }: { member: TeamMember; size: Size; title?: string; className?: string; accent?: Accent; onSelect: Select }) {
+  const open = () => {
+    onSelect(member, title, accent);
+    // The sound waits until the profile has had its first frame, so starting audio never delays it.
+    requestAnimationFrame(() => window.setTimeout(cardClick, 0));
+  };
   const interactive = {
     role: "button" as const,
     tabIndex: 0,
     "aria-haspopup": "dialog" as const,
     "aria-label": `Open ${member.name}'s profile`,
     onClick: open,
+    onPointerEnter: (e: React.PointerEvent) => {
+      if (e.pointerType !== "touch") cardHover();
+    },
     onKeyDown: (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -73,7 +83,7 @@ function MemberCard({ member, size, title, className = "", accent, onSelect }: {
       <span className="mt-3 text-[11px] font-medium uppercase tracking-[0.18em] text-white/0 transition-colors duration-300 group-hover:text-white/70">View profile</span>
     </motion.div>
   );
-}
+});
 
 
 function Empty({ children }: { children: React.ReactNode }) {
@@ -93,7 +103,11 @@ export default function TeamPage() {
   const [members, setMembers] = useState<TeamMember[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<Selected | null>(null);
-  const select: Select = (member, title, accent) => setSelected({ member, title, accent });
+  // Stable, so the 49 memoised cards don't re-render when a profile opens.
+  const select: Select = useCallback((member, title, accent) => setSelected({ member, title, accent }), []);
+  const closeProfile = useCallback(() => setSelected(null), []);
+
+  useEffect(() => armSoundUnlock(), []); // hover sounds start after the first click or key press
 
   useEffect(() => {
     let cancelled = false;
@@ -143,6 +157,7 @@ export default function TeamPage() {
           <p className="text-white/70 text-sm sm:text-base font-sans max-w-2xl mx-auto">
             The core team that runs the club, and the leads, co-leads and members of every domain.
           </p>
+          <SoundButton />
         </header>
 
         {/* Jump links */}
@@ -263,7 +278,7 @@ export default function TeamPage() {
         )}
       </div>
       <AnimatePresence>
-        {selected && <MemberModal selected={selected} domainLabel={domainLabel(selected.member.domain)} onClose={() => setSelected(null)} />}
+        {selected && <MemberModal selected={selected} domainLabel={domainLabel(selected.member.domain)} onClose={closeProfile} />}
       </AnimatePresence>
     </div>
   );

@@ -59,6 +59,55 @@
 .th-slot:hover .th-ic, .th-slot:focus-within .th-ic, .th-slot[data-open="true"] .th-ic { transform: scale(1.2) rotate(-6deg); }
 .th-link:focus-visible .th-hex { outline: 2px solid var(--a1); outline-offset: 2px; }
 
+/* ---------- breaking: cracks, then six shards ---------- */
+.th-fx { position: absolute; inset: 0; pointer-events: none; }
+.th-cracks { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 3px var(--a1)); }
+.th-cracks path {
+  stroke: #fff;
+  stroke-width: 1.6px;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: th-crack 0.16s ease-out forwards;
+}
+.th-shard {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  filter: drop-shadow(0 0 3px var(--a1));
+}
+.th-shard-in {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--a1) 40%, transparent), transparent 75%),
+    linear-gradient(180deg, #171b33, #08090f);
+}
+.th-slot[data-phase="cracking"] .th-hexwrap { animation: th-shake 0.2s linear; }
+.th-slot[data-phase="broken"] .th-hex,
+.th-slot[data-phase="broken"] .th-hexin,
+.th-slot[data-phase="broken"] .th-cracks { visibility: hidden; }
+.th-slot[data-phase="broken"] .th-shard { animation: th-fly 0.42s cubic-bezier(0.3, 0.1, 0.6, 1) forwards; }
+.th-slot[data-phase="cracking"] .th-pop,
+.th-slot[data-phase="broken"] .th-pop { opacity: 0 !important; visibility: hidden !important; }
+@keyframes th-crack { to { stroke-dashoffset: 0; } }
+@keyframes th-shake {
+  0%, 100% { transform: translateY(-10px) scale(1.09); }
+  20% { transform: translate(-3px, -10px) scale(1.09) rotate(-1deg); }
+  40% { transform: translate(3px, -8px) scale(1.09) rotate(1deg); }
+  60% { transform: translate(-2px, -11px) scale(1.09) rotate(-0.6deg); }
+  80% { transform: translate(2px, -9px) scale(1.09) rotate(0.6deg); }
+}
+@keyframes th-fly {
+  0% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 55%)) rotate(var(--rot)) scale(0.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .th-slot[data-phase] .th-hexwrap, .th-shard, .th-cracks path { animation: none; }
+}
+
 /* ---------- popover ---------- */
 .th-pop {
   --shift: 0px;
@@ -124,7 +173,7 @@
   flex: none;
 }
 .th-av:first-child { margin-left: 0; }
-.th-av img { width: 100%; height: 100%; object-fit: cover; }
+.th-av img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%; }
 .th-av.more { background: #1b1f38; color: rgba(255, 255, 255, 0.8); }
 
 /* ---------- person tiles ---------- */
@@ -193,7 +242,7 @@
   color: #fff;
   border: 2px solid #05060c;
 }
-.th-photo-in img { width: 100%; height: 100%; object-fit: cover; }
+.th-photo-in img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%; }
 .th-shine {
   position: absolute;
   inset: 3px;

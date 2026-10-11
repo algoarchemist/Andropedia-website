@@ -6,14 +6,17 @@ import { BlurOrb, GridLines } from "@/components/design/Backdrop";
 import { Calendar, MapPin, Trophy, Sparkles, Check, X, Loader2, Images } from "lucide-react";
 import { TeamDialog } from "@/components/events/TeamDialog";
 import { EventDetailDialog } from "@/components/events/EventDetailDialog";
-import { galleryFor } from "@/content/event-gallery";
 import type { EventStatus, PublicEvent } from "@/lib/events";
+import { SoundButton } from "@/components/ui/SoundButton";
+import { armSoundUnlock } from "@/lib/dial-sound";
+import { cardClick, cardHover } from "@/lib/tile-sound";
 
 const BADGE: Record<EventStatus, { label: string; color: string }> = {
   open: { label: "Registrations Open", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" },
   full: { label: "Full", color: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
   closed: { label: "Reservations Closed", color: "bg-amber-500/20 text-amber-300 border-amber-500/40" },
   past: { label: "Completed", color: "bg-slate-700 text-slate-300 border-slate-600" },
+  soon: { label: "Coming Soon", color: "bg-sky-500/20 text-sky-300 border-sky-500/40" },
 };
 
 const STORAGE_KEY = "andropedia_rsvps";
@@ -161,6 +164,8 @@ export default function Events() {
       .catch(() => setLoadError(true));
   }, []);
 
+  useEffect(() => armSoundUnlock(), []); // hover sounds start after the first click or key press
+
   useEffect(() => {
     load();
     // Read the browser-only list after mount so server and client markup match.
@@ -215,6 +220,7 @@ export default function Events() {
           <p className="text-white/70 text-base leading-6">
             Participate in flagship hackathons, intense algorithmic battles, and technical workshops organized by Andropedia.
           </p>
+          <SoundButton />
         </div>
 
         <div className="flex items-center justify-center gap-2">
@@ -238,14 +244,22 @@ export default function Events() {
         <div className="space-y-6 max-w-5xl mx-auto">
           {currentList.map((ev) => {
             const badge = BADGE[ev.status];
-            const photos = galleryFor(ev.id).length;
-            const open = photos > 0 ? () => setDetailFor(ev) : undefined;
+            const photos = ev.images.length;
+            const open =
+              photos > 0
+                ? () => {
+                    setDetailFor(ev);
+                    // The sound waits until the dialog has had its first frame, so starting audio never delays it.
+                    requestAnimationFrame(() => window.setTimeout(cardClick, 0));
+                  }
+                : undefined;
             return (
               <div
                 key={ev.id}
                 className={`glass-panel p-8 rounded-3xl border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 ${open ? "cursor-pointer" : ""}`}
                 data-cursor-text={open ? "View photos" : "Event"}
                 onClick={open}
+                onPointerEnter={open && ((e) => e.pointerType !== "touch" && cardHover())}
                 onKeyDown={open && ((e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open()))}
                 role={open ? "button" : undefined}
                 tabIndex={open ? 0 : undefined}
