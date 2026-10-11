@@ -48,7 +48,7 @@ export const WHY_JOIN = [
 ];
 
 export const ELIGIBILITY = [
-  "Any undergraduate or postgraduate student of the college, in any branch.",
+  "Any undergraduate student of the college, in any branch.",
   "1st, 2nd and 3rd year students are especially welcome.",
   "No prior experience required: curiosity and consistency matter most.",
   "You can commit roughly 6 to 10 hours a week to the sprint.",
@@ -65,7 +65,7 @@ export const PROCESS_STEPS = [
 export const FAQS = [
   {
     q: "Who is eligible to apply for Andropedia?",
-    a: "Any undergraduate or postgraduate student with an active appetite for engineering, design, or community building. We welcome 1st, 2nd, and 3rd year students across all branches.",
+    a: "Any undergraduate student with an active appetite for engineering, design, or community building. We welcome 1st, 2nd, and 3rd year students across all branches.",
   },
   {
     q: "How does the weekly task and evaluation cycle work?",
