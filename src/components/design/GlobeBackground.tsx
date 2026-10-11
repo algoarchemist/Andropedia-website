@@ -80,7 +80,7 @@ export function GlobeBackground() {
 
     // Handle resizing dynamically based on the container
     const resizeObserver = new ResizeObserver((entries) => {
-      for (let entry of entries) {
+      for (const entry of entries) {
         const { width, height } = entry.contentRect;
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
