@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const { currentUser, isLoading: authLoading } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activeWeek, setActiveWeek] = useState<Week | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {

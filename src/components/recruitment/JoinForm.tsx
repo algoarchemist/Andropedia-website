@@ -152,7 +152,7 @@ const firstOpen = (level: number, domain: DomainId | "", pinned: string[]): stri
 // ---------------------------------------------------------------- draft autosave
 const DRAFT_KEY = "andropedia_recruitment_draft_v2";
 const DRAFT_KEY_V1 = "andropedia_recruitment_draft_v1";
-const DRAFT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+const DRAFT_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000; // the draft holds personal details, so it does not linger on shared computers
 interface Draft { form: FormData; step: number; reached: number; pinned: string[] }
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
@@ -204,7 +204,7 @@ function loadDraft(): Draft | null {
       registerNo: str(f.registerNo, 30),
       department: str(f.department, 60),
       year: YEARS.includes(f.year) ? f.year : "second",
-      phone: str(f.phone, 20),
+      phone: "", // not saved in drafts (see saveDraft)
       email: str(f.email, 160),
       profile: str(f.profile, 300),
       domain,
@@ -240,8 +240,9 @@ function loadDraft(): Draft | null {
 
 function saveDraft(form: FormData, step: number, reached: number, pinned: string[]) {
   try {
-    const { consent, website, ...rest } = form;
-    void consent; void website;
+    // Consent is always asked again, the honeypot is not an answer, and the phone number is never kept in the browser.
+    const { consent, website, phone, ...rest } = form;
+    void consent; void website; void phone;
     window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ v: 2, savedAt: Date.now(), step, reached, pinned, form: rest }));
   } catch {
     /* storage full or blocked: autosave is best-effort */

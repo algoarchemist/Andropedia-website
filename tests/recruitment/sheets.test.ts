@@ -86,7 +86,7 @@ describe("withRetry", () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
   it("backs off exponentially", async () => {
-    const sleep = vi.fn(async (_ms: number) => undefined);
+    const sleep = vi.fn(async (ms: number) => void ms);
     const fn = vi.fn().mockRejectedValue({ status: 503 });
     await withRetry(fn, { attempts: 3, baseMs: 100, sleep }).catch(() => undefined);
     expect(sleep.mock.calls.map((c) => c[0])).toEqual([100, 200]);

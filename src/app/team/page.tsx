@@ -4,7 +4,6 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Users, Crown, Shield, Star } from "lucide-react";
 import { Avatar, MemberModal, Socials, type Selected } from "@/components/team/MemberProfile";
-import { BlurOrb, GridLines } from "@/components/design/Backdrop";
 import { SoundButton } from "@/components/ui/SoundButton";
 import { armSoundUnlock } from "@/lib/dial-sound";
 import { cardClick, cardHover } from "@/lib/tile-sound";

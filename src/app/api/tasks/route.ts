@@ -1,3 +1,4 @@
+import { log } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     const tasks = await getTasks(filters);
     return NextResponse.json({ success: true, tasks });
   } catch (error) {
-    console.error("Error loading tasks:", error);
+    log.error("Loading tasks failed", error);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof ConflictError) {
       return NextResponse.json({ success: false, error: error.message }, { status: 409 });
     }
-    console.error("Error creating task:", error);
+    log.error("Creating a task failed", error);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

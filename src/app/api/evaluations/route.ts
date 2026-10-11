@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
     }
-    console.error("Error evaluating task:", error);
+    log.error("Evaluating a task failed", error);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

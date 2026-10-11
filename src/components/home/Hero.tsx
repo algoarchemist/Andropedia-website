@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { BlurOrb, GridLines } from "@/components/design/Backdrop";
 import { AndropediaMark } from "@/components/design/AndropediaMark";
 
