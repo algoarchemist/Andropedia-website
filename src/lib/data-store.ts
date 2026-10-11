@@ -6,7 +6,8 @@ import {
 } from "./types";
 import { recordAudit } from "./audit";
 import { computeLeaderboard, type BoardPeriod } from "./leaderboard";
-import { checkMemberChange, checkWeekDates, decideSubmission, type MemberPatch } from "./rules";
+import { checkMemberChange, checkMemberDelete, checkWeekDates, decideSubmission, type MemberPatch } from "./rules";
+import { memberPhotoUrl } from "./member-profile";
 
 // Database-backed data layer. Return shapes match the types in ./types so the
 // pages and API responses are unchanged; Prisma enums are mapped at the edge.
@@ -63,6 +64,7 @@ export function mapUser(u: DbUser): User {
     streakWeeks: u.streakWeeks,
     isActive: u.isActive,
     position: POSITION_FROM_DB[u.position],
+    mustChangePassword: u.mustChangePassword,
   };
 }
 
@@ -130,7 +132,7 @@ export async function getUsers(): Promise<User[]> {
 }
 
 /** Public profile fields only: never exposes email or account status. */
-export type PublicMember = Omit<User, "email" | "isActive">;
+export type PublicMember = Omit<User, "email" | "isActive" | "mustChangePassword">;
 
 export async function getPublicMembers(): Promise<PublicMember[]> {
   const users = await prisma.user.findMany({
@@ -138,9 +140,10 @@ export async function getPublicMembers(): Promise<PublicMember[]> {
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
   return users.map((u) => {
-    const { email: _email, isActive: _isActive, ...publicFields } = mapUser(u);
+    const { email: _email, isActive: _isActive, mustChangePassword: _mustChange, ...publicFields } = mapUser(u);
     void _email;
     void _isActive;
+    void _mustChange;
     return publicFields;
   });
 }
@@ -415,6 +418,9 @@ export interface NewMember {
   domain: DomainType;
   role?: RoleType;
   position?: ClubPosition;
+  bio?: string;
+  /** Already cleaned by `normalizeLinkedin`; "" means none. */
+  linkedin?: string;
 }
 
 /** Adds a member who can log in with their register number (password = register number). Email and register number must be new. */
@@ -428,7 +434,7 @@ export async function createMember(actorId: string, input: NewMember): Promise<U
   if (clash) throw new ConflictError(clash.email === email ? "A member with this email already exists." : "A member with this register number already exists.");
   try {
     const created = await prisma.user.create({
-      data: { name: input.name.trim(), email, registerNo, passwordHash: hashPassword(registerNo), domain, position, role: ROLE_TO_DB[input.role ?? "member"] },
+      data: { name: input.name.trim(), email, registerNo, passwordHash: hashPassword(registerNo), mustChangePassword: true, domain, position, role: ROLE_TO_DB[input.role ?? "member"], bio: input.bio?.trim() || null, linkedin: input.linkedin || null },
     });
     await recordAudit({ actorId, action: "member.create", target: created.id, meta: { role: input.role ?? "member", domain: input.domain } });
     return mapUser(created);
@@ -460,6 +466,9 @@ export async function updateMember(actorId: string, id: string, patch: MemberPat
     const user = await tx.user.update({
       where: { id },
       data: {
+        ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
+        ...(patch.bio !== undefined ? { bio: patch.bio.trim() || null } : {}),
+        ...(patch.linkedin !== undefined ? { linkedin: patch.linkedin || null } : {}),
         ...(patch.role ? { role: ROLE_TO_DB[patch.role] } : {}),
         ...(position ? { position } : {}),
         ...(domain ? { domain } : {}),
@@ -477,4 +486,54 @@ export async function updateMember(actorId: string, id: string, patch: MemberPat
     return user;
   });
   return mapUser(updated);
+}
+
+/** Removes a member and everything tied to them (sessions, submissions, photo). Someone who has graded work can only be deactivated. */
+export async function deleteMember(actorId: string, id: string): Promise<void> {
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target) throw new NotFoundError("Member not found");
+  const activeSuperAdmins = await prisma.user.count({ where: { role: "SUPER_ADMIN", isActive: true } });
+  const reason = checkMemberDelete({ actorId, target: { id: target.id, role: ROLE_FROM_DB[target.role], isActive: target.isActive }, activeSuperAdmins });
+  if (reason) throw new ForbiddenError(reason);
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.user.delete({ where: { id } });
+      await recordAudit({ actorId, action: "member.delete", target: id, meta: { name: target.name, domain: DOMAIN_FROM_DB[target.domain], role: ROLE_FROM_DB[target.role] } }, tx);
+    });
+  } catch (err) {
+    if ((err as { code?: string }).code === "P2003") throw new ConflictError("This member has graded other people's work, so they can't be deleted. Deactivate them instead.");
+    throw err;
+  }
+}
+
+/** Saves a member's uploaded picture and points their avatar at it. */
+export async function setMemberPhoto(actorId: string, id: string, photo: { mime: string; data: Uint8Array }): Promise<User> {
+  const target = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+  if (!target) throw new NotFoundError("Member not found");
+  const bytes = Buffer.from(photo.data);
+  const user = await prisma.$transaction(async (tx) => {
+    await tx.memberPhoto.upsert({ where: { userId: id }, create: { userId: id, mime: photo.mime, data: bytes }, update: { mime: photo.mime, data: bytes } });
+    const updated = await tx.user.update({ where: { id }, data: { avatar: memberPhotoUrl(id) } });
+    await recordAudit({ actorId, action: "member.photo", target: id, meta: { bytes: bytes.length } }, tx);
+    return updated;
+  });
+  return mapUser(user);
+}
+
+/** Deletes a member's uploaded picture (their avatar goes back to the initials placeholder). */
+export async function removeMemberPhoto(actorId: string, id: string): Promise<User> {
+  const target = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+  if (!target) throw new NotFoundError("Member not found");
+  const user = await prisma.$transaction(async (tx) => {
+    await tx.memberPhoto.deleteMany({ where: { userId: id } });
+    const updated = await tx.user.update({ where: { id }, data: { avatar: null } });
+    await recordAudit({ actorId, action: "member.photo.remove", target: id }, tx);
+    return updated;
+  });
+  return mapUser(user);
+}
+
+export async function getMemberPhoto(id: string): Promise<{ mime: string; data: Uint8Array } | null> {
+  const photo = await prisma.memberPhoto.findUnique({ where: { userId: id } });
+  return photo ? { mime: photo.mime, data: photo.data } : null;
 }

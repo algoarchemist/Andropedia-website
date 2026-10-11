@@ -59,33 +59,52 @@ export const HOME_METRICS: Array<{ label: string; value: string; icon: LucideIco
   { label: "Open-Source Projects", value: "18+", icon: Zap, sub: "Deployed & live" },
 ];
 
+/** Where the club's events are held. */
+export const EVENT_LOCATION = "SRM Institute of Science and Technology, Ramapuram";
+
+/**
+ * The events featured on the home page. `id` matches the event on the Events page (and its photo set in
+ * event-gallery.ts); `details` is the full text shown when a card is opened.
+ */
 export const HOME_HIGHLIGHTS = [
   {
+    id: "cloudcon",
+    name: "CloudCon 3.0",
+    type: "Major Event",
     tag: "Flagship event",
     title: "CloudCon 3.0: Exploring the cloud. Discovering what's next.",
     date: "Past event",
     desc: "Andropedia's flagship event brought cloud computing and emerging technologies into focus, from new innovations to real-world applications.",
+    details:
+      "Exploring the cloud. Discovering what's next.\nAs Andropedia's flagship event, CloudCon 3.0 brought cloud computing and emerging technologies into focus. It offered students an opportunity to explore new innovations, understand real-world applications, and discover the possibilities shaping the future of technology.",
     badge: "Completed",
-    link: "/events",
-    cta: "View events",
+    cta: "View details & photos",
   },
   {
+    id: "codesprint",
+    name: "CodeSprint '26",
+    type: "Coding Contest",
     tag: "Coding contest · TEXUS '26",
     title: "CodeSprint '26: Think fast. Code smart. Take the risk.",
     date: "Past event",
     desc: "Competitive coding with a game-inspired twist, blending programming challenges with a gambling-style mechanic that tests logic, speed and problem-solving.",
+    details:
+      "Think fast. Code smart. Take the risk.\nPart of TEXUS '26, CodeSprint '26 brought a game-inspired twist to competitive coding. Blending programming challenges with a gambling-style gameplay mechanic, it pushed participants to put their logic, speed, and problem-solving skills to the test in a format beyond the usual coding competition.",
     badge: "Completed",
-    link: "/events",
-    cta: "View events",
+    cta: "View details & photos",
   },
   {
-    tag: "Design challenge · TEXUS '26",
-    title: "Pixels & Plots: A theme, a deadline, and a canvas for creativity.",
+    id: "cafe-hackathon",
+    name: "Cafe Hackathon",
+    type: "Major Event",
+    tag: "Major event",
+    title: "Cafe Hackathon: Big ideas. Real problems. A café full of possibilities.",
     date: "Past event",
-    desc: "Participants turned given themes into compelling designs against the clock, exploring visual storytelling and bringing their interpretations to life.",
+    desc: "Club members took a hackathon out of the usual venue and into a café, brainstorming ways to improve the club and tackling real-time consultancy projects together.",
+    details:
+      "Big ideas. Real problems. A café full of possibilities.\nWho says hackathons have to happen in conventional venues? Cafe Hackathon brought club members together in a café for an unconventional blend of innovation, collaboration, and hands-on problem-solving. From brainstorming ideas to improve the club to tackling real-time consultancy projects, the event turned a casual setting into a space for creative thinking.",
     badge: "Completed",
-    link: "/events",
-    cta: "View events",
+    cta: "View details & photos",
   },
 ];
 

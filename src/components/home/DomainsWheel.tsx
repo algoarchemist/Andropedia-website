@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, cubicBezier, motion, useMotionValueEvent, useTransform, type MotionValue } from "framer-motion";
 import { AndropediaMark } from "@/components/design/AndropediaMark";
 import { usePinned, useStageProgress } from "@/components/design/scroll";
 import { DOMAIN_ACCENT } from "@/content/accents";
 import { HOME_DOMAINS } from "@/content/home";
+import { useSiteSound } from "@/lib/use-site-sound";
+import { createProgressSound, type ProgressSound } from "@/lib/progress-sound";
 import { scrollTopForStep, stepForProgress, wheelKeyframes } from "@/lib/scroll-steps";
 import { DomainCard } from "./DomainCard";
 
@@ -82,8 +84,36 @@ export function DomainsWheel({ className = "" }: { className?: string }) {
   const large = usePinned(); // phones get the same wheel, stacked, with a smaller card
   const progress = useStageProgress(wrapRef);
   const [current, setCurrent] = useState(0);
+
+  // Progress sound. Browsers keep audio silent until the visitor clicks or presses a key (scrolling alone doesn't
+  // count), so the button doubles as the unlock and the mute, and shows "Click for sound" until audio is really running.
+  const { state: audioState, enabled: soundOn, toggle } = useSiteSound();
+  const sound = useRef<ProgressSound | null>(null);
+  const stepRef = useRef(0);
+  const doneRef = useRef(false);
+  useEffect(() => {
+    const s = createProgressSound();
+    sound.current = s;
+    return () => {
+      s.dispose();
+      sound.current = null;
+    };
+  }, []);
+  const toggleSound = () => {
+    if (toggle()) {
+      setTimeout(() => sound.current?.step(stepRef.current), 150); // a short sample so you hear that it works
+    } else {
+      sound.current?.dispose();
+    }
+  };
+
   useMotionValueEvent(progress, "change", (v) => {
     const next = stepForProgress(v, COUNT);
+    if (soundOn.current) sound.current?.move(v);
+    if (next !== stepRef.current) {
+      stepRef.current = next;
+      if (soundOn.current) sound.current?.step(next);
+    }
     setCurrent((c) => (c === next ? c : next));
   });
   const ring = useTransform(progress, KEYFRAMES.input, KEYFRAMES.output, { ease: EASE });
@@ -98,7 +128,12 @@ export function DomainsWheel({ className = "" }: { className?: string }) {
   });
   const shine = useTransform(progress, [SHINE_FROM, 1], [0, 1], { clamp: true });
   const [complete, setComplete] = useState(false);
-  useMotionValueEvent(progress, "change", (v) => setComplete((c) => (c === v >= 0.985 ? c : v >= 0.985)));
+  useMotionValueEvent(progress, "change", (v) => {
+    const done = v >= 0.985;
+    if (done && !doneRef.current && soundOn.current) sound.current?.complete();
+    doneRef.current = done;
+    setComplete((c) => (c === done ? c : done));
+  });
 
   const jumpTo = (index: number) => {
     const el = wrapRef.current;
@@ -166,6 +201,16 @@ export function DomainsWheel({ className = "" }: { className?: string }) {
             <div className="mb-4 font-mono text-[12px] tabular-nums text-white/45" aria-live="polite">
               <span className="text-[26px] font-medium text-white">{String(current + 1).padStart(2, "0")}</span> / {String(COUNT).padStart(2, "0")}
               <span className="ml-3 uppercase tracking-[0.18em]">{HOME_DOMAINS[current].apiDomain === "PR" ? "PR" : HOME_DOMAINS[current].title.split(" ")[0]}</span>
+              <button
+                type="button"
+                onClick={toggleSound}
+                aria-pressed={audioState === "on"}
+                aria-label={audioState === "on" ? "Mute scroll sound" : "Turn on scroll sound"}
+                className={`ml-4 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 align-middle ${audioState === "locked" ? "animate-pulse border-sky-300/60 text-sky-200" : "border-white/15 text-white/60"} text-[10px] uppercase tracking-[0.14em] transition-colors hover:border-white/35 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70`}
+              >
+                {audioState === "on" ? <Volume2 className="h-3.5 w-3.5" aria-hidden="true" /> : <VolumeX className="h-3.5 w-3.5" aria-hidden="true" />}
+                {audioState === "locked" ? "Click for sound" : audioState === "on" ? "Sound on" : "Sound off"}
+              </button>
             </div>
             <AnimatePresence mode="wait">
               <motion.div

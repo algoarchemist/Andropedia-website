@@ -26,6 +26,12 @@ const schema = z.object({
   RECRUITMENT_CLOSES_AT: isoDate,
   CRON_SECRET: text,
   NEXT_PUBLIC_SITE_URL: z.preprocess(blank, z.url().optional()),
+  DIRECT_URL: text,
+  PG_POOL_MAX: z.preprocess(blank, z.coerce.number().int().min(1).max(50).optional()),
+  TRUSTED_PROXY_HOPS: z.preprocess(blank, z.coerce.number().int().min(1).max(10).optional()),
+  MEMBER_SHEET_ID: text,
+  MEMBER_SHEET_GID: text,
+  MEMBER_SHEET_ALLOW_PUBLIC: z.preprocess(blank, z.enum(["true", "false"]).optional()),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -70,6 +76,29 @@ export function configProblems(source: Record<string, string | undefined> = proc
     if (!google.every(Boolean) && !webApp) problems.push("No Google Sheet is configured: applications are kept in the database only.");
     if (!smtp.every(Boolean) && !webApp) problems.push("No email sender is configured (SMTP or the Apps Script web app): confirmation emails and login codes cannot be sent.");
     if (!e.CRON_SECRET) problems.push("CRON_SECRET is not set: the retry and cleanup endpoints are disabled.");
+    if (!e.NEXT_PUBLIC_SITE_URL) {
+      problems.push("NEXT_PUBLIC_SITE_URL is not set: password-reset links, the sitemap and share previews would point to localhost.");
+    } else if (/localhost|127\.0\.0\.1/.test(e.NEXT_PUBLIC_SITE_URL)) {
+      problems.push("NEXT_PUBLIC_SITE_URL points to localhost.");
+    }
+    if (e.DATABASE_URL && usesDirectSupabaseUrl(e.DATABASE_URL)) {
+      problems.push("DATABASE_URL is the direct Supabase connection (port 5432). Serverless hosting needs the pooler URL (port 6543); keep the direct one in DIRECT_URL for migrations only.");
+    }
+    if (!e.DIRECT_URL) problems.push("DIRECT_URL is not set: `npm run db:deploy` (migrations) needs the direct database connection.");
+    if (e.MEMBER_SHEET_ALLOW_PUBLIC === "true") problems.push("MEMBER_SHEET_ALLOW_PUBLIC is on: the member sheet is read without authentication. Make the sheet private and turn this off.");
+    if (!e.MEMBER_SHEET_ID) problems.push("MEMBER_SHEET_ID is not set: member import and the sheet fallback are disabled.");
   }
   return problems;
+}
+
+/** True for Supabase's direct Postgres host (db.<ref>.supabase.co) or port 5432 on a Supabase host, i.e. not the connection pooler. */
+export function usesDirectSupabaseUrl(databaseUrl: string): boolean {
+  try {
+    const url = new URL(databaseUrl);
+    if (!/supabase\.(co|com)$/.test(url.hostname)) return false;
+    if (url.hostname.startsWith("db.")) return true;
+    return url.port === "5432" && !url.hostname.includes("pooler");
+  } catch {
+    return false;
+  }
 }

@@ -8,7 +8,8 @@ export default defineConfig({
     seed: "tsx --env-file=.env prisma/seed.ts",
   },
   datasource: {
+    // Used by `prisma migrate`: the DIRECT Postgres connection (never the pooler). Falls back to DATABASE_URL for a local database.
     // Not needed by `prisma generate`, so it must not throw when unset (e.g. at install time).
-    url: process.env.DIRECT_URL ?? "",
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? "",
   },
 });

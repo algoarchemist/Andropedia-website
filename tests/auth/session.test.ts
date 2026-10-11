@@ -83,6 +83,24 @@ describe("requireUser", () => {
     expect(allowed.ok && allowed.user.id).toBe("u1");
   });
 
+  it("refuses an account still on its default password everywhere except the password change", async () => {
+    h.cookie = "tok";
+    vi.mocked(prisma.session.findUnique).mockResolvedValue(session({ user: dbUser({ mustChangePassword: true }) }) as never);
+    const blocked = await requireUser(req());
+    expect(!blocked.ok && blocked.response.status).toBe(403);
+    if (!blocked.ok) expect(await blocked.response.json()).toMatchObject({ code: "PASSWORD_CHANGE_REQUIRED" });
+    const admin = await requireUser(req(), ["super_admin"]); // the role check never gets to run first
+    expect(!admin.ok && admin.response.status).toBe(403);
+    const allowed = await requireUser(req(), undefined, { allowPasswordChange: true });
+    expect(allowed.ok && allowed.user.mustChangePassword).toBe(true);
+  });
+
+  it("lets an account that has chosen its own password through", async () => {
+    h.cookie = "tok";
+    vi.mocked(prisma.session.findUnique).mockResolvedValue(session({ user: dbUser({ mustChangePassword: false }) }) as never);
+    expect((await requireUser(req())).ok).toBe(true);
+  });
+
   it("blocks cross-site writes before touching the session", async () => {
     h.cookie = "tok";
     const r = await requireUser(req("POST", { origin: "https://evil.example" }));

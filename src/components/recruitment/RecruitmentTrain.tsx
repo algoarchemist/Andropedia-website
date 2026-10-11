@@ -12,7 +12,9 @@ import {
   useTransform,
   type MotionValue,
 } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Volume2, VolumeX } from "lucide-react";
+import { createTrainSound, type TrainSound } from "@/lib/train-sound";
+import { useSiteSound } from "@/lib/use-site-sound";
 import { ACCENTS, accentVars } from "@/content/accents";
 import { PROCESS_STEPS } from "@/content/recruitment";
 
@@ -287,7 +289,23 @@ function TrainRide() {
   const routeFill = useTransform(world, [0, LAST], [0, 1]);
   const cueOpacity = useTransform(world, [0, 0.12], [1, 0]);
 
+  // Train sound: rail clicks, hum, door chirps and station chimes follow the ride. Silent until the visitor's first click.
+  const { state: audioState, enabled: soundOn, toggle: toggleSound } = useSiteSound();
+  const sound = useRef<TrainSound | null>(null);
+  useEffect(() => {
+    const s = createTrainSound();
+    sound.current = s;
+    return () => {
+      s.dispose();
+      sound.current = null;
+    };
+  }, []);
+  const onSoundButton = () => {
+    if (!toggleSound()) sound.current?.dispose();
+  };
+
   useMotionValueEvent(world, "change", (v) => {
+    if (soundOn.current) sound.current?.ride(v);
     setActive(Math.round(v));
     // Only near the end, and only then measure (reading layout on every frame of the ride would stutter it).
     // Gate on the section's real position, not just `world`: the scroll value can glitch high for a
@@ -297,6 +315,7 @@ function TrainRide() {
       const real = el ? -el.getBoundingClientRect().top / Math.max(1, el.offsetHeight - window.innerHeight) : 0;
       if (real <= 0.85 || real > 1.02) return;
       firedRef.current = true;
+      if (soundOn.current) sound.current?.finale();
       import("canvas-confetti").then(({ default: confetti }) =>
         confetti({
           particleCount: 90,
@@ -407,6 +426,17 @@ function TrainRide() {
             </ol>
           </nav>
         </div>
+
+        <button
+          type="button"
+          onClick={onSoundButton}
+          aria-pressed={audioState === "on"}
+          aria-label={audioState === "on" ? "Mute train sound" : "Turn on train sound"}
+          className={`absolute bottom-4 right-4 z-10 inline-flex items-center gap-1.5 rounded-full border bg-black/40 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] backdrop-blur-[6px] transition-colors hover:border-white/35 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:right-6 ${audioState === "locked" ? "animate-pulse border-sky-300/60 text-sky-200" : "border-white/15 text-white/60"}`}
+        >
+          {audioState === "on" ? <Volume2 className="h-3.5 w-3.5" aria-hidden="true" /> : <VolumeX className="h-3.5 w-3.5" aria-hidden="true" />}
+          {audioState === "locked" ? "Click for sound" : audioState === "on" ? "Sound on" : "Sound off"}
+        </button>
 
         <motion.p style={{ opacity: cueOpacity }} className="pointer-events-none absolute inset-x-0 bottom-5 z-10 text-center text-[13px] font-medium text-white/50" aria-hidden="true">
           Scroll to start the ride

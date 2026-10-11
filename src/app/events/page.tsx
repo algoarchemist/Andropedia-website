@@ -3,15 +3,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BlurOrb, GridLines } from "@/components/design/Backdrop";
-import { Calendar, MapPin, Trophy, Sparkles, Check, X, Loader2 } from "lucide-react";
+import { Calendar, MapPin, Trophy, Sparkles, Check, X, Loader2, Images } from "lucide-react";
 import { TeamDialog } from "@/components/events/TeamDialog";
+import { EventDetailDialog } from "@/components/events/EventDetailDialog";
 import type { EventStatus, PublicEvent } from "@/lib/events";
+import { SoundButton } from "@/components/ui/SoundButton";
+import { armSoundUnlock } from "@/lib/dial-sound";
+import { cardClick, cardHover } from "@/lib/tile-sound";
 
 const BADGE: Record<EventStatus, { label: string; color: string }> = {
   open: { label: "Registrations Open", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" },
   full: { label: "Full", color: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
   closed: { label: "Reservations Closed", color: "bg-amber-500/20 text-amber-300 border-amber-500/40" },
   past: { label: "Completed", color: "bg-slate-700 text-slate-300 border-slate-600" },
+  soon: { label: "Coming Soon", color: "bg-sky-500/20 text-sky-300 border-sky-500/40" },
 };
 
 const STORAGE_KEY = "andropedia_rsvps";
@@ -150,6 +155,7 @@ export default function Events() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [, setReserved] = useState<string[]>([]);
   const [dialogFor, setDialogFor] = useState<PublicEvent | null>(null);
+  const [detailFor, setDetailFor] = useState<PublicEvent | null>(null);
 
   const load = useCallback(() => {
     fetch("/api/events", { cache: "no-store" })
@@ -157,6 +163,8 @@ export default function Events() {
       .then((d) => (d.success ? (setEvents(d.events), setLoadError(false)) : setLoadError(true)))
       .catch(() => setLoadError(true));
   }, []);
+
+  useEffect(() => armSoundUnlock(), []); // hover sounds start after the first click or key press
 
   useEffect(() => {
     load();
@@ -212,6 +220,7 @@ export default function Events() {
           <p className="text-white/70 text-base leading-6">
             Participate in flagship hackathons, intense algorithmic battles, and technical workshops organized by Andropedia.
           </p>
+          <SoundButton />
         </div>
 
         <div className="flex items-center justify-center gap-2">
@@ -235,11 +244,26 @@ export default function Events() {
         <div className="space-y-6 max-w-5xl mx-auto">
           {currentList.map((ev) => {
             const badge = BADGE[ev.status];
+            const photos = ev.images.length;
+            const open =
+              photos > 0
+                ? () => {
+                    setDetailFor(ev);
+                    // The sound waits until the dialog has had its first frame, so starting audio never delays it.
+                    requestAnimationFrame(() => window.setTimeout(cardClick, 0));
+                  }
+                : undefined;
             return (
               <div
                 key={ev.id}
-                className="glass-panel p-8 rounded-3xl border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
-                data-cursor-text="Event"
+                className={`glass-panel p-8 rounded-3xl border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 ${open ? "cursor-pointer" : ""}`}
+                data-cursor-text={open ? "View photos" : "Event"}
+                onClick={open}
+                onPointerEnter={open && ((e) => e.pointerType !== "touch" && cardHover())}
+                onKeyDown={open && ((e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open()))}
+                role={open ? "button" : undefined}
+                tabIndex={open ? 0 : undefined}
+                aria-label={open ? `${ev.title}: view event photos` : undefined}
               >
                 <div className="space-y-3 max-w-2xl">
                   <div className="flex flex-wrap items-center gap-2">
@@ -255,6 +279,9 @@ export default function Events() {
                       <div className="flex items-center gap-1.5 text-amber-300 font-semibold"><Trophy className="w-3.5 h-3.5" /><span>{ev.prize}</span></div>
                     )}
                   </div>
+                  {photos > 0 && (
+                    <div className="flex items-center gap-1.5 pt-1 text-xs font-mono text-emerald-300/80"><Images className="w-3.5 h-3.5" /><span>{photos} photos · click to view</span></div>
+                  )}
                 </div>
 
               </div>
@@ -264,6 +291,7 @@ export default function Events() {
       </div>
 
       <AnimatePresence>
+        {detailFor && <EventDetailDialog event={detailFor} when={when(detailFor)} onClose={() => setDetailFor(null)} />}
         {dialogFor && (dialogFor.teamMax != null
           ? <TeamDialog event={dialogFor} onClose={() => setDialogFor(null)} onDone={markReserved} />
           : <RsvpDialog event={dialogFor} onClose={() => setDialogFor(null)} onDone={markReserved} />)}

@@ -34,8 +34,14 @@ describe("eventStatus", () => {
     const past = { ...base, startsAt: new Date("2026-10-01T10:00:00Z"), endsAt: new Date("2026-10-02T10:00:00Z"), registrationOpen: false };
     expect(eventStatus(past, 3, NOW)).toBe("past");
   });
-  it("is always past when the date is not announced, even with a future start and open reservations", () => {
-    expect(eventStatus({ ...base, dateTbc: true }, 0, NOW)).toBe("past");
+  it("is past when the date is not announced and the placeholder start is already behind us", () => {
+    const placeholder = { ...base, startsAt: new Date("2026-10-01T10:00:00Z"), dateTbc: true };
+    expect(eventStatus(placeholder, 0, NOW)).toBe("past");
+    expect(eventStatus({ ...placeholder, registrationOpen: false }, 0, NOW)).toBe("past");
+  });
+  it("is coming soon (never open) when the date is not announced and the placeholder start is still ahead", () => {
+    expect(eventStatus({ ...base, dateTbc: true }, 0, NOW)).toBe("soon");
+    expect(eventStatus({ ...base, dateTbc: true, capacity: null }, 0, NOW)).toBe("soon");
   });
   it("uses the end time for multi-day events", () => {
     const running = { ...base, startsAt: new Date("2026-10-09T10:00:00Z"), endsAt: new Date("2026-10-11T10:00:00Z") };

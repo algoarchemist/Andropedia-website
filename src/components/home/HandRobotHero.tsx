@@ -1,12 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRef } from "react";
 import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { GlobeBackground } from "@/components/design/GlobeBackground";
+import { ChevronDown } from "lucide-react";
 import { AndropediaMark } from "@/components/design/AndropediaMark";
+
+// three.js is about half a megabyte: load it after the page is interactive. The globe is a decorative backdrop, so the hands and
+// the headline never wait for it.
+const GlobeBackground = dynamic(() => import("@/components/design/GlobeBackground").then((m) => m.GlobeBackground), { ssr: false });
 
 // Landing hero. A photographic human hand (left) and robotic arm (right) reach toward each other and
 // touch at the fingertips in front of a glowing gradient ring. The hands are the focus; a small ANDROPEDIA

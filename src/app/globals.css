@@ -397,6 +397,23 @@
   }
 }
 
+/* While an event photo dialog is open, only the dialog (and the custom cursor) are painted; the page behind is
+   hidden and not scrollable. See EventDetailDialog. */
+body.gallery-open > *:not([data-gallery-keep]) { visibility: hidden; }
+html:has(body.gallery-open) { overflow: hidden; }
+
+/* Event photo carousel progress bar: a transform-only animation, so it runs on the compositor and stays smooth
+   while the page is busy decoding photos. */
+@keyframes galleryProgress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.gallery-progress {
+  transform-origin: left center;
+  animation: galleryProgress var(--gallery-interval, 4s) linear forwards;
+  will-change: transform;
+}
+
 @keyframes marquee {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }

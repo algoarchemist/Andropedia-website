@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { PortalAccessGate } from "@/components/portal/PortalAccessGate";
+import { getPortalDestinationForUser, useAuth } from "@/lib/auth-context";
 
 const inputClass =
   "w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-base sm:text-sm text-white placeholder:text-white/40 focus:border-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 transition-colors";
 const labelClass = "text-[12px] font-medium uppercase tracking-[0.08em] text-white/60";
 
 export default function AccountPage() {
+  const { currentUser, refreshUser } = useAuth();
+  const router = useRouter();
+  const forced = !!currentUser?.mustChangePassword;
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -35,6 +40,9 @@ export default function AccountPage() {
         setCurrent("");
         setNext("");
         setConfirm("");
+        const wasForced = forced;
+        await refreshUser();
+        if (wasForced) router.replace(getPortalDestinationForUser({ ...currentUser!, mustChangePassword: false }));
       } else {
         setErrorMsg(data.error || "Something went wrong. Please try again.");
       }
@@ -51,6 +59,12 @@ export default function AccountPage() {
         <div className="mx-auto w-full max-w-md px-4 py-10 sm:px-6">
           <div className="glass-card p-6 sm:p-8">
             <h1 className="text-aurora mb-1 text-[24px] font-semibold tracking-[-0.5px]">Change password</h1>
+            {forced && (
+              <div role="alert" className="mb-5 flex items-start gap-2 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-[13px] leading-5 text-amber-100">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>You are still using the default password. Choose a new one to continue to the portal.</span>
+              </div>
+            )}
             <p className="mb-6 text-[13px] leading-5 text-white/50">
               Until you change it, your password is your register number. Other devices are signed out when you save.
             </p>

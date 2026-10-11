@@ -13,7 +13,7 @@ export function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "?";
 }
 
-export function Avatar({ member, className }: { member: TeamMember; className: string }) {
+export function Avatar({ member, className, eager = false }: { member: TeamMember; className: string; eager?: boolean }) {
   const [failed, setFailed] = useState(false);
   if (!member.avatar || failed) {
     return (
@@ -24,7 +24,7 @@ export function Avatar({ member, className }: { member: TeamMember; className: s
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img loading="lazy" decoding="async" src={member.avatar} alt={member.name} onError={() => setFailed(true)} className={`${className} object-cover`} />
+    <img loading={eager ? "eager" : "lazy"} decoding="async" src={member.avatar} alt={member.name} onError={() => setFailed(true)} className={`${className} object-cover object-[50%_8%]`} />
   );
 }
 
@@ -56,21 +56,26 @@ export function MemberModal({ selected, domainLabel, onClose }: { selected: Sele
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
+    // Hiding the page scrollbar would widen the page and re-layout every card: pad by its width instead.
     const prev = document.body.style.overflow;
+    const prevPad = document.body.style.paddingRight;
+    const bar = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
+    if (bar > 0) document.body.style.paddingRight = `${bar}px`;
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
+      document.body.style.paddingRight = prevPad;
     };
   }, [onClose]);
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/55 backdrop-blur-xl"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.15 }}
       onClick={onClose}
     >
       <motion.div
@@ -78,11 +83,11 @@ export function MemberModal({ selected, domainLabel, onClose }: { selected: Sele
         aria-modal="true"
         aria-label={`${member.name}'s profile`}
         className="glass-card relative flex aspect-square w-[min(92vw,520px)] flex-col overflow-hidden p-7 sm:p-9"
-        style={accent ? accentVars(accent) : undefined}
-        initial={{ opacity: 0, scale: 0.88, y: 24 }}
+        style={{ ...(accent ? accentVars(accent) : {}), backdropFilter: "none", WebkitBackdropFilter: "none", backgroundColor: "#040a18", willChange: "transform, opacity" }}
+        initial={{ opacity: 0, scale: 0.92, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 12 }}
-        transition={{ type: "spring", stiffness: 300, damping: 26 }}
+        transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8 }}
         onClick={(e) => e.stopPropagation()}
       >
         <span aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(70% 45% at 50% 0%, var(--a1-soft, rgba(255,255,255,0.1)), transparent 75%)" }} />
@@ -97,7 +102,7 @@ export function MemberModal({ selected, domainLabel, onClose }: { selected: Sele
         </button>
 
         <div className="relative flex items-center gap-5">
-          <Avatar member={member} className="h-24 w-24 sm:h-28 sm:w-28 shrink-0 rounded-2xl border border-white/30 text-3xl shadow-lg" />
+          <Avatar eager member={member} className="h-24 w-24 sm:h-28 sm:w-28 shrink-0 rounded-2xl border border-white/30 text-3xl shadow-lg" />
           <div className="min-w-0">
             <h2 className="text-2xl sm:text-3xl font-bold leading-tight text-white">{member.name}</h2>
             {title && <p className="text-a2 mt-1 text-sm font-medium">{title}</p>}

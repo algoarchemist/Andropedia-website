@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronRight, LogOut, Terminal } from "lucide-react";
-import { ACCENTS, accentVars, type Accent } from "@/content/accents";
+import { ACCENTS, type Accent } from "@/content/accents";
 import { RotaryDial } from "./RotaryDial";
 import { getPortalDestinationForUser, useAuth } from "@/lib/auth-context";
 

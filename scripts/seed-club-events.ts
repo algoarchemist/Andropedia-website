@@ -1,5 +1,6 @@
 // Usage: npm run events:club
-// Also adds the upcoming events listed in UPCOMING (open for registration; created once, never overwritten).
+// Also adds the upcoming events listed in UPCOMING (created once, never overwritten). One with a date is open for registration;
+// one with dateTbc (like the AI Symposium) shows as "Coming Soon" with no registration until its date is set in the admin screen.
 // Adds the club's past events (major events and club hours) as published entries, closed for registration and
 // marked "date to be announced", so no date is made up. Fill in the real dates afterwards in
 // Portal -> Admin -> Events & reservations (Edit).
@@ -9,7 +10,7 @@ import { prisma } from "../src/lib/prisma";
 
 const LOCATION = "SRM Institute of Science and Technology, Ramapuram";
 
-// Order here is the order they are shown (the page lists undated past events in the order they were added).
+// The archive lists undated past events in the order of ARCHIVE_ORDER below (EVENTS order, with AndroHacks after Git Set Code).
 const EVENTS = [
   {
     id: "cloudcon",
@@ -19,15 +20,6 @@ const EVENTS = [
     teamMax: null,
     tagline: "Exploring the cloud. Discovering what's next.",
     body: "As Andropedia's flagship event, CloudCon 3.0 brought cloud computing and emerging technologies into focus. It offered students an opportunity to explore new innovations, understand real-world applications, and discover the possibilities shaping the future of technology.",
-  },
-  {
-    id: "git-set-code",
-    title: "Git Set Code",
-    type: "Major Event",
-    teamMin: null,
-    teamMax: null,
-    tagline: "Your engineering journey starts with the right tools.",
-    body: "Starting college comes with a whole new set of tools to discover. Git Set Code helped first-year students get familiar with essential platforms like LeetCode, Git, and GitHub, building their confidence to begin coding, solve problems, and collaborate throughout their engineering journey.",
   },
   {
     id: "cafe-hackathon",
@@ -55,6 +47,15 @@ const EVENTS = [
     teamMax: null,
     tagline: "Curiosity in action, one experiment at a time.",
     body: "Designed for students from Classes 6 to 12, this one-day summer boot camp made technology an opportunity to explore and investigate. Participants discovered how sensors work and where they're used, then put their observation and reasoning skills to the test through an interactive, clue-based investigation game.",
+  },
+  {
+    id: "git-set-code",
+    title: "Git Set Code",
+    type: "Major Event",
+    teamMin: null,
+    teamMax: null,
+    tagline: "Your engineering journey starts with the right tools.",
+    body: "Starting college comes with a whole new set of tools to discover. Git Set Code helped first-year students get familiar with essential platforms like LeetCode, Git, and GitHub, building their confidence to begin coding, solve problems, and collaborate throughout their engineering journey.",
   },
   {
     id: "pixels-and-plots",
@@ -148,6 +149,11 @@ const EVENTS = [
   },
 ];
 
+// Order of the undated archive, top to bottom. AndroHacks was added from the admin screen, so it is not defined above;
+// it is only placed here, right below Git Set Code.
+const ARCHIVE_ORDER = EVENTS.map((e) => e.id);
+ARCHIVE_ORDER.splice(ARCHIVE_ORDER.indexOf("git-set-code") + 1, 0, "androhacks");
+
 // Upcoming events: real date and venue, registration open. Only created if missing, so admin edits are kept.
 const UPCOMING = [
   {
@@ -159,15 +165,27 @@ const UPCOMING = [
     tagline: "Think fast. Code smart. Take the risk.",
     body: "Part of TEXUS '26, CodeSprint '26 brought a game-inspired twist to competitive coding. Blending programming challenges with a gambling-style gameplay mechanic, it pushed participants to put their logic, speed, and problem-solving skills to the test in a format beyond the usual coding competition.",
   },
+  {
+    id: "ai-symposium",
+    title: "AI Symposium",
+    type: "Symposium",
+    // No date yet: the start is a placeholder that keeps it under Upcoming as "Coming Soon" (nobody can register).
+    // Set the real date in the admin screen and untick "Date not announced yet" once it is decided.
+    startsAt: new Date("2027-12-31T10:00:00+05:30"),
+    dateTbc: true,
+    location: "To be announced",
+    tagline: "Stay tuned!",
+    body: "",
+  },
 ];
 
 async function main() {
   const base = Date.now();
   let added = 0;
   let updated = 0;
-  for (const [i, e] of EVENTS.entries()) {
+  for (const e of EVENTS) {
     const description = `${e.tagline}\n${e.body}`;
-    const startsAt = new Date(base + i * 1000); // placeholder only: never shown while dateTbc is on; keeps the list order
+    const startsAt = new Date(base + ARCHIVE_ORDER.indexOf(e.id) * 1000); // placeholder only: never shown while dateTbc is on; keeps the list order
     // CodeSprint used to be added with another id by an older script; treat that one as the same event.
     const existing =
       (await prisma.event.findUnique({ where: { id: e.id } })) ??
@@ -202,6 +220,11 @@ async function main() {
     added++;
     console.log(`Added ${e.title}.`);
   }
+  const androhacks = await prisma.event.findUnique({ where: { id: "androhacks" } });
+  if (androhacks?.dateTbc) {
+    await prisma.event.update({ where: { id: "androhacks" }, data: { startsAt: new Date(base + ARCHIVE_ORDER.indexOf("androhacks") * 1000) } });
+    console.log("Placed AndroHacks below Git Set Code.");
+  }
   for (const e of UPCOMING) {
     if (await prisma.event.findUnique({ where: { id: e.id } })) {
       console.log(`${e.title} already exists; left as it is.`);
@@ -212,8 +235,8 @@ async function main() {
         id: e.id,
         title: e.title,
         type: e.type,
-        description: `${e.tagline}
-${e.body}`,
+        description: e.body ? `${e.tagline}
+${e.body}` : e.tagline,
         location: e.location,
         startsAt: e.startsAt,
         endsAt: null,
@@ -222,8 +245,8 @@ ${e.body}`,
         teamMax: null,
         prize: null,
         isPublished: true,
-        registrationOpen: true,
-        dateTbc: false,
+        registrationOpen: !e.dateTbc,
+        dateTbc: e.dateTbc ?? false,
       },
     });
     added++;

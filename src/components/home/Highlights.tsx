@@ -2,11 +2,8 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BlurOrb } from "@/components/design/Backdrop";
 import { Reveal } from "@/components/design/Reveal";
-import { Stagger, StaggerItem } from "@/components/design/scroll";
-import { HOME_HIGHLIGHTS } from "@/content/home";
-import { ACCENTS, accentVars } from "@/content/accents";
-
-const CARD_ACCENTS = [ACCENTS.blue, ACCENTS.purple, ACCENTS.teal];
+import { HighlightCards } from "@/components/home/HighlightCards";
+import { ACCENTS } from "@/content/accents";
 
 // "Changelog" frame from the design: a two-tone statement, then flat dark cards.
 export function Highlights() {
@@ -19,7 +16,7 @@ export function Highlights() {
           <p className="text-[24px] font-medium leading-[1.25] tracking-[-1.2px] text-white sm:text-[30px]">
             <span style={{ color: ACCENTS.blue.a2 }}>Cloud,</span>{" "}
             <span style={{ color: ACCENTS.purple.a2 }}>code</span> and{" "}
-            <span style={{ color: ACCENTS.teal.a2 }}>design.</span>{" "}
+            <span style={{ color: ACCENTS.teal.a2 }}>collaboration.</span>{" "}
             <span className="text-[#606060]">
               Here is a look at the flagship events and contests the club has run, and where you can join in next.
             </span>
@@ -34,27 +31,7 @@ export function Highlights() {
           </div>
         </Reveal>
 
-        <Stagger as="ul" className="grid gap-5 md:grid-cols-3" stagger={0.16}>
-          {HOME_HIGHLIGHTS.map((h, i) => (
-            <StaggerItem as="li" key={h.title} from={i === 0 ? "left" : i === 2 ? "right" : "up"} tilt={3} className="h-full">
-              <article className="dark-card flex h-full flex-col justify-between gap-8 p-6 sm:p-[30px]" style={accentVars(CARD_ACCENTS[i % 3])}>
-                <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 30% at 50% 0%, var(--a1-soft), transparent 75%)" }} />
-                <div className="relative space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="chip !px-3 !tracking-[0.06em]">{h.tag}</span>
-                    <span className="chip-accent">{h.badge}</span>
-                  </div>
-                  <h3 className="text-accent text-[20px] font-medium leading-[30px]">{h.title}</h3>
-                  <p className="text-[12px] leading-[18px] text-white/50">{h.date}</p>
-                  <p className="text-[16px] leading-6 text-white/70">{h.desc}</p>
-                </div>
-                <Link href={h.link} className="text-a2 relative inline-flex items-center gap-1.5 text-[14px] font-medium hover:text-white">
-                  {h.cta} <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
-              </article>
-            </StaggerItem>
-          ))}
-        </Stagger>
+        <HighlightCards />
       </div>
     </section>
   );

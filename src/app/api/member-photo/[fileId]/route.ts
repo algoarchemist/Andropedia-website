@@ -23,9 +23,15 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   }
 
   // Google's thumbnails rarely change: let Next keep a copy for an hour instead of asking every time.
-  const response = await fetch(`https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w400-h400`, {
-    next: { revalidate: 3600 },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w400-h400`, {
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(8000), // a slow Drive must not pin a server connection
+    });
+  } catch {
+    return NextResponse.json({ error: "Member photo unavailable" }, { status: 502, headers: { "Cache-Control": "public, max-age=30" } });
+  }
 
   const contentType = response.headers.get("content-type") || "";
   if (!response.ok || !contentType.startsWith("image/")) {

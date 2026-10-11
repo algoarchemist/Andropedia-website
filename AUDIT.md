@@ -72,3 +72,27 @@ Now: build passes, `eslint` reports 0 errors and 13 warnings, 85 tests pass.
 - Added: applicant status lookup, admin applicant review with decision emails, `Project` model and API (the `/projects` page no longer ships invented projects), real home-page leaderboard, graded-task emails, add-member and create-week forms, audit log viewer.
 - Tests now cover login codes, sessions, the role guard, task submission, grading and every admin route.
 - Still open: the new migrations (`drop_recruitment_outbox`, `rate_limit`, `projects`) have not been applied to the live database, and mail and the Sheet have not been checked end to end against the real services.
+
+## Pre-production audit (2026-10-11)
+
+A senior-QA / DevOps pass over the site, database, API and connectivity. Fixed in this release unless marked open.
+
+- [x] critical: The member sheet was readable by anyone and its id was hard-coded in the (public) repository. The id is now configuration (`MEMBER_SHEET_ID`), the sheet is read through the service account with the read-only scope and only the columns the app needs, and the public read is off unless `MEMBER_SHEET_ALLOW_PUBLIC=true` (reported by `/api/health`). **Open, manual:** set the sheet to Restricted and treat the data as exposed (docs/GO_LIVE.md).
+- [x] critical: A new member's password was their register number and nothing made them change it. Accounts on the default password are now flagged (`mustChangePassword`, set by a migration for existing ones); the server refuses everything but the password change until it is changed, the portal redirects to it, and the register number is not accepted as the new password. No email or code is involved.
+- [x] high: Next.js 16.3.6 advisories: upgraded to 16.4.0; `mysql2` and `deepmerge-ts` overridden to patched versions; vitest 5. `npm audit --omit=dev` reports 0. Only dev tooling (eslint-config-next, tailwindcss) still has advisories; CI fails on any high advisory in production dependencies.
+- [x] high: Migrations were not applied. Applied locally; `/api/health` now reports missing tables or columns; docs/GO_LIVE.md puts `db:deploy` before the deploy; `prisma.config.ts` falls back to `DATABASE_URL` when `DIRECT_URL` is unset.
+- [x] high: Supabase connection: pool size, idle and connect timeouts and a statement timeout in `lib/prisma.ts`; `/api/health` flags the direct (port 5432) URL used as `DATABASE_URL`; the `.env.example` advice that only applied to Prisma's old engine was replaced.
+- [x] high: Production configuration checks: missing or localhost `NEXT_PUBLIC_SITE_URL`, missing `DIRECT_URL`, `MEMBER_SHEET_*`. Password-reset links now fall back to the Vercel production URL.
+- [x] high: Rate limits trusted the first `X-Forwarded-For` entry, which a visitor can forge. They now use the platform header, then the entry the closest trusted proxy added (`TRUSTED_PROXY_HOPS`).
+- [x] high: Anyone could lock any member out by failing 20 logins. Limits are now per address, per address+account, and per account counting only failures, and an address that has signed in to that account before is not blocked by the account-wide counter.
+- [x] high: Fetches without timeouts (Drive photo proxy, browser auth calls, the member sheet). All have timeouts now.
+- [x] medium: Public image routes: malformed ids answer 404 without a query, a rate limit, and a missing table reads as "no photo". Uploads stop reading at the size limit even without a `Content-Length`.
+- [x] medium: Forgot-password answered faster for unknown accounts than for real ones. The work now happens after the response.
+- [x] medium: `/hero-preview` removed. Extra CSP directives (`connect-src`, `frame-src`, `worker-src`, `manifest-src`) and `Cross-Origin-Opener-Policy` added.
+- [x] medium: Daily cleanup (`vercel.json`) also removes expired password-reset links and keeps "known address" markers for 31 days.
+- [x] medium: Join-form drafts last 3 days (was 14) and no longer keep the phone number.
+- [x] low: The three.js globe is loaded lazily, off the critical path of the first paint. Portal pages have an `<h1>` while loading. Lint warnings cut from 21 to 11, `console.*` in server code moved to the logger, stale README parts fixed.
+- [x] tests: 311 -> 339 (client IP, bounded body, login limiter, forced password change, forgot-password timing, image routes, sheet reader, production env checks, schema check). CI now also runs `prisma validate`, `npm audit` and `next build`.
+- [ ] open: photos are stored in Postgres (move to object storage if the database grows).
+- [ ] open: no `script-src` in the CSP (needs nonces); no end-to-end tests; mail, Sheets and the webhook have only run against fakes.
+- [ ] open: accounts that have not changed their default password can be taken over by anyone who knows the register number (see docs/GO_LIVE.md, section 6).

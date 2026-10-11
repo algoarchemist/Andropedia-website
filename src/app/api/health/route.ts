@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { hasCronSecret } from "@/lib/cron-auth";
 import { configProblems } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
+import { schemaProblems } from "@/lib/schema-check";
 import { pendingWhere } from "@/lib/recruitment/retry";
 
 // Uptime/health check. Public callers only learn ok/degraded; the detailed list of
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   } catch {
     database = false;
   }
-  const problems = configProblems();
+  const problems = [...configProblems(), ...(database ? await schemaProblems() : [])];
   const ok = database && problems.length === 0;
   const body: Record<string, unknown> = { status: ok ? "ok" : "degraded", database };
   if (hasCronSecret(request)) {

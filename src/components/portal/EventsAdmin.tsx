@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download, Eye, EyeOff, Lock, LockOpen, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Download, Eye, EyeOff, ImagePlus, Images, Lock, LockOpen, Pencil, Plus, Trash2, Users, X } from "lucide-react";
+import { shrinkImage } from "@/lib/image-shrink";
 import type { AdminEvent, Attendee } from "@/lib/events";
+import { MAX_EVENT_IMAGES } from "@/lib/events-schema";
 
 const fmt = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" });
 
@@ -27,6 +29,8 @@ export function EventsAdmin() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
+  const [photosFor, setPhotosFor] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
   const [attendees, setAttendees] = useState<{ eventId: string; list: Attendee[] } | null>(null);
 
   const load = useCallback(async () => {
@@ -45,7 +49,7 @@ export function EventsAdmin() {
     void load();
   }, [load]);
 
-  const call = async (key: string, url: string, method: string, body?: unknown, ok?: string) => {
+  const call = async (key: string, url: string, method: string, body?: unknown, ok?: string): Promise<{ event?: AdminEvent } | null> => {
     setBusy(key);
     setNotice(null);
     try {
@@ -53,11 +57,11 @@ export function EventsAdmin() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
         setNotice({ type: "error", text: data.error ?? "That did not work. Please try again." });
-        return false;
+        return null;
       }
       if (ok) setNotice({ type: "success", text: ok });
       await load();
-      return true;
+      return data;
     } finally {
       setBusy(null);
     }
@@ -109,8 +113,44 @@ export function EventsAdmin() {
     const done = editingId
       ? await call("save", `/api/admin/events/${editingId}`, "PATCH", fields, "Event updated.")
       : await call("create", "/api/admin/events", "POST", { ...fields, startsAt: fields.startsAt ?? new Date().toISOString(), isPublished: false }, "Event saved as a draft. Publish it when it is ready.");
-    if (done) closeForm();
+    if (done) {
+      closeForm();
+      // Photos can only be attached to a saved event, so open the photo panel for a brand-new one.
+      if (!editingId && done.event) setPhotosFor(done.event.id);
+    }
   };
+
+  // Photos are shrunk in the browser and sent one by one, so one bad file does not lose the rest.
+  const uploadPhotos = async (ev: AdminEvent, files: FileList | null) => {
+    const picked = Array.from(files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (picked.length === 0) return;
+    const room = MAX_EVENT_IMAGES - ev.photos.length;
+    const batch = picked.slice(0, Math.max(0, room));
+    if (batch.length === 0) return setNotice({ type: "error", text: `An event can have up to ${MAX_EVENT_IMAGES} uploaded photos. Delete one first.` });
+    setNotice(null);
+    let saved = 0;
+    const problems: string[] = [];
+    for (const [i, file] of batch.entries()) {
+      setUploading({ done: i, total: batch.length });
+      try {
+        const blob = await shrinkImage(file, { maxEdge: 1600, quality: 0.82 });
+        const res = await fetch(`/api/admin/events/${ev.id}/images`, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) throw new Error(data.error ?? "upload failed");
+        saved++;
+      } catch (err) {
+        problems.push(`${file.name}: ${err instanceof Error ? err.message : "upload failed"}`);
+      }
+    }
+    setUploading(null);
+    await load();
+    const skipped = picked.length - batch.length;
+    if (skipped > 0) problems.push(`${skipped} more skipped (limit of ${MAX_EVENT_IMAGES} photos)`);
+    setNotice(problems.length ? { type: "error", text: `${saved} photo(s) added. ${problems.join("; ")}` } : { type: "success", text: `${saved} photo${saved === 1 ? "" : "s"} added.` });
+  };
+
+  const removePhoto = (ev: AdminEvent, photoId: string) =>
+    call(`photo:${photoId}`, `/api/admin/events/${ev.id}/images/${photoId}`, "DELETE", undefined, "Photo deleted.");
 
   const showAttendees = async (id: string) => {
     if (attendees?.eventId === id) return setAttendees(null);
@@ -155,7 +195,7 @@ export function EventsAdmin() {
           <input className={input} placeholder="Prize or perk (optional)" value={form.prize} onChange={set("prize")} maxLength={160} />
           <label className="flex items-center gap-2 text-xs text-slate-300 sm:col-span-2">
             <input type="checkbox" checked={form.dateTbc} onChange={(e) => setForm((f) => ({ ...f, dateTbc: e.target.checked }))} className="accent-emerald-400" />
-            Date not announced yet (shows &ldquo;Date to be announced&rdquo; and lists it under Past Events)
+            Date not announced yet (shows &ldquo;Date to be announced&rdquo;. Lists it under Past Events, or under Upcoming as &ldquo;Coming Soon&rdquo; if the placeholder start date above is still in the future)
           </label>
           <label className="space-y-1 text-xs text-slate-400">Starts<input className={input} type="datetime-local" value={form.startsAt} onChange={set("startsAt")} required={!form.dateTbc} disabled={form.dateTbc} /></label>
           <label className="space-y-1 text-xs text-slate-400">Ends (optional)<input className={input} type="datetime-local" value={form.endsAt} onChange={set("endsAt")} disabled={form.dateTbc} /></label>
@@ -164,6 +204,7 @@ export function EventsAdmin() {
             <input className={input} type="number" min={1} max={10} placeholder="Min team size" aria-label="Minimum team size" value={form.teamMin} onChange={set("teamMin")} />
             <input className={input} type="number" min={1} max={10} placeholder="Max team size" aria-label="Maximum team size" value={form.teamMax} onChange={set("teamMax")} />
           </div>
+          <p className="text-xs text-slate-500 sm:col-span-2">Photos can be added once the draft is saved: use the Photos button on the event.</p>
           <p className="text-xs text-slate-500 sm:col-span-2">Leave both team sizes empty for a normal event where each person reserves a seat. Fill both to make it a team event.</p>
           <div className="flex items-end justify-end gap-2 sm:col-span-2">
             <button type="button" onClick={closeForm} className="rounded-xl border border-white/15 px-4 py-2 text-sm text-slate-300 hover:text-white">Cancel</button>
@@ -199,6 +240,9 @@ export function EventsAdmin() {
                   <button type="button" onClick={() => startEdit(ev)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10">
                     <Pencil className="h-3.5 w-3.5" /> Edit
                   </button>
+                  <button type="button" onClick={() => setPhotosFor(photosFor === ev.id ? null : ev.id)} aria-expanded={photosFor === ev.id} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10">
+                    <Images className="h-3.5 w-3.5" /> Photos ({ev.images.length})
+                  </button>
                   <button type="button" onClick={() => showAttendees(ev.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10">
                     <Users className="h-3.5 w-3.5" /> Attendees
                   </button>
@@ -210,6 +254,42 @@ export function EventsAdmin() {
                   </button>
                 </div>
               </div>
+
+              {photosFor === ev.id && (
+                <div className="mt-3 space-y-3 border-t border-white/10 pt-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-emerald-300 focus-within:border-emerald-400/60 hover:border-emerald-400/40 ${uploading ? "pointer-events-none opacity-60" : ""}`}>
+                      <ImagePlus className="h-3.5 w-3.5" aria-hidden="true" /> Add photos
+                      <input type="file" accept="image/*" multiple className="sr-only" disabled={!!uploading} onChange={(e) => { void uploadPhotos(ev, e.target.files); e.target.value = ""; }} />
+                    </label>
+                    <p className="text-[11px] text-slate-400">
+                      {uploading ? `Uploading ${uploading.done + 1} of ${uploading.total}...` : `Pick one or many. They are shrunk automatically. ${ev.photos.length} of ${MAX_EVENT_IMAGES} uploaded.`}
+                    </p>
+                  </div>
+                  {ev.images.length === 0 ? (
+                    <p className="text-xs text-slate-500">No photos yet. They show in the event&apos;s photo carousel on the public Events page.</p>
+                  ) : (
+                    <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6">
+                      {ev.images.map((src) => {
+                        const uploaded = ev.photos.find((p) => p.url === src);
+                        return (
+                          <li key={src} className="relative aspect-[4/3] overflow-hidden rounded-lg border border-white/10 bg-black">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                            {uploaded ? (
+                              <button type="button" aria-label="Delete this photo" disabled={busy === `photo:${uploaded.id}`} onClick={() => removePhoto(ev, uploaded.id)} className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-rose-300 hover:bg-rose-500 hover:text-white disabled:opacity-50">
+                                <X className="h-3 w-3" />
+                              </button>
+                            ) : (
+                              <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-mono uppercase text-slate-300">Built-in</span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )}
 
               {attendees?.eventId === ev.id && (
                 <div className="mt-3 border-t border-white/10 pt-3">
