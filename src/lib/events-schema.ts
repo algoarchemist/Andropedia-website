@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { YEARS } from "./recruitment/schema";
 
+/** Uploaded photos allowed per event. Lives here (not in events.ts) so portal components can import it without pulling in the database. */
+export const MAX_EVENT_IMAGES = 20;
+
 const REQUIRED = "This field is required.";
 const date = z.string({ error: REQUIRED }).refine((v) => !Number.isNaN(Date.parse(v)), "Enter a valid date.");
 

@@ -14,11 +14,13 @@ export interface EventDetail {
   type: string;
   description: string;
   location: string;
+  /** Photos to show. Entries from the home page leave this out and use the bundled set. */
+  images?: string[];
 }
 
 /** Full view of an event with its photo carousel. `when` is the already formatted date line. */
 export function EventDetailDialog({ event, when, onClose }: { event: EventDetail; when: string; onClose: () => void }) {
-  const images = galleryFor(event.id);
+  const images = event.images ?? galleryFor(event.id);
   const isPresent = useIsPresent();
 
   useEffect(() => {
