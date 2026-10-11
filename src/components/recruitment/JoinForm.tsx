@@ -290,10 +290,11 @@ function StepHeader({ title, blurb, headingRef }: { title: string; blurb: string
 }
 
 /** A labelled input row with its error underneath. */
-function BField({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) {
+function BField({ id, label, hint, error, children }: { id: string; label: string; hint?: string; error?: string; children: ReactNode }) {
   return (
     <>
       <label className="pb-fl" htmlFor={id}>{label}</label>
+      {hint && <p id={`${id}-hint`} className="pb-nh">{hint}</p>}
       {children}
       {error && <p id={`${id}-error`} className="pb-err-msg">{error}</p>}
     </>
@@ -968,10 +969,10 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
 
   // ---- the pin board
   const err = (key: string) => errors[key];
-  const a11y = (key: string, id: string) => ({
+  const a11y = (key: string, id: string, hasHint = false) => ({
     id,
     "aria-invalid": err(key) ? (true as const) : undefined,
-    "aria-describedby": err(key) ? `${id}-error` : undefined,
+    "aria-describedby": [hasHint ? `${id}-hint` : "", err(key) ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined,
   });
   const answerText = (q: Question) => {
     const v = composeAnswers(form)[q.id];
@@ -1009,8 +1010,8 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
       case "who":
         return (
           <>
-            <BField id="f-name" label="Full Name *" error={err("name")}>
-              <input {...a11y("name", "f-name")} className="pb-in" aria-required="true" type="text" autoComplete="name" enterKeyHint="next" placeholder="The one on your ID card, not your gamer tag"
+            <BField id="f-name" label="Full Name *" hint="The one on your ID card, not your gamer tag" error={err("name")}>
+              <input {...a11y("name", "f-name", true)} className="pb-in" aria-required="true" type="text" autoComplete="name" enterKeyHint="next" placeholder="e.g. Aarav Sharma"
                 value={form.name} onChange={(e) => setField("name", e.target.value)} />
             </BField>
             <BField id="f-registerNo" label="Register / Roll Number *" error={err("registerNo")}>
@@ -1045,20 +1046,20 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
       case "reach":
         return (
           <>
-            <BField id="f-phone" label="Phone / WhatsApp Number *" error={err("phone")}>
-              <input {...a11y("phone", "f-phone")} className="pb-in" aria-required="true" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" placeholder="The one you actually check at midnight"
+            <BField id="f-phone" label="Phone / WhatsApp Number *" hint="The one you actually check at midnight" error={err("phone")}>
+              <input {...a11y("phone", "f-phone", true)} className="pb-in" aria-required="true" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" placeholder="e.g. +91 98765 43210"
                 value={form.phone} onChange={(e) => setField("phone", e.target.value)} />
             </BField>
-            <BField id="f-email" label="Email Address *" error={err("email")}>
-              <input {...a11y("email", "f-email")} className="pb-in" aria-required="true" type="email" inputMode="email" autoComplete="email" enterKeyHint="next" placeholder="Ideally not the inbox drowning in circulars"
+            <BField id="f-email" label="Email Address *" hint="Ideally not the inbox drowning in circulars" error={err("email")}>
+              <input {...a11y("email", "f-email", true)} className="pb-in" aria-required="true" type="email" inputMode="email" autoComplete="email" enterKeyHint="next" placeholder="you@example.com"
                 value={form.email} onChange={(e) => setField("email", e.target.value)} />
             </BField>
           </>
         );
       default:
         return (
-          <BField id="f-profile" label="LinkedIn / GitHub / Instagram *" error={err("profile")}>
-            <input {...a11y("profile", "f-profile")} className="pb-in" aria-required="true" type="text" autoComplete="off" enterKeyHint="done" placeholder="Drop whichever shows off your best side; we will stalk it"
+          <BField id="f-profile" label="LinkedIn / GitHub / Instagram *" hint="Drop whichever shows off your best side; we will stalk it" error={err("profile")}>
+            <input {...a11y("profile", "f-profile", true)} className="pb-in" aria-required="true" type="text" autoComplete="off" enterKeyHint="done" placeholder="Paste a link or @handle"
               value={form.profile} onChange={(e) => setField("profile", e.target.value)} />
           </BField>
         );
@@ -1117,7 +1118,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
               <span className="pb-nup">Next up</span>
             ) : null}
           </span>
-          <span className={`pb-nl ${n.question ? "clamp" : ""}`}>{n.title}</span>
+          <span className="pb-nl">{n.title}</span>
           {hasError ? (
             <>
               <span className="pb-err-msg">{msg}</span>
@@ -1125,7 +1126,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
             </>
           ) : isPinned ? (
             <>
-              <span className="pb-pv clamp">{preview(n) || "No answer"}</span>
+              <span className="pb-pv">{preview(n) || "No answer"}</span>
               <span className="pb-nf">+{worthOf[n.key]} XP · <Tap /> to unpin and edit</span>
             </>
           ) : (

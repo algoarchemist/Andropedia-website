@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 const inputClass =
   "w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-base sm:text-sm text-white placeholder:text-white/40 shadow-[inset_0_0_30px_rgba(204,215,255,0.06)] focus:border-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 transition-colors";
@@ -74,14 +75,14 @@ function ResetForm() {
           <label htmlFor="reset-new" className="text-[12px] font-medium uppercase tracking-[0.08em] text-white/60">
             New password
           </label>
-          <input id="reset-new" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} autoComplete="new-password" minLength={8} maxLength={60} required />
+          <PasswordInput id="reset-new" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} autoComplete="new-password" minLength={8} maxLength={60} required />
           <p className="text-[12px] leading-4 text-white/40">At least 8 characters.</p>
         </div>
         <div className="space-y-1.5">
           <label htmlFor="reset-confirm" className="text-[12px] font-medium uppercase tracking-[0.08em] text-white/60">
             Confirm new password
           </label>
-          <input id="reset-confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputClass} autoComplete="new-password" minLength={8} maxLength={60} required />
+          <PasswordInput id="reset-confirm" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputClass} autoComplete="new-password" minLength={8} maxLength={60} required />
         </div>
         <button type="submit" disabled={loading} className="btn-glow w-full disabled:opacity-60">
           {loading ? "Saving..." : "Set new password"}

@@ -104,7 +104,7 @@ export function MemberModal({ selected, domainLabel, onClose }: { selected: Sele
         <div className="relative flex items-center gap-5">
           <Avatar eager member={member} className="h-24 w-24 sm:h-28 sm:w-28 shrink-0 rounded-2xl border border-white/30 text-3xl shadow-lg" />
           <div className="min-w-0">
-            <h2 className="text-2xl sm:text-3xl font-bold leading-tight text-white">{member.name}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold uppercase leading-tight text-white">{member.name}</h2>
             {title && <p className="text-a2 mt-1 text-sm font-medium">{title}</p>}
             <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/15 px-2.5 py-0.5 text-[11px] text-white/70">
               <Briefcase className="h-3 w-3" /> {domainLabel}

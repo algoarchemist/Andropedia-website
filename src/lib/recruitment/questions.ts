@@ -237,7 +237,7 @@ export const DOMAIN_QUESTIONS: Record<DomainId, Question[]> = {
       label: "Proof of work: your GitHub profile",
       required: true,
       maxLen: 300,
-      placeholder: "https://github.com/yourhandle",
+      placeholder: "https://github.com/you",
     },
     {
       id: "tech_weird_project",

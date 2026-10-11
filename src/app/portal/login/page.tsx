@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, BarChart3, Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight, BarChart3, Lock, ShieldCheck } from "lucide-react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { getPortalDestinationForUser, useAuth } from "@/lib/auth-context";
 
 const inputClass =
@@ -14,7 +15,6 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [registerNo, setRegisterNo] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -95,27 +95,15 @@ export default function LoginPage() {
               <label htmlFor="login-password" className="text-[12px] font-medium uppercase tracking-[0.08em] text-white/60">
                 Password
               </label>
-              <div className="relative">
-                <input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`${inputClass} pr-12`}
-                  autoComplete="current-password"
-                  maxLength={60}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((s) => !s)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  aria-pressed={showPassword}
-                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-white/50 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-                </button>
-              </div>
+              <PasswordInput
+                id="login-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputClass}
+                autoComplete="current-password"
+                maxLength={60}
+                required
+              />
               <p className="text-[12px] leading-4 text-white/40">
                 First time? Use your register number, then you will choose a new password.{" "}
                 <Link href="/portal/forgot-password" className="text-emerald-300 hover:underline">
