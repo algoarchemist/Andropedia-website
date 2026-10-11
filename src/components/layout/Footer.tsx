@@ -9,10 +9,11 @@ const COLUMNS = [
     title: "Domains",
     links: [
       { name: "Technical", href: "/team#technical" },
-      { name: "Web Development", href: "/team#web-development" },
+      { name: "Web Development", href: "/team#web" },
+      { name: "R&D", href: "/team#rd" },
       { name: "Design & UX", href: "/team#design" },
       { name: "Media & VFX", href: "/team#media" },
-      { name: "Public Relations", href: "/team#public-relations" },
+      { name: "Public Relations", href: "/team#pr" },
     ],
   },
   {
