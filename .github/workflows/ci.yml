@@ -14,6 +14,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma validate
       - run: npx tsc --noEmit
       - run: npx eslint
       - run: npm test
+      # Known vulnerabilities in what ships to production fail the build (dev-only tooling is checked separately below).
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --audit-level=critical
+      # The real production build, with placeholder values so nothing needs a live database.
+      - run: npm run build
+        env:
+          DATABASE_URL: postgresql://build:build@localhost:5432/build
+          AUTH_SECRET: ci-build-only
+          NEXT_PUBLIC_SITE_URL: https://example.org
