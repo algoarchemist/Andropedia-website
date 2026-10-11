@@ -85,12 +85,32 @@ describe("super admin only", () => {
 describe("serving photos", () => {
   it("serves a stored photo publicly with long-lived caching, and 404s when missing", async () => {
     db.eventImage.findUnique.mockResolvedValue({ mime: "image/jpeg", data: Buffer.from(JPEG) });
-    const ok = await getImage(new Request("http://localhost/x"), { params: Promise.resolve({ imageId: "img1" }) });
+    const ok = await getImage(new Request("http://localhost/x"), { params: Promise.resolve({ imageId: "cm1abcdefghij12345" }) });
     expect(ok.status).toBe(200);
     expect(ok.headers.get("cache-control")).toMatch(/immutable/);
     expect(requireUser).not.toHaveBeenCalled();
     db.eventImage.findUnique.mockResolvedValue(null);
-    expect((await getImage(new Request("http://localhost/x"), { params: Promise.resolve({ imageId: "nope" }) })).status).toBe(404);
+    expect((await getImage(new Request("http://localhost/x"), { params: Promise.resolve({ imageId: "cm1doesnotexist9999" }) })).status).toBe(404);
+  });
+
+  it("answers 404 for a malformed id without touching the database", async () => {
+    db.eventImage.findUnique.mockClear();
+    for (const bad of ["../../etc/passwd", "a", "x".repeat(80), "id with spaces"]) {
+      expect((await getImage(new Request("http://localhost/x"), { params: Promise.resolve({ imageId: bad }) })).status).toBe(404);
+    }
+    expect(db.eventImage.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("treats a missing table (migration not applied yet) as no photo, not a crash", async () => {
+    db.eventImage.findUnique.mockRejectedValue(Object.assign(new Error("relation does not exist"), { code: "P2021" }));
+    const res = await getImage(new Request("http://localhost/x"), { params: Promise.resolve({ imageId: "cm1abcdefghij12345" }) });
+    expect(res.status).toBe(404);
+  });
+
+  it("still answers 500 for a real database failure", async () => {
+    db.eventImage.findUnique.mockRejectedValue(new Error("connection reset"));
+    const res = await getImage(new Request("http://localhost/x"), { params: Promise.resolve({ imageId: "cm1abcdefghij12345" }) });
+    expect(res.status).toBe(500);
   });
 });
 
