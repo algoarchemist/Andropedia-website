@@ -127,3 +127,13 @@ export function cardClick() {
   // the key bottoming out, a beat later
   burst(c, t + 0.075, { freq: 800, q: 0.9, vol: 0.12, len: 0.025 });
 }
+
+/** A bright, rising shimmer that plays with the card's glow when it is clicked. Layers on top of cardClick. */
+export function cardGlow() {
+  if (soundMuted()) return;
+  const c = audio();
+  if (!c) return;
+  const t = c.currentTime + 0.01;
+  [660, 990, 1320, 1980].forEach((f, i) => ping(c, t + i * 0.055, f, 0.05 - i * 0.007, 0.45 - i * 0.06));
+  burst(c, t, { freq: 6500, q: 0.6, vol: 0.05, len: 0.32, type: "highpass" });
+}
