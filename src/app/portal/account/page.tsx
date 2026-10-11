@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { PortalAccessGate } from "@/components/portal/PortalAccessGate";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { getPortalDestinationForUser, useAuth } from "@/lib/auth-context";
 
 const inputClass =
@@ -85,16 +86,16 @@ export default function AccountPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-1.5">
                 <label htmlFor="pw-current" className={labelClass}>Current password</label>
-                <input id="pw-current" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} className={inputClass} autoComplete="current-password" maxLength={60} required />
+                <PasswordInput id="pw-current" value={current} onChange={(e) => setCurrent(e.target.value)} className={inputClass} autoComplete="current-password" maxLength={60} required />
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="pw-new" className={labelClass}>New password</label>
-                <input id="pw-new" type="password" value={next} onChange={(e) => setNext(e.target.value)} className={inputClass} autoComplete="new-password" minLength={8} maxLength={60} required />
+                <PasswordInput id="pw-new" value={next} onChange={(e) => setNext(e.target.value)} className={inputClass} autoComplete="new-password" minLength={8} maxLength={60} required />
                 <p className="text-[12px] leading-4 text-white/40">At least 8 characters.</p>
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="pw-confirm" className={labelClass}>Confirm new password</label>
-                <input id="pw-confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputClass} autoComplete="new-password" minLength={8} maxLength={60} required />
+                <PasswordInput id="pw-confirm" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputClass} autoComplete="new-password" minLength={8} maxLength={60} required />
               </div>
               <button type="submit" disabled={loading} className="btn-glow w-full disabled:opacity-60">
                 {loading ? "Saving..." : "Change password"}
