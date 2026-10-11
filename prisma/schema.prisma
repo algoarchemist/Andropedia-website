@@ -46,6 +46,9 @@ model User {
   // Login is by register number. The password is derived from it (see lib/auth.ts); only a hash is stored.
   registerNo      String?        @unique
   passwordHash    String?
+  // True while the password is still the register number (or one an admin handed out): the member must choose their own
+  // before the portal lets them do anything else.
+  mustChangePassword Boolean     @default(false)
   role            Role           @default(MEMBER)
   domain          Domain
   avatar          String?

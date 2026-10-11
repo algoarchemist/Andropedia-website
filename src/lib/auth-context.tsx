@@ -5,6 +5,7 @@ import { User } from "./types";
 
 export function getPortalDestinationForUser(user?: User | null): string {
   if (!user) return "/portal/login";
+  if (user.mustChangePassword) return "/portal/account"; // still on the default password
 
   if (user.role === "super_admin") return "/portal/admin";
   if (user.role === "domain_admin") return "/portal/evaluations";
@@ -17,6 +18,8 @@ interface AuthContextType {
   /** Logs a member in with their register number and password; returns the user on success. */
   login: (registerNo: string, password: string) => Promise<{ user: User } | { error: string }>;
   logout: () => Promise<void>;
+  /** Asks the server who is signed in now (after a password change, for example). */
+  refreshUser: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -28,6 +31,7 @@ async function postJson(url: string, body?: unknown) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
     });
     return await res.json();
   } catch {
@@ -42,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // The session lives in an HTTP-only cookie; ask the server who we are.
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/me", { cache: "no-store" })
+    fetch("/api/me", { cache: "no-store", signal: AbortSignal.timeout(15000) })
       .then((res) => res.json())
       .then((data) => {
         if (!cancelled) setCurrentUser(data?.user ?? null);
@@ -67,13 +71,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: (data.error as string) || "Wrong register number or password." };
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await fetch("/api/me", { cache: "no-store", signal: AbortSignal.timeout(15000) });
+      const data = await res.json();
+      setCurrentUser(data?.user ?? null);
+    } catch {
+      /* keep what we have: the next page load asks again */
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     await postJson("/api/auth/logout");
     setCurrentUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, refreshUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

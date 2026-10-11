@@ -83,9 +83,9 @@ export async function revokeOtherSessions(userId: string): Promise<void> {
 
 type AuthResult = { ok: true; user: User } | { ok: false; response: NextResponse };
 
-const deny = (error: string, status: number): AuthResult => ({
+const deny = (error: string, status: number, code?: string): AuthResult => ({
   ok: false,
-  response: NextResponse.json({ success: false, error }, { status }),
+  response: NextResponse.json({ success: false, error, ...(code ? { code } : {}) }, { status }),
 });
 
 /** Blocks cross-site form posts: a browser-sent Origin must match this host. */
@@ -104,13 +104,17 @@ export function isSameOrigin(request: NextRequest): boolean {
  * Use at the top of every protected route:
  *   const auth = await requireUser(request, ["super_admin"]);
  *   if (!auth.ok) return auth.response;
+ *
+ * An account still on its default password (mustChangePassword) is refused everywhere except the route that changes the
+ * password (`allowPasswordChange`), so the default password alone never opens the portal.
  */
-export async function requireUser(request: NextRequest, roles?: RoleType[]): Promise<AuthResult> {
+export async function requireUser(request: NextRequest, roles?: RoleType[], opts: { allowPasswordChange?: boolean } = {}): Promise<AuthResult> {
   if (!["GET", "HEAD", "OPTIONS"].includes(request.method) && !isSameOrigin(request)) {
     return deny("Cross-site request blocked.", 403);
   }
   const user = await getSessionUser();
   if (!user) return deny("Please log in to continue.", 401);
+  if (user.mustChangePassword && !opts.allowPasswordChange) return deny("Choose a new password before you continue.", 403, "PASSWORD_CHANGE_REQUIRED");
   if (roles && !roles.includes(user.role)) return deny("Your club role does not have access to this.", 403);
   return { ok: true, user };
 }

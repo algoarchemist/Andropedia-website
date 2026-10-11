@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { isSameOrigin } from "@/lib/auth";
 import { clientIp, jsonError, readJson } from "@/lib/http";
@@ -34,7 +34,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const user = await prisma.user.findUnique({ where: { registerNo }, select: { id: true, name: true, email: true, isActive: true } });
-    if (user?.isActive && user.email) await sendPasswordReset(user);
+    // The reset (database writes and the email) happens after the answer is sent, so a real account and an unknown one
+    // take the same time to answer and the response can't be used to tell members from strangers.
+    if (user?.isActive && user.email) {
+      after(async () => {
+        try {
+          await sendPasswordReset(user);
+        } catch (err) {
+          log.error("Password reset email failed", err);
+        }
+      });
+    }
   } catch (err) {
     log.error("Password reset email failed", err);
   }

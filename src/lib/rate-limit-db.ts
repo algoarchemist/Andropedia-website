@@ -1,6 +1,6 @@
 import { log } from "./logger";
 import { prisma } from "./prisma";
-import { checkRateLimit, type RateResult } from "./recruitment/rate-limit";
+import { checkRateLimit, peekRateLimit, type RateResult } from "./recruitment/rate-limit";
 
 /**
  * Rate limit shared by every server instance: a fixed window counted in Postgres with one atomic
@@ -23,5 +23,25 @@ export async function rateLimit(key: string, limit: number, windowMs: number, no
   } catch (err) {
     log.warn("Database rate limit unavailable; using the in-memory limit", { key: key.split(":")[0] }, err);
     return checkRateLimit(key, limit, windowMs, now);
+  }
+}
+
+/**
+ * Looks at a counter without counting a hit. Used to refuse work *before* it is done while only counting the attempts that
+ * should count (failed logins). If the database can't be reached it reads the in-memory counter instead.
+ */
+export async function peekLimit(key: string, limit: number, windowMs: number, now = Date.now()): Promise<RateResult> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ count: number; windowStart: Date }>>`
+      SELECT "count", "windowStart" FROM "RateLimit" WHERE "key" = ${key} AND "windowStart" > ${new Date(now - windowMs)}`;
+    const row = rows[0];
+    if (!row) return { limited: false, count: 0, retryAfterSec: 0 };
+    if (row.count >= limit) {
+      return { limited: true, count: row.count, retryAfterSec: Math.max(1, Math.ceil((row.windowStart.getTime() + windowMs - now) / 1000)) };
+    }
+    return { limited: false, count: row.count, retryAfterSec: 0 };
+  } catch (err) {
+    log.warn("Database rate limit unavailable; reading the in-memory counter", { key: key.split(":")[0] }, err);
+    return peekRateLimit(key, limit, windowMs, now);
   }
 }

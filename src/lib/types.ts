@@ -21,6 +21,8 @@ export interface User {
   streakWeeks?: number;
   isActive?: boolean;
   position?: ClubPosition;
+  /** The password is still the default one: the portal only lets the member change it until they do. */
+  mustChangePassword?: boolean;
 }
 
 export interface Week {

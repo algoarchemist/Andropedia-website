@@ -54,7 +54,7 @@ export async function consumePasswordReset(token: string, passwordHash: string):
     });
     const reset = claimed[0];
     if (!reset) return false;
-    const updated = await tx.user.updateMany({ where: { id: reset.userId, isActive: true }, data: { passwordHash } });
+    const updated = await tx.user.updateMany({ where: { id: reset.userId, isActive: true }, data: { passwordHash, mustChangePassword: false } });
     if (updated.count === 0) return false;
     await tx.session.deleteMany({ where: { userId: reset.userId } });
     await tx.passwordReset.deleteMany({ where: { userId: reset.userId } });

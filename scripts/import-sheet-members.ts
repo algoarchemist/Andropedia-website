@@ -1,4 +1,6 @@
 // Usage: npm run db:import-members
+// Needs MEMBER_SHEET_ID (and GOOGLE_SERVICE_ACCOUNT_EMAIL / GOOGLE_PRIVATE_KEY, with the sheet shared with that account) in .env.
+// New accounts start on the register-number password and must choose their own at the first sign-in.
 // Copies members from the club's Google Form sheet into the User table and gives each one a login:
 // username = register number, password = register number (stored hashed).
 // Safe to re-run. Existing accounts (matched by email or register number) keep their role, points and
@@ -41,6 +43,7 @@ async function main() {
           email,
           registerNo: m.registerNo,
           passwordHash: hashPassword(m.registerNo),
+          mustChangePassword: true,
           role: "MEMBER",
           domain: toDbDomain(m.domain) ?? "TECHNICAL",
           avatar: m.avatar || null,
@@ -52,9 +55,12 @@ async function main() {
       continue;
     }
 
-    const patch: { registerNo?: string; passwordHash?: string; linkedin?: string } = {};
+    const patch: { registerNo?: string; passwordHash?: string; mustChangePassword?: boolean; linkedin?: string } = {};
     if (!existing.registerNo) patch.registerNo = m.registerNo;
-    if (!existing.passwordHash) patch.passwordHash = hashPassword(existing.registerNo ?? m.registerNo);
+    if (!existing.passwordHash) {
+      patch.passwordHash = hashPassword(existing.registerNo ?? m.registerNo);
+      patch.mustChangePassword = true;
+    }
     // A valid LinkedIn link in the sheet wins; an empty or invalid cell never clears what is stored.
     const linkedin = normalizeLinkedin(m.linkedin ?? "");
     if (linkedin && linkedin !== existing.linkedin) patch.linkedin = linkedin;

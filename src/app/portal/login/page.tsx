@@ -105,7 +105,7 @@ export default function LoginPage() {
                 required
               />
               <p className="text-[12px] leading-4 text-white/40">
-                First time? Your password is your register number.{" "}
+                First time? Use your register number, then you will choose a new password.{" "}
                 <Link href="/portal/forgot-password" className="text-emerald-300 hover:underline">
                   Forgot password?
                 </Link>

@@ -64,6 +64,7 @@ export function mapUser(u: DbUser): User {
     streakWeeks: u.streakWeeks,
     isActive: u.isActive,
     position: POSITION_FROM_DB[u.position],
+    mustChangePassword: u.mustChangePassword,
   };
 }
 
@@ -131,7 +132,7 @@ export async function getUsers(): Promise<User[]> {
 }
 
 /** Public profile fields only: never exposes email or account status. */
-export type PublicMember = Omit<User, "email" | "isActive">;
+export type PublicMember = Omit<User, "email" | "isActive" | "mustChangePassword">;
 
 export async function getPublicMembers(): Promise<PublicMember[]> {
   const users = await prisma.user.findMany({
@@ -139,9 +140,10 @@ export async function getPublicMembers(): Promise<PublicMember[]> {
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
   return users.map((u) => {
-    const { email: _email, isActive: _isActive, ...publicFields } = mapUser(u);
+    const { email: _email, isActive: _isActive, mustChangePassword: _mustChange, ...publicFields } = mapUser(u);
     void _email;
     void _isActive;
+    void _mustChange;
     return publicFields;
   });
 }
@@ -432,7 +434,7 @@ export async function createMember(actorId: string, input: NewMember): Promise<U
   if (clash) throw new ConflictError(clash.email === email ? "A member with this email already exists." : "A member with this register number already exists.");
   try {
     const created = await prisma.user.create({
-      data: { name: input.name.trim(), email, registerNo, passwordHash: hashPassword(registerNo), domain, position, role: ROLE_TO_DB[input.role ?? "member"], bio: input.bio?.trim() || null, linkedin: input.linkedin || null },
+      data: { name: input.name.trim(), email, registerNo, passwordHash: hashPassword(registerNo), mustChangePassword: true, domain, position, role: ROLE_TO_DB[input.role ?? "member"], bio: input.bio?.trim() || null, linkedin: input.linkedin || null },
     });
     await recordAudit({ actorId, action: "member.create", target: created.id, meta: { role: input.role ?? "member", domain: input.domain } });
     return mapUser(created);

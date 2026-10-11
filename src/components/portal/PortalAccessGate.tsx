@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { LockKeyhole, LogIn } from "lucide-react";
 import { RoleType } from "@/lib/types";
@@ -13,9 +15,21 @@ interface PortalAccessGateProps {
 
 export function PortalAccessGate({ children, allowedRoles }: PortalAccessGateProps) {
   const { currentUser, isLoading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  if (isLoading) {
-    return <div className="min-h-screen bg-transparent" aria-busy="true" />;
+  // Still on the default password: the only page that works is the one that changes it.
+  const mustChange = !!currentUser?.mustChangePassword && pathname !== "/portal/account";
+  useEffect(() => {
+    if (mustChange) router.replace("/portal/account");
+  }, [mustChange, router]);
+
+  if (isLoading || mustChange) {
+    return (
+      <div className="min-h-screen bg-transparent" aria-busy="true">
+        <h1 className="sr-only">Andropedia member portal</h1>
+      </div>
+    );
   }
 
   const hasAccess = currentUser !== null && (!allowedRoles || allowedRoles.includes(currentUser.role));

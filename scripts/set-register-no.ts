@@ -2,7 +2,7 @@
 // Gives an existing account (for example a super admin who is not in the Google Form sheet) a login.
 // The password defaults to the register number.
 import { prisma } from "../src/lib/prisma";
-import { hashPassword, normalizeRegisterNo } from "../src/lib/password";
+import { hashChosenPassword, hashPassword, normalizeRegisterNo } from "../src/lib/password";
 
 async function main() {
   const [emailArg, regArg, password] = process.argv.slice(2);
@@ -15,9 +15,9 @@ async function main() {
   const taken = await prisma.user.findUnique({ where: { registerNo } });
   if (taken && taken.id !== user.id) throw new Error(`${registerNo} already belongs to another account.`);
 
-  await prisma.user.update({ where: { id: user.id }, data: { registerNo, passwordHash: hashPassword(password ?? registerNo) } });
+  await prisma.user.update({ where: { id: user.id }, data: { registerNo, passwordHash: password ? hashChosenPassword(password) : hashPassword(registerNo), mustChangePassword: true } });
   await prisma.session.deleteMany({ where: { userId: user.id } });
-  console.log(`${email} can now log in with register number ${registerNo}${password ? " and the password you gave" : " (password = register number)"}.`);
+  console.log(`${email} can now log in with register number ${registerNo}${password ? " and the password you gave" : " (password = register number)"}, and will be asked to choose a new password at once.`);
 }
 
 main()

@@ -46,13 +46,32 @@ describe("POST /api/auth/login", () => {
     expect(setSessionCookie).not.toHaveBeenCalled();
   });
 
-  it("locks an account after 20 tries an hour, even from different addresses", async () => {
+  it("stops one address from hammering one account after 10 tries an hour", async () => {
     vi.mocked(loginWithPassword).mockResolvedValue(null);
-    for (let i = 0; i < 20; i++) expect((await login(creds)).status).toBe(401);
-    const res = await login(creds);
+    for (let i = 0; i < 10; i++) expect((await login(creds, "8.8.8.8")).status).toBe(401);
+    const res = await login(creds, "8.8.8.8");
     expect(res.status).toBe(429);
     expect(res.headers.get("Retry-After")).toBeTruthy();
-    expect(loginWithPassword).toHaveBeenCalledTimes(20);
+    expect(loginWithPassword).toHaveBeenCalledTimes(10);
+  });
+
+  it("does not let strangers lock the real owner out: one address's failures never block another address", async () => {
+    vi.mocked(loginWithPassword).mockResolvedValue(null);
+    for (let i = 0; i < 10; i++) await login(creds, "8.8.8.8"); // an attacker burns their own allowance
+    vi.mocked(loginWithPassword).mockResolvedValue({ user: { id: "u1" } as never, token: "tok", expires: new Date() });
+    expect((await login(creds, "7.7.7.7")).status).toBe(200); // the owner, from somewhere else, is fine
+  });
+
+  it("slows a distributed guesser: after 50 failures an unknown address is refused, a known one is not", async () => {
+    // the owner has logged in from 6.6.6.6 before
+    vi.mocked(loginWithPassword).mockResolvedValue({ user: { id: "u1" } as never, token: "tok", expires: new Date() });
+    expect((await login(creds, "6.6.6.6")).status).toBe(200);
+    // 50 failed guesses arrive from 50 different addresses
+    vi.mocked(loginWithPassword).mockResolvedValue(null);
+    for (let i = 0; i < 50; i++) expect((await login(creds, `20.0.0.${i}`)).status).toBe(401);
+    expect((await login(creds, "20.0.1.1")).status).toBe(429); // a new address: refused
+    vi.mocked(loginWithPassword).mockResolvedValue({ user: { id: "u1" } as never, token: "tok", expires: new Date() });
+    expect((await login(creds, "6.6.6.6")).status).toBe(200); // the owner's usual address: still in
   });
 
   it("limits one address to 30 tries an hour across accounts", async () => {
