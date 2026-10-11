@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import { ConnectionBanner } from "@/components/ui/ConnectionBanner";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { MainShell } from "@/components/layout/MainShell";
 import { Navbar } from "@/components/layout/Navbar";
@@ -67,6 +68,7 @@ export default function RootLayout({
         <MotionProvider>
           <AuthProvider>
             <CustomCursor />
+            <ConnectionBanner />
             <Navbar />
             <div className="relative z-10 flex flex-1 flex-col">
               <MainShell>{children}</MainShell>

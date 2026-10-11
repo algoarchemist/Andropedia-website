@@ -1,35 +1,98 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { TriangleAlert } from "lucide-react";
+import { Home, RefreshCw, WifiOff } from "lucide-react";
+import { StatusPage } from "@/components/ui/StatusPage";
+import { classifyError, retriesOnReconnect } from "@/lib/error-kind";
+import { useOnline } from "@/lib/use-online";
 
-// Shown when a page throws while rendering. `reset` retries the render.
-export default function GlobalRouteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+// Shown when a page throws while loading or rendering. It tells three cases apart (see lib/error-kind.ts):
+// no connection, a connection that dropped mid-load, and a real problem on our side. When the cause is the
+// connection, the page tries again by itself the moment the browser is back online.
+export default function GlobalRouteError({
+  error,
+  retry,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  /** Re-fetches and re-renders the segment. `reset` is the older name for clearing the error without a re-fetch. */
+  retry?: () => void;
+  reset: () => void;
+}) {
+  const online = useOnline();
+  const kind = classifyError(error, online);
+  const tryAgain = retry ?? reset;
+  const autoRetried = useRef(false);
+
   useEffect(() => {
-    console.error("Route error", error.digest ?? "", error.message);
-  }, [error]);
+    console.error("Route error", kind, error.digest ?? "", error.message);
+  }, [error, kind]);
+
+  // Back online after being offline: reload once, without the visitor having to do anything.
+  const wasOffline = useRef(!online);
+  useEffect(() => {
+    if (!online) {
+      wasOffline.current = true;
+      autoRetried.current = false;
+      return;
+    }
+    if (wasOffline.current && retriesOnReconnect(kind) && !autoRetried.current) {
+      autoRetried.current = true;
+      const t = window.setTimeout(tryAgain, 600);
+      return () => window.clearTimeout(t);
+    }
+  }, [online, kind, tryAgain]);
+
+  const connection = kind !== "server";
+  const buttons = (
+    <>
+      <button type="button" onClick={tryAgain} className="btn-glow">
+        <RefreshCw className="h-4 w-4" aria-hidden="true" />
+        Try again
+      </button>
+      <Link href="/" className="btn-ghost justify-center">
+        <Home className="h-4 w-4" aria-hidden="true" />
+        Back to home
+      </Link>
+    </>
+  );
+
+  if (connection) {
+    return (
+      <StatusPage
+        code="OFF"
+        eyebrow={kind === "offline" ? "No connection · Signal lost" : "Connection dropped"}
+        title={kind === "offline" ? "You're offline" : "The connection dropped"}
+        actions={buttons}
+        footer={
+          <p role="status" className="mt-8 flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-white/50 lg:justify-start">
+            <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
+            {kind === "offline" ? "Waiting for the network. This page reloads by itself when you are back." : "Reconnecting and trying again is safe."}
+          </p>
+        }
+      >
+        <p>
+          {kind === "offline"
+            ? "We can't reach the server from here. Check your Wi-Fi or mobile data."
+            : "Part of this page didn't finish loading, usually because of a weak or interrupted signal."}{" "}
+          Anything you were typing on the form is saved on this device.
+        </p>
+      </StatusPage>
+    );
+  }
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center px-4 py-16 text-slate-100">
-      <div role="alert" className="glass-panel w-full max-w-md rounded-3xl border border-rose-500/30 p-8 text-center space-y-5">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-400/30 bg-rose-500/10">
-          <TriangleAlert className="h-6 w-6 text-rose-300" aria-hidden="true" />
-        </div>
-        <h1 className="text-2xl font-bold text-white">Something went wrong</h1>
-        <p className="text-sm text-slate-300">
-          This page hit an unexpected problem. Nothing you submitted was lost. Try again, or head back home.
-        </p>
-        {error.digest && <p className="text-[11px] font-mono text-slate-400">Reference: {error.digest}</p>}
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <button type="button" onClick={reset} className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-400">
-            Try again
-          </button>
-          <Link href="/" className="glass-panel rounded-xl px-5 py-3 text-sm text-slate-200 hover:text-white">
-            Go home
-          </Link>
-        </div>
+    <StatusPage
+      code="500"
+      eyebrow="Error 500 · Glitch in the matrix"
+      title="Something broke on our side"
+      actions={buttons}
+      footer={error.digest ? <p className="mt-8 font-mono text-[11px] text-white/40">Reference: {error.digest}</p> : undefined}
+    >
+      <div role="alert">
+        <p>This page hit an unexpected problem. Nothing you submitted was lost. Try again, or head back home.</p>
       </div>
-    </div>
+    </StatusPage>
   );
 }
