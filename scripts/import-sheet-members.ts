@@ -2,11 +2,13 @@
 // Copies members from the club's Google Form sheet into the User table and gives each one a login:
 // username = register number, password = register number (stored hashed).
 // Safe to re-run. Existing accounts (matched by email or register number) keep their role, points and
-// any password that was already set; only a missing register number or password is filled in.
+// any password that was already set; only a missing register number or password is filled in, and a
+// valid LinkedIn link in the sheet replaces the stored one.
 import { prisma } from "../src/lib/prisma";
 import { toDbDomain } from "../src/lib/data-store";
 import { getLiveMembers } from "../src/lib/live-members";
 import { hashPassword } from "../src/lib/password";
+import { normalizeLinkedin } from "../src/lib/member-profile";
 
 async function main() {
   const members = await getLiveMembers();
@@ -50,9 +52,12 @@ async function main() {
       continue;
     }
 
-    const patch: { registerNo?: string; passwordHash?: string } = {};
+    const patch: { registerNo?: string; passwordHash?: string; linkedin?: string } = {};
     if (!existing.registerNo) patch.registerNo = m.registerNo;
     if (!existing.passwordHash) patch.passwordHash = hashPassword(existing.registerNo ?? m.registerNo);
+    // A valid LinkedIn link in the sheet wins; an empty or invalid cell never clears what is stored.
+    const linkedin = normalizeLinkedin(m.linkedin ?? "");
+    if (linkedin && linkedin !== existing.linkedin) patch.linkedin = linkedin;
     if (Object.keys(patch).length === 0) {
       unchanged++;
       continue;
@@ -61,7 +66,7 @@ async function main() {
     updated++;
   }
 
-  console.log(`Created ${created}, updated ${updated} (register number / password added), left ${unchanged} as they were.`);
+  console.log(`Created ${created}, updated ${updated} (register number / password / LinkedIn), left ${unchanged} as they were.`);
   if (skipped.length) console.log(`Skipped ${skipped.length}:\n  ${skipped.join("\n  ")}`);
 }
 

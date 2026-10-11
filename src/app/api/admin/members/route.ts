@@ -6,6 +6,7 @@ import { createMember, getUsers } from "@/lib/data-store";
 import { jsonError, readJson } from "@/lib/http";
 import { log } from "@/lib/logger";
 import { sendMemberInvite } from "@/lib/member-invite";
+import { linkedinField } from "@/lib/member-profile";
 
 const memberCreateSchema = z.object({
   name: z.string().trim().min(2, "Enter the member's name.").max(80),
@@ -14,6 +15,8 @@ const memberCreateSchema = z.object({
   domain: z.enum(["Technical", "Web", "PR", "R&D", "Design", "Media"]),
   role: z.enum(["member", "domain_admin", "super_admin"]).optional(),
   position: z.enum(["president", "vice_president", "chief", "lead", "co_lead", "member"]).optional(),
+  bio: z.string().trim().max(600, "Keep the description under 600 characters.").optional(),
+  linkedin: linkedinField.optional(),
 });
 
 // Full member list including emails: super admins only.
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireUser(request, ["super_admin"]);
   if (!auth.ok) return auth.response;
 
-  const body = await readJson(request, 2 * 1024);
+  const body = await readJson(request, 4 * 1024);
   if (!body.ok) return body.response;
   const parsed = memberCreateSchema.safeParse(body.data);
   if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Invalid member.", 400);

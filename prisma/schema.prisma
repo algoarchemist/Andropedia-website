@@ -65,6 +65,17 @@ model User {
   evaluationsDone Evaluation[]   @relation("AdminEvaluations")
   sessions        Session[]
   passwordResets  PasswordReset[]
+  photo           MemberPhoto?
+}
+
+// Profile picture uploaded by a super admin from the portal (already resized in the browser).
+// Kept apart from `User` so listing members never loads image bytes.
+model MemberPhoto {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mime      String
+  data      Bytes
+  updatedAt DateTime @updatedAt
 }
 
 // One-time "forgot password" links. Only the SHA-256 of the emailed token is stored.
@@ -223,8 +234,23 @@ model Event {
   updatedAt        DateTime    @updatedAt
 
   rsvps            EventRsvp[]
+  images           EventImage[]
 
   @@index([startsAt])
+}
+
+// Photos a super admin uploads for an event from the portal (already resized in the browser).
+// Listings select only `id` so image bytes are never loaded with the event.
+model EventImage {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  mime      String
+  data      Bytes
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([eventId, position])
 }
 
 model EventRsvp {

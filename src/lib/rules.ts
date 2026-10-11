@@ -28,6 +28,9 @@ export function decideSubmission(
 // ---------------------------------------------------------------- member management
 
 export interface MemberPatch {
+  name?: string;
+  bio?: string;
+  linkedin?: string;
   role?: RoleType;
   position?: ClubPosition;
   domain?: DomainType;
@@ -55,6 +58,18 @@ export function checkMemberChange(args: {
   if (target.role === "super_admin" && target.isActive && (losesAdmin || deactivating) && activeSuperAdmins <= 1) {
     return "At least one active super admin is required.";
   }
+  return null;
+}
+
+/** Returns a reason the member can't be removed for good, or null if it is fine. */
+export function checkMemberDelete(args: {
+  actorId: string;
+  target: { id: string; role: RoleType; isActive: boolean };
+  activeSuperAdmins: number;
+}): string | null {
+  const { actorId, target, activeSuperAdmins } = args;
+  if (target.id === actorId) return "You can't remove your own account.";
+  if (target.role === "super_admin" && target.isActive && activeSuperAdmins <= 1) return "At least one active super admin is required.";
   return null;
 }
 

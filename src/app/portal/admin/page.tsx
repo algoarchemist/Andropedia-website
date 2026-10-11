@@ -4,9 +4,12 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
+  Pencil,
   ShieldAlert,
   ToggleLeft,
   ToggleRight,
+  Trash2,
+  UserPlus,
 } from "lucide-react";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { useAuth } from "@/lib/auth-context";
@@ -17,7 +20,7 @@ import { ApplicantsAdmin } from "@/components/portal/ApplicantsAdmin";
 import { ProjectsAdmin } from "@/components/portal/ProjectsAdmin";
 import { AuditAdmin } from "@/components/portal/AuditAdmin";
 import { WeekCreate } from "@/components/portal/WeekCreate";
-import { MemberCreate } from "@/components/portal/MemberCreate";
+import { MemberAvatar, MemberEditor } from "@/components/portal/MemberEditor";
 
 const POSITION_OPTIONS: Array<[ClubPosition, string]> = [
   ["member", "Member"],
@@ -39,6 +42,9 @@ export default function AdminPage() {
   const [members, setMembers] = useState<User[]>([]);
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  // "new" opens the add form; a member opens the edit form; null shows neither.
+  const [editing, setEditing] = useState<User | "new" | null>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   const loadData = async () => {
@@ -94,6 +100,23 @@ export default function AdminPage() {
       setNotice({ type: "error", text: err instanceof Error ? err.message : "Could not update the member." });
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const removeMember = async (member: User) => {
+    setBusyId(member.id);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/admin/members/${member.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) throw new Error(data?.error || "Could not remove the member.");
+      setMembers((prev) => prev.filter((m) => m.id !== member.id));
+      setNotice({ type: "success", text: `${member.name} was removed.` });
+    } catch (err) {
+      setNotice({ type: "error", text: err instanceof Error ? err.message : "Could not remove the member." });
+    } finally {
+      setBusyId(null);
+      setConfirmRemoveId(null);
     }
   };
 
@@ -202,12 +225,24 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <MemberCreate
-              onCreated={(member) => {
-                setMembers((prev) => [...prev, member]);
-                setNotice({ type: "success", text: `${member.name} can now log in with their register number.` });
-              }}
-            />
+            {editing === null ? (
+              <div className="border-b border-white/10 px-6 py-3">
+                <button type="button" onClick={() => setEditing("new")} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:border-emerald-400/40">
+                  <UserPlus className="h-3.5 w-3.5" aria-hidden="true" /> Add member
+                </button>
+              </div>
+            ) : (
+              <MemberEditor
+                key={editing === "new" ? "new" : editing.id}
+                member={editing === "new" ? undefined : editing}
+                onCancel={() => setEditing(null)}
+                onSaved={(saved, text, tone = "success") => {
+                  setMembers((prev) => (prev.some((m) => m.id === saved.id) ? prev.map((m) => (m.id === saved.id ? { ...m, ...saved } : m)) : [...prev, saved]));
+                  setNotice({ type: tone, text });
+                  setEditing(null);
+                }}
+              />
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
@@ -220,6 +255,7 @@ export default function AdminPage() {
                     <th className="px-6 py-4">Portal role</th>
                     <th className="px-6 py-4">Active</th>
                     <th className="px-6 py-4 text-right">Points</th>
+                    <th className="px-6 py-4 text-right">Manage</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -227,7 +263,7 @@ export default function AdminPage() {
                     <tr key={member.id} className="hover:bg-white/[0.02]">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <img loading="lazy" decoding="async" src={member.avatar} alt={member.name} className="h-9 w-9 rounded-xl object-cover" />
+                          <MemberAvatar member={member} />
                           <span className="font-bold text-white">{member.name}</span>
                         </div>
                       </td>
@@ -275,6 +311,25 @@ export default function AdminPage() {
                         </button>
                       </td>
                       <td className="px-6 py-4 text-right font-mono font-bold text-amber-300">{member.points || 0}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          {confirmRemoveId === member.id ? (
+                            <>
+                              <button type="button" disabled={busyId === member.id} onClick={() => removeMember(member)} className="rounded-lg bg-rose-500 px-2.5 py-1.5 text-[11px] font-bold text-white disabled:opacity-60">Remove for good</button>
+                              <button type="button" onClick={() => setConfirmRemoveId(null)} className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] text-slate-300">Keep</button>
+                            </>
+                          ) : (
+                            <>
+                              <button type="button" aria-label={`Edit ${member.name}`} onClick={() => { setConfirmRemoveId(null); setEditing(member); setTimeout(() => document.getElementById("member-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }} className="rounded-lg border border-white/15 p-1.5 text-slate-300 hover:border-emerald-400/40 hover:text-emerald-300">
+                                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
+                              <button type="button" aria-label={`Remove ${member.name}`} disabled={member.id === currentUser?.id} title={member.id === currentUser?.id ? "You can't remove your own account" : "Remove member"} onClick={() => setConfirmRemoveId(member.id)} className="rounded-lg border border-white/15 p-1.5 text-slate-300 hover:border-rose-400/40 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-30">
+                                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
