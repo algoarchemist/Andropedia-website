@@ -23,6 +23,8 @@ export default function DashboardPage() {
   const { currentUser, isLoading: authLoading } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activeWeek, setActiveWeek] = useState<Week | null>(null);
+  // Same streak the leaderboard shows (computed there from graded weeks), so the two pages always agree.
+  const [streak, setStreak] = useState(0);
   const [, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,6 +41,13 @@ export default function DashboardPage() {
         if (dataWeeks.success) {
           const current = dataWeeks.weeks.find((w: Week) => w.isActive);
           setActiveWeek(current || dataWeeks.weeks[dataWeeks.weeks.length - 1]);
+        }
+
+        const resBoard = await fetch("/api/leaderboard");
+        const dataBoard = await resBoard.json();
+        if (dataBoard.success) {
+          const mine = (dataBoard.leaderboard as Array<{ userId: string; streakWeeks: number }>).find((e) => e.userId === currentUser?.id);
+          setStreak(mine?.streakWeeks ?? 0);
         }
       } catch (err) {
         console.error("Dashboard fetch error:", err);
@@ -74,13 +83,13 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-emerald-300">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Sprint 4 active cycle
+                  {activeWeek?.isActive ? `Sprint ${activeWeek.weekNumber} active cycle` : "No sprint open"}
                 </div>
                 <h1 className="text-3xl font-extrabold text-white sm:text-4xl">
                   Welcome back, <span className="bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 bg-clip-text text-transparent">{currentUser?.name}</span>!
                 </h1>
                 <p className="max-w-xl text-sm text-slate-300">
-                  You are competing in the <strong className="text-white">{currentUser?.domain}</strong> domain track. Evaluations for Week 4 are currently open.
+                  You are competing in the <strong className="text-white">{currentUser?.domain}</strong> domain track. {activeWeek?.isActive ? `Week ${activeWeek.weekNumber} is open for submissions.` : "Submissions are closed until the next sprint week opens."}
                 </p>
               </div>
 
@@ -96,9 +105,9 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[
-              { label: "Total points", value: currentUser?.points || 382, icon: Trophy, color: "amber" },
-              { label: "Active streak", value: `${currentUser?.streakWeeks || 4} Weeks`, icon: Flame, color: "rose" },
-              { label: "Tasks evaluated", value: evaluatedTasks.length || currentUser?.tasksCompleted || 4, icon: CheckCircle2, color: "emerald" },
+              { label: "Total points", value: currentUser?.points ?? 0, icon: Trophy, color: "amber" },
+              { label: "Active streak", value: `${streak} ${streak === 1 ? "Week" : "Weeks"}`, icon: Flame, color: "rose" },
+              { label: "Tasks evaluated", value: evaluatedTasks.length, icon: CheckCircle2, color: "emerald" },
               { label: "Pending review", value: pendingTasks.length, icon: Clock, color: "cyan" },
             ].map(({ label, value, icon: Icon, color }) => (
               <motion.div

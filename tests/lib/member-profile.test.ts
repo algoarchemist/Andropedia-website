@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { memberPhotoUrl, normalizeLinkedin, sniffPhotoType } from "@/lib/member-profile";
+import { memberPhotoUrl, normalizeGithub, normalizeInstagram, normalizeLinkedin, sniffPhotoType } from "@/lib/member-profile";
 import { checkMemberDelete } from "@/lib/rules";
 
 describe("normalizeLinkedin", () => {
@@ -15,6 +15,24 @@ describe("normalizeLinkedin", () => {
     for (const bad of ["https://github.com/x", "https://evil-linkedin.com/in/x", "https://linkedin.com.evil.io/in/x", "javascript:alert(1)", "https://linkedin.com/", "not a url"]) {
       expect(normalizeLinkedin(bad), bad).toBeNull();
     }
+  });
+});
+
+describe("normalizeGithub / normalizeInstagram", () => {
+  it("accepts a link, a link with tracking parameters, a bare handle and an @handle", () => {
+    expect(normalizeGithub("https://github.com/algoarchemist")).toBe("https://github.com/algoarchemist");
+    expect(normalizeGithub("github.com/yasar2008/")).toBe("https://github.com/yasar2008");
+    expect(normalizeGithub("midhunganesan")).toBe("https://github.com/midhunganesan");
+    expect(normalizeInstagram("https://www.instagram.com/nithin._rao?mdxt=abc")).toBe("https://instagram.com/nithin._rao");
+    expect(normalizeInstagram("__midhun18__")).toBe("https://instagram.com/__midhun18__");
+    expect(normalizeInstagram("@var_ror_shaaa")).toBe("https://instagram.com/var_ror_shaaa");
+  });
+  it("rejects empty values, placeholders, other sites and other schemes", () => {
+    for (const bad of ["", "  ", ".", "https://evil.io/github.com/x", "https://github.com.evil.io/x", "javascript:alert(1)"]) {
+      expect(normalizeGithub(bad), bad).toBeNull();
+    }
+    expect(normalizeInstagram("https://github.com/x")).toBeNull();
+    expect(normalizeInstagram("https://instagram.com/")).toBeNull();
   });
 });
 

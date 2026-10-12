@@ -43,25 +43,25 @@ function Node({ index, ring, active, onJump }: { index: number; ring: MotionValu
 
   return (
     <div className="absolute left-1/2 top-1/2 h-0 w-0" style={{ transform: `rotate(${angle}deg) translateX(calc(var(--wheel) / 2))` }}>
-      <motion.div className="absolute -left-8 -top-8 h-16 w-16 will-change-transform" style={{ rotate: upright }}>
+      <motion.div className="absolute -left-5 -top-5 h-10 w-10 will-change-transform lg:-left-8 lg:-top-8 lg:h-16 lg:w-16" style={{ rotate: upright }}>
         <button
           type="button"
           onClick={onJump}
           aria-label={`Show ${d.title}`}
           aria-current={active ? "true" : undefined}
           data-cursor-text={d.title}
-          className={`group relative flex h-16 w-16 items-center justify-center rounded-full transition-[transform,opacity] duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${active ? "scale-[1.28]" : "scale-90 opacity-70 hover:opacity-100"}`}
+          className={`group relative flex h-10 w-10 items-center lg:h-16 lg:w-16 justify-center rounded-full transition-[transform,opacity] duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${active ? "scale-[1.28]" : "scale-90 opacity-70 hover:opacity-100"}`}
           style={{ color: accent.a1 }}
         >
           {/* like the logo's circuit nodes: a solid ring around a dark centre, with a thin halo */}
           <span aria-hidden="true" className="absolute inset-0 rounded-full border border-current opacity-40" />
           <span
             aria-hidden="true"
-            className="absolute inset-[7px] rounded-full bg-current transition-shadow duration-500"
+            className="absolute inset-[5px] rounded-full bg-current lg:inset-[7px] transition-shadow duration-500"
             style={{ boxShadow: active ? `0 0 34px ${accent.a1}, 0 0 80px ${accent.a1}66` : `0 0 14px ${accent.a1}55` }}
           />
-          <span aria-hidden="true" className="absolute inset-[19px] rounded-full bg-[#060818]" />
-          <Icon className="relative h-[18px] w-[18px] text-white" aria-hidden="true" />
+          <span aria-hidden="true" className="absolute inset-[12px] rounded-full bg-[#060818] lg:inset-[19px]" />
+          <Icon className="relative h-3.5 w-3.5 text-white lg:h-[18px] lg:w-[18px]" aria-hidden="true" />
         </button>
         <span
           aria-hidden="true"
@@ -144,7 +144,7 @@ export function DomainsWheel({ className = "" }: { className?: string }) {
 
   return (
     <div ref={wrapRef} className={`relative ${className}`} style={{ height: `${STAGE_SCREENS * 100}svh` }}>
-      <div className="sticky top-0 flex h-svh items-center max-lg:pt-14 [--wheel:min(30svh,56vw)] lg:[--wheel:min(66svh,42vw,540px)]">
+      <div className="sticky top-0 flex h-svh items-center max-lg:pt-14 [--wheel:min(25svh,50vw)] lg:[--wheel:min(66svh,42vw,540px)]">
         {/* faint dot grid, as in the logo artwork */}
         <div
           aria-hidden="true"
@@ -152,7 +152,7 @@ export function DomainsWheel({ className = "" }: { className?: string }) {
           style={{ backgroundImage: "radial-gradient(rgba(110,130,255,0.35) 1px, transparent 1.6px)", backgroundSize: "38px 38px" }}
         />
 
-        <div className="relative grid w-full grid-cols-1 items-center gap-y-7 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-x-[clamp(56px,7vw,110px)] lg:gap-y-0">
+        <div className="relative grid w-full grid-cols-1 items-center gap-y-4 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-x-[clamp(56px,7vw,110px)] lg:gap-y-0">
           {/* ---------- the wheel ---------- */}
           <div className="relative mx-auto lg:ml-8 lg:mr-0" style={{ width: "var(--wheel)", height: "var(--wheel)" }}>
             <motion.svg aria-hidden="true" viewBox="0 0 100 100" className="absolute inset-0 h-full w-full will-change-transform" style={{ rotate: dust }} fill="none">
@@ -198,7 +198,7 @@ export function DomainsWheel({ className = "" }: { className?: string }) {
 
           {/* ---------- the pop-up card ---------- */}
           <div className="relative lg:min-h-[420px]">
-            <div className="mb-4 font-mono text-[12px] tabular-nums text-white/45" aria-live="polite">
+            <div className="mb-2 font-mono lg:mb-4 text-[12px] tabular-nums text-white/45" aria-live="polite">
               <span className="text-[26px] font-medium text-white">{String(current + 1).padStart(2, "0")}</span> / {String(COUNT).padStart(2, "0")}
               <span className="ml-3 uppercase tracking-[0.18em]">{HOME_DOMAINS[current].apiDomain === "PR" ? "PR" : HOME_DOMAINS[current].title.split(" ")[0]}</span>
               <button
@@ -221,7 +221,7 @@ export function DomainsWheel({ className = "" }: { className?: string }) {
                 transition={{ type: "spring", stiffness: 300, damping: 26, mass: 0.7 }}
                 style={{ transformOrigin: "0% 50%", willChange: "transform, opacity" }}
               >
-                <DomainCard d={HOME_DOMAINS[current]} featured={large} />
+                <DomainCard d={HOME_DOMAINS[current]} featured={large} compact={!large} />
               </motion.div>
             </AnimatePresence>
           </div>

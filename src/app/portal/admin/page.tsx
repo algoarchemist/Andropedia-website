@@ -21,6 +21,7 @@ import { ProjectsAdmin } from "@/components/portal/ProjectsAdmin";
 import { AuditAdmin } from "@/components/portal/AuditAdmin";
 import { WeekCreate } from "@/components/portal/WeekCreate";
 import { MemberAvatar, MemberEditor } from "@/components/portal/MemberEditor";
+import { AttendancePanel, useAttendance } from "@/components/portal/AttendancePanel";
 
 const POSITION_OPTIONS: Array<[ClubPosition, string]> = [
   ["member", "Member"],
@@ -46,6 +47,7 @@ export default function AdminPage() {
   const [editing, setEditing] = useState<User | "new" | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const attendance = useAttendance(!authLoading && currentUser?.role === "super_admin");
 
   const loadData = async () => {
     try {
@@ -244,10 +246,13 @@ export default function AdminPage() {
               />
             )}
 
+            <AttendancePanel attendance={attendance} visibleIds={visibleMembers.map((m) => m.id)} />
+
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
                 <thead className="bg-white/[0.02] text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400">
                   <tr>
+                    {attendance.selected && <th className="px-6 py-4">Present</th>}
                     <th className="px-6 py-4">Member</th>
                     <th className="px-6 py-4">Email</th>
                     <th className="px-6 py-4">Domain</th>
@@ -261,6 +266,17 @@ export default function AdminPage() {
                 <tbody className="divide-y divide-white/5">
                   {visibleMembers.map((member) => (
                     <tr key={member.id} className="hover:bg-white/[0.02]">
+                      {attendance.selected && (
+                        <td className="px-6 py-4">
+                          <input
+                            type="checkbox"
+                            checked={attendance.present.has(member.id)}
+                            onChange={() => void attendance.toggle(member.id)}
+                            aria-label={`${member.name} present at ${attendance.selected.title}`}
+                            className="h-4 w-4 cursor-pointer accent-emerald-400"
+                          />
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <MemberAvatar member={member} />

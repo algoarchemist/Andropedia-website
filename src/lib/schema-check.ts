@@ -2,7 +2,7 @@ import { prisma } from "./prisma";
 
 // What the code needs from the database, newest migrations last. If the app is deployed before `npm run db:deploy`, these are
 // what is missing, and /api/health says so instead of the site failing in odd places (photos, password change).
-const REQUIRED_TABLES = ["User", "Session", "Event", "RateLimit", "MemberPhoto", "EventImage"] as const;
+const REQUIRED_TABLES = ["User", "Session", "Event", "RateLimit", "MemberPhoto", "EventImage", "AttendanceSession", "AttendanceRecord"] as const;
 const REQUIRED_COLUMNS: Array<[table: string, column: string]> = [["User", "mustChangePassword"]];
 
 /** Plain-language problems with the database layout; empty when it is up to date. Never throws. */

@@ -10,6 +10,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { PortalNav } from "@/components/portal/PortalNav";
+import { MemberAvatar } from "@/components/portal/MemberEditor";
 import { useAuth } from "@/lib/auth-context";
 import { Task } from "@/lib/types";
 import { PortalAccessGate } from "@/components/portal/PortalAccessGate";
@@ -19,10 +20,11 @@ export default function EvaluationsPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  const [technicalDepth, setTechnicalDepth] = useState(24);
-  const [innovation, setInnovation] = useState(23);
-  const [completion, setCompletion] = useState(25);
-  const [documentation, setDocumentation] = useState(23);
+  // Sliders start at 0 and reset whenever another submission is picked, so a grade is always a conscious choice.
+  const [technicalDepth, setTechnicalDepth] = useState(0);
+  const [innovation, setInnovation] = useState(0);
+  const [completion, setCompletion] = useState(0);
+  const [documentation, setDocumentation] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [evalSubmitting, setEvalSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -136,17 +138,12 @@ export default function EvaluationsPage() {
                       key={task.id}
                       onClick={() => {
                         setSelectedTask(task);
-                        if (task.evaluation) {
-                          setFeedback(task.evaluation.feedback);
-                          if (task.evaluation.criteriaScores) {
-                            setTechnicalDepth(task.evaluation.criteriaScores.technicalDepth);
-                            setInnovation(task.evaluation.criteriaScores.innovation);
-                            setCompletion(task.evaluation.criteriaScores.completion);
-                            setDocumentation(task.evaluation.criteriaScores.documentation);
-                          }
-                        } else {
-                          setFeedback("");
-                        }
+                        const graded = task.evaluation?.criteriaScores;
+                        setFeedback(task.evaluation?.feedback ?? "");
+                        setTechnicalDepth(graded?.technicalDepth ?? 0);
+                        setInnovation(graded?.innovation ?? 0);
+                        setCompletion(graded?.completion ?? 0);
+                        setDocumentation(graded?.documentation ?? 0);
                       }}
                       className={`cursor-pointer rounded-[22px] border p-4 transition-all ${
                         isSelected ? "border-emerald-400/40 bg-emerald-500/10 shadow-[0_12px_30px_rgba(52,211,153,0.12)]" : "border-white/10 bg-white/[0.04] hover:border-sky-400/20"
@@ -154,7 +151,7 @@ export default function EvaluationsPage() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-3">
-                          <img loading="lazy" decoding="async" src={task.userAvatar} alt={task.userName} className="h-10 w-10 rounded-full border border-white/10 object-cover" />
+                          <MemberAvatar member={{ name: task.userName, avatar: task.userAvatar }} className="h-10 w-10 rounded-full border border-white/10" />
                           <div>
                             <div className="text-sm font-bold text-white">{task.userName}</div>
                             <div className="text-[10px] font-mono text-slate-400">{task.domain} · Week {task.weekNumber}</div>

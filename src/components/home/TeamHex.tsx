@@ -10,7 +10,7 @@ import { BlurOrb, GridLines } from "@/components/design/Backdrop";
 import { Reveal } from "@/components/design/Reveal";
 import { CountUp, RevealLines, Stagger, StaggerItem } from "@/components/design/scroll";
 import { MemberModal, type Selected } from "@/components/team/MemberProfile";
-import { GithubIcon, LinkedinIcon } from "@/components/ui/SocialIcons";
+import { GithubIcon, InstagramIcon, LinkedinIcon } from "@/components/ui/SocialIcons";
 import { HEX_DOMAINS } from "@/content/home";
 import { armSoundUnlock } from "@/lib/dial-sound";
 import { tileBreak, tileHover } from "@/lib/tile-sound";
@@ -340,6 +340,11 @@ function PersonTile({ member, title, accent, big, onSelect }: TileProps) {
           {member.linkedin && (
             <a href={member.linkedin} target="_blank" rel="noreferrer" className="th-soc" aria-label={`${member.name} on LinkedIn`}>
               <LinkedinIcon className="h-3.5 w-3.5" />
+            </a>
+          )}
+          {member.instagram && (
+            <a href={member.instagram} target="_blank" rel="noreferrer" className="th-soc" aria-label={`${member.name} on Instagram`}>
+              <InstagramIcon className="h-3.5 w-3.5" />
             </a>
           )}
           <button type="button" className="th-view" onClick={select} aria-label={`View ${member.name}'s profile`}>
