@@ -13,6 +13,7 @@
     "db:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
     "db:import-members": "tsx --env-file=.env scripts/import-sheet-members.ts",
+    "db:import-socials": "tsx --env-file=.env scripts/import-socials.ts",
     "user:set-register-no": "tsx --env-file=.env scripts/set-register-no.ts",
     "user:set-role": "tsx --env-file=.env scripts/set-role.ts",
     "user:deactivate": "tsx --env-file=.env scripts/set-role.ts --deactivate",

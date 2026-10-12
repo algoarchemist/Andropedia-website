@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X, ArrowUpRight, Crown, Shield } from "lucide-react";
-import { GithubIcon, LinkedinIcon } from "@/components/ui/SocialIcons";
+import { GithubIcon, InstagramIcon, LinkedinIcon } from "@/components/ui/SocialIcons";
 import type { Accent } from "@/content/accents";
 import { themeFor, themeVars } from "@/content/team-theme";
 import { POSITION_LABELS, type TeamMember } from "@/lib/team";
@@ -44,7 +44,7 @@ export function AvatarRing({ member, ringClass, textClass, eager }: { member: Te
 }
 
 export function Socials({ member, size = "md" }: { member: TeamMember; size?: "sm" | "md" | "lg" }) {
-  if (!member.github && !member.linkedin) return null;
+  if (!member.github && !member.linkedin && !member.instagram) return null;
   const linkClass = `tc-sq ${size === "sm" ? "tc-sq-sm" : size === "lg" ? "tc-sq-lg" : ""}`;
   const icon = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
   return (
@@ -57,6 +57,11 @@ export function Socials({ member, size = "md" }: { member: TeamMember; size?: "s
       {member.linkedin && (
         <a href={member.linkedin} target="_blank" rel="noreferrer" className={linkClass} aria-label={`${member.name} on LinkedIn`}>
           <LinkedinIcon className={icon} />
+        </a>
+      )}
+      {member.instagram && (
+        <a href={member.instagram} target="_blank" rel="noreferrer" className={linkClass} aria-label={`${member.name} on Instagram`}>
+          <InstagramIcon className={icon} />
         </a>
       )}
     </div>

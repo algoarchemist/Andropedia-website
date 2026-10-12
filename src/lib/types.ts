@@ -15,6 +15,7 @@ export interface User {
   bio?: string;
   github?: string;
   linkedin?: string;
+  instagram?: string;
   portfolio?: string;
   points?: number;
   tasksCompleted?: number;

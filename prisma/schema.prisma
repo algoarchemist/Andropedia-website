@@ -55,6 +55,7 @@ model User {
   bio             String?
   github          String?
   linkedin        String?
+  instagram       String?
   portfolio       String?
   points          Int            @default(0)
   tasksCompleted  Int            @default(0)

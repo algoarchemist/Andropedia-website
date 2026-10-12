@@ -58,6 +58,7 @@ export function mapUser(u: DbUser): User {
     bio: u.bio ?? undefined,
     github: u.github ?? undefined,
     linkedin: u.linkedin ?? undefined,
+    instagram: u.instagram ?? undefined,
     portfolio: u.portfolio ?? undefined,
     points: u.points,
     tasksCompleted: u.tasksCompleted,

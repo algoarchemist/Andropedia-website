@@ -34,6 +34,29 @@ export function normalizeLinkedin(value: string): string | "" | null {
   return `https://${host}${url.pathname.replace(/\/+$/, "")}`;
 }
 
+/**
+ * A profile on `domain` from a full link, a link without "https://" or a bare handle ("@name" or "name").
+ * Returns the clean https URL (tracking parameters dropped), or null when the value is empty or not a profile on that site.
+ */
+function normalizeProfile(value: string, domain: string, handle: RegExp): string | null {
+  const text = value.trim();
+  if (!text) return null;
+  if (handle.test(text.replace(/^@/, ""))) return `https://${domain}/${text.replace(/^@/, "")}`;
+  let url: URL;
+  try {
+    url = new URL(/^https?:\/\//i.test(text) ? text : `https://${text}`);
+  } catch {
+    return null;
+  }
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  if (host !== domain) return null;
+  const name = url.pathname.split("/").filter(Boolean)[0];
+  return name && handle.test(name) ? `https://${domain}/${name}` : null;
+}
+
+export const normalizeGithub = (value: string) => normalizeProfile(value, "github.com", /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/);
+export const normalizeInstagram = (value: string) => normalizeProfile(value, "instagram.com", /^[A-Za-z0-9._]{1,30}$/);
+
 export const memberPhotoUrl = (userId: string, version: number | Date = Date.now()) =>
   `/api/member-photo/user/${encodeURIComponent(userId)}?v=${typeof version === "number" ? version : version.getTime()}`;
 
