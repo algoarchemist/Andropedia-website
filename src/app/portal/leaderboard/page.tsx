@@ -13,6 +13,7 @@ import {
   Minus,
 } from "lucide-react";
 import { PortalNav } from "@/components/portal/PortalNav";
+import { MemberAvatar } from "@/components/portal/MemberEditor";
 import { LeaderboardEntry } from "@/lib/types";
 import { PortalAccessGate } from "@/components/portal/PortalAccessGate";
 import { useAuth } from "@/lib/auth-context";
@@ -106,7 +107,7 @@ export default function LeaderboardPage() {
               <div className="flex items-center justify-center rounded-xl border border-white/10 bg-slate-950/60 p-1 text-xs font-mono">
                 {[
                   { key: "all-time", label: "All-Time" },
-                  { key: "weekly", label: "Week 4" },
+                  { key: "weekly", label: "This week" },
                   { key: "monthly", label: "Monthly" },
                 ].map((option) => (
                   <button
@@ -153,17 +154,16 @@ export default function LeaderboardPage() {
                     }`}
                   >
                     <div className="relative mx-auto mb-4 flex w-fit items-center justify-center">
-                      <img loading="lazy" decoding="async"
-                        src={entry.avatar}
-                        alt={entry.name}
-                        className={`rounded-full object-cover border-2 ${
-                          index === 1 ? "h-20 w-20 border-amber-300 sm:h-24 sm:w-24" : index === 0 ? "h-24 w-24 border-slate-200 sm:h-28 sm:w-28" : "h-20 w-20 border-amber-700 sm:h-24 sm:w-24"
+                      <MemberAvatar
+                        member={entry}
+                        className={`rounded-full border-2 ${
+                          index === 1 ? "h-24 w-24 border-amber-300 sm:h-28 sm:w-28" : index === 0 ? "h-20 w-20 border-slate-200 sm:h-24 sm:w-24" : "h-20 w-20 border-amber-700 sm:h-24 sm:w-24"
                         }`}
                       />
                       <div className={`absolute -bottom-2 -right-1 flex h-8 w-8 items-center justify-center rounded-full text-xs font-black ${
-                        index === 1 ? "bg-slate-300 text-slate-950" : index === 0 ? "bg-amber-400 text-slate-950" : "bg-amber-700 text-amber-50"
+                        index === 1 ? "bg-amber-400 text-slate-950" : index === 0 ? "bg-slate-300 text-slate-950" : "bg-amber-700 text-amber-50"
                       }`}>
-                        {index === 1 ? 2 : index === 0 ? 1 : 3}
+                        {index === 1 ? 1 : index === 0 ? 2 : 3}
                       </div>
                     </div>
 
@@ -225,7 +225,7 @@ export default function LeaderboardPage() {
 
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <img loading="lazy" decoding="async" src={entry.avatar} alt={entry.name} className="h-10 w-10 rounded-xl border border-white/10 object-cover" />
+                          <MemberAvatar member={entry} className="h-10 w-10 rounded-xl border border-white/10" />
                           <div>
                             <div className="flex items-center gap-2 font-bold text-white">
                               <span>{entry.name}</span>
