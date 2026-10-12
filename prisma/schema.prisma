@@ -70,6 +70,7 @@ model User {
   sessions        Session[]
   passwordResets  PasswordReset[]
   photo           MemberPhoto?
+  attendance      AttendanceRecord[]
 }
 
 // Profile picture uploaded by a super admin from the portal (already resized in the browser).
@@ -239,6 +240,7 @@ model Event {
 
   rsvps            EventRsvp[]
   images           EventImage[]
+  attendance       AttendanceSession?
 
   @@index([startsAt])
 }
@@ -292,6 +294,42 @@ model EventMember {
   @@unique([eventId, emailKey])
   @@unique([eventId, registerNo])
   @@index([rsvpId])
+}
+
+// A meeting whose attendance is taken by hand or from a CSV: an event, or a regular club hour.
+// An event has at most one session (created the first time attendance is marked for it).
+enum AttendanceKind {
+  EVENT
+  CLUB_HOUR
+}
+
+model AttendanceSession {
+  id          String           @id @default(cuid())
+  kind        AttendanceKind
+  title       String
+  heldOn      DateTime
+  hours       Float?           // club hours only: how long the session ran
+  eventId     String?          @unique
+  event       Event?           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdById String           // no foreign key on purpose, like AuditLog
+  createdAt   DateTime         @default(now())
+  records     AttendanceRecord[]
+
+  @@index([heldOn])
+}
+
+// One member present at one session.
+model AttendanceRecord {
+  id         String            @id @default(cuid())
+  sessionId  String
+  session    AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  markedById String
+  createdAt  DateTime          @default(now())
+
+  @@unique([sessionId, userId])
+  @@index([userId])
 }
 
 // Fixed-window counters for rate limiting, shared by every server instance (see lib/rate-limit-db.ts).

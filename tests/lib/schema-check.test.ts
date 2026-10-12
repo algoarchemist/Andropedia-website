@@ -5,7 +5,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: db }));
 
 import { schemaProblems } from "@/lib/schema-check";
 
-const ALL = ["User", "Session", "Event", "RateLimit", "MemberPhoto", "EventImage"].map((table_name) => ({ table_name }));
+const ALL = ["User", "Session", "Event", "RateLimit", "MemberPhoto", "EventImage", "AttendanceSession", "AttendanceRecord"].map((table_name) => ({ table_name }));
 
 beforeEach(() => {
   db.$queryRaw.mockReset();
