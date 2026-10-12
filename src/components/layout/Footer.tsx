@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Mail } from "lucide-react";
 import { LegalLinks } from "@/components/layout/LegalLinks";
 import { LinkedinIcon, InstagramIcon } from "@/components/ui/SocialIcons";
 
@@ -38,6 +38,8 @@ const COLUMNS = [
 const SOCIALS = [
   { name: "LinkedIn", href: "https://www.linkedin.com/company/andropedia-club/", Icon: LinkedinIcon },
   { name: "Instagram", href: "https://www.instagram.com/andropedia_srm.rmp/", Icon: InstagramIcon },
+  // Opens a Gmail compose window (the Gmail app on phones) addressed to the club.
+  { name: "Email", href: "https://mail.google.com/mail/?view=cm&fs=1&to=andropedia.rmp@gmail.com", Icon: Mail },
 ];
 
 export function Footer() {
@@ -86,7 +88,14 @@ export function Footer() {
 
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-4 px-6 py-5 text-[13px] leading-5 text-white/70 sm:flex-row sm:px-12 lg:px-24">
-          <p>&copy; {new Date().getFullYear()} Andropedia Technology Council</p>
+          <div className="text-center sm:text-left">
+            <p>&copy; {new Date().getFullYear()} Andropedia Technology Council</p>
+            <address className="mt-1 text-[12px] not-italic leading-5 text-white/50">
+              SRM Institute of Science and Technology, Ramapuram Campus
+              <br />
+              Bharathi Salai, Ramapuram, Chennai - 600089, Tamil Nadu
+            </address>
+          </div>
           <p className="text-center sm:flex-1">
             Developed and maintained by the{" "}
             <Link href="/team#web" className="text-white underline-offset-4 transition-colors hover:text-[#8cbfff] hover:underline">
