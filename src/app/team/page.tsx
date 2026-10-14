@@ -57,6 +57,7 @@ const MemberCard = memo(function MemberCard({ member, size, title, className = "
   const theme = themeFor(member);
   const card = useRef<HTMLDivElement>(null);
   const [ripple, setRipple] = useState<{ id: number; x: number; y: number } | null>(null);
+  const rippleSeq = useRef(0); // a counter, not the clock: it only needs to differ from the previous ripple
 
   const open = (x: number, y: number) => {
     const el = card.current;
@@ -66,7 +67,7 @@ const MemberCard = memo(function MemberCard({ member, size, title, className = "
       void el.offsetWidth;
       el.classList.add("tc-lit");
     }
-    setRipple({ id: performance.now(), x, y });
+    setRipple({ id: ++rippleSeq.current, x, y });
     onSelect(member, title);
     // The sound waits until the profile has had its first frame, so starting audio never delays it.
     requestAnimationFrame(() =>

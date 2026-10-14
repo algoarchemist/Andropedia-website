@@ -1,5 +1,5 @@
 /* Vendored from React Bits (ProfileCard); lint rules for app code are relaxed here so the original stays unchanged. */
-/* eslint-disable react-hooks/refs, react-hooks/purity, @next/next/no-img-element */
+/* eslint-disable react-hooks/refs, @next/next/no-img-element */
 'use client';
 
 import { memo, useEffect, useRef } from 'react';
