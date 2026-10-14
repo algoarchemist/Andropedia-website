@@ -25,6 +25,8 @@ export function GlobeBackground() {
     const resize = (w: number, h: number) => {
       renderer.setSize(Math.max(1, Math.round(w * SCALE)), Math.max(1, Math.round(h * SCALE)), false);
       camera.aspect = w / h;
+      // Portrait screens: back the camera off until the whole globe (radius 1.4 plus a margin) fits across the width.
+      camera.position.z = Math.max(3.2, 1.65 / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect));
       camera.updateProjectionMatrix();
     };
     resize(container.clientWidth, container.clientHeight);

@@ -56,10 +56,12 @@ export function HandRobotHero() {
   const p = reduce ? settled : smooth;
 
   // The hands pull apart over the first 60% of the travel, drifting and growing slightly.
-  const handX = useTransform(p, [0, 0.6], ["0%", "-46%"]);
+  // The sideways travel is a CSS variable: on a phone the hands are 150vw wide, so the full 46% would push the fingertips off screen.
+  const shift = useTransform(p, [0, 0.6], [0, 1]);
+  const handX = useTransform(shift, (v) => `calc(var(--hr-shift) * ${-v})`);
   const handY = useTransform(p, [0, 0.6], ["0%", "-4%"]);
   const handScale = useTransform(p, [0, 0.6], [1, 1.06]);
-  const robotX = useTransform(p, [0, 0.6], ["0%", "46%"]);
+  const robotX = useTransform(shift, (v) => `calc(var(--hr-shift) * ${v})`);
   const robotY = useTransform(p, [0, 0.6], ["0%", "4%"]);
   const robotScale = useTransform(p, [0, 0.6], [1, 1.06]);
   const partOpacity = useTransform(p, [0.3, 0.6], [1, 0.75]);
@@ -85,7 +87,7 @@ export function HandRobotHero() {
 
   return (
     <section ref={sectionRef} aria-label="Andropedia introduction" className={`relative bg-black ${reduce ? "" : "h-[260svh]"}`}>
-        <div className={`relative isolate h-svh min-h-[640px] overflow-hidden bg-black [--hr-w:150vw] sm:[--hr-w:84vw] [--hr-h:calc(var(--hr-w)*0.558)] ${reduce ? "" : "sticky top-0"}`}>
+        <div className={`relative isolate h-svh min-h-[640px] overflow-hidden bg-black [--hr-w:150vw] [--hr-shift:21%] sm:[--hr-w:84vw] sm:[--hr-shift:46%] [--hr-h:calc(var(--hr-w)*0.558)] ${reduce ? "" : "sticky top-0"}`}>
           <GlobeBackground />
 
           {/* Gradient ring outside the globe (fits like in main branch) */}
