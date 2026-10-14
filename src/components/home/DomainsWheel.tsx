@@ -252,7 +252,10 @@ export function DomainsWheel({ className = "" }: { className?: string }) {
 
   return (
     <div ref={wrapRef} className={`relative ${className}`} style={{ height: `${STAGE_SCREENS * 100}svh` }}>
-      <div className="sticky top-0 flex h-svh items-center max-lg:pt-14 [--wheel:min(25svh,50vw)] lg:[--wheel:min(66svh,42vw,540px)]">
+      {/* Phones: the stack starts near the top instead of floating in the middle, and the wheel is as wide as the screen allows (78% of the
+            width) but never so tall that the card below runs off the bottom (100svh minus the space the card and its heading need). That
+            fills the empty space above the wheel; the card keeps its place directly under it. */}
+      <div className="sticky top-0 flex h-svh items-center max-lg:items-start max-lg:pt-[84px] [--wheel:clamp(150px,min(78vw,calc(100svh-498px)),360px)] lg:[--wheel:min(66svh,42vw,540px)]">
         {/* faint dot grid, as in the logo artwork */}
         <div
           aria-hidden="true"
