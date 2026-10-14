@@ -8,7 +8,7 @@ import { Send, CheckCircle2, AlertCircle, ArrowLeft, Globe, Palette, Sparkles } 
 import { GithubIcon } from "@/components/ui/SocialIcons";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { useAuth } from "@/lib/auth-context";
-import { Week } from "@/lib/types";
+import { TaskPrompt, Week } from "@/lib/types";
 import { PortalAccessGate } from "@/components/portal/PortalAccessGate";
 
 export default function SubmitTaskPage() {
@@ -32,6 +32,17 @@ export default function SubmitTaskPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const effectiveDomain = currentUser?.domain ?? domain;
+
+  // The task the lead posted for this week and the member's own domain (the API only returns that domain's).
+  const [prompts, setPrompts] = useState<TaskPrompt[]>([]);
+  useEffect(() => {
+    if (!currentUser) return;
+    fetch("/api/prompts")
+      .then((r) => r.json())
+      .then((d) => d.success && setPrompts(d.prompts))
+      .catch(() => undefined); // the brief is a convenience; submitting works without it
+  }, [currentUser]);
+  const brief = prompts.find((p) => p.weekId === selectedWeekId && p.domain === effectiveDomain);
 
   useEffect(() => {
     async function fetchWeeks() {
@@ -129,6 +140,26 @@ export default function SubmitTaskPage() {
                   <div className="flex items-center gap-2 rounded-xl border border-rose-500/35 bg-rose-500/10 p-4 text-sm text-rose-200">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span>{errorMsg}</span>
+                  </div>
+                )}
+
+                {brief && (
+                  <div className="rounded-2xl border border-cyan-400/25 bg-cyan-500/5 p-5">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-cyan-300">
+                      This week&apos;s task from your lead{brief.dueDate ? ` · due ${brief.dueDate}` : ""}
+                    </div>
+                    <div className="mt-1 text-lg font-bold text-white">{brief.title}</div>
+                    <p className="mt-2 whitespace-pre-line text-sm text-slate-300">{brief.description}</p>
+                    {brief.fileName && (
+                      <a href={`/api/prompts/${brief.id}/file`} target="_blank" rel="noopener noreferrer" className="mr-4 mt-3 inline-block text-xs font-semibold text-cyan-300 hover:underline">
+                        Download PDF ({brief.fileName})
+                      </a>
+                    )}
+                    {brief.resourceUrl && (
+                      <a href={brief.resourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs font-semibold text-cyan-300 hover:underline">
+                        Open the brief
+                      </a>
+                    )}
                   </div>
                 )}
 

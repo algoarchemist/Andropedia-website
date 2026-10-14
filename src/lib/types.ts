@@ -37,6 +37,23 @@ export interface Week {
   promptDescription?: string;
 }
 
+/** The task a lead sets for one domain in one week. */
+export interface TaskPrompt {
+  id: string;
+  weekId: string;
+  weekNumber: number;
+  domain: DomainType;
+  title: string;
+  description: string;
+  resourceUrl?: string;
+  dueDate?: string;
+  /** PDF brief attached by the lead; download it from /api/prompts/{id}/file. */
+  fileName?: string;
+  fileSize?: number;
+  createdById: string;
+  updatedAt: string;
+}
+
 export interface Task {
   id: string;
   userId: string;
