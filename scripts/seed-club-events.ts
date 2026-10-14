@@ -2,7 +2,7 @@
 // Also adds the upcoming events listed in UPCOMING (created once, never overwritten). One with a date is open for registration;
 // one with dateTbc (like the AI Symposium) shows as "Coming Soon" with no registration until its date is set in the admin screen.
 // Adds the club's past events (major events and club hours) as published entries, closed for registration and
-// marked "date to be announced", so no date is made up. Fill in the real dates afterwards in
+// marked "date to be announced" unless a real `date` is given, so no date is made up. Fill in the other dates afterwards in
 // Portal -> Admin -> Events & reservations (Edit).
 // Safe to re-run: an existing event gets its title, type and description refreshed, and keeps its date, team size
 // and everything else. A date that was set in the admin screen is never touched.
@@ -11,13 +11,25 @@ import { prisma } from "../src/lib/prisma";
 const LOCATION = "SRM Institute of Science and Technology, Ramapuram";
 
 // The archive lists undated past events in the order of ARCHIVE_ORDER below (EVENTS order, with AndroHacks after Git Set Code).
-const EVENTS = [
+// `date` is the real day of the event (time of day is a placeholder). Events without one stay "date to be announced".
+const EVENTS: { id: string; title: string; type: string; teamMin: number | null; teamMax: number | null; tagline: string; body: string; date?: Date }[] = [
+  {
+    id: "cloudcon-2",
+    title: "CloudCon 2.0",
+    type: "Major Event",
+    teamMin: null,
+    teamMax: null,
+    tagline: "Exploring the cloud. Discovering what's next.",
+    body: "The second edition of Andropedia's flagship cloud computing event.",
+    date: new Date("2024-08-12T10:00:00+05:30"),
+  },
   {
     id: "cloudcon",
     title: "CloudCon 3.0",
     type: "Major Event",
     teamMin: null,
     teamMax: null,
+    date: new Date("2025-09-25T10:00:00+05:30"),
     tagline: "Exploring the cloud. Discovering what's next.",
     body: "As Andropedia's flagship event, CloudCon 3.0 brought cloud computing and emerging technologies into focus. It offered students an opportunity to explore new innovations, understand real-world applications, and discover the possibilities shaping the future of technology.",
   },
@@ -36,6 +48,7 @@ const EVENTS = [
     type: "Major Event",
     teamMin: null,
     teamMax: null,
+    date: new Date("2026-04-15T10:00:00+05:30"),
     tagline: "Recognizing the people behind the progress.",
     body: "Andropedia's growth is shaped by the people who put their ideas, effort, and time into building the club. The Badging Ceremony recognized club members and celebrated their contributions over the past two years. It also marked the induction of the new President, Vice President, Leads, and Co-Leads as they stepped into their respective roles.",
   },
@@ -63,6 +76,7 @@ const EVENTS = [
     type: "Design Challenge",
     teamMin: null,
     teamMax: null,
+    date: new Date("2026-02-27T10:00:00+05:30"),
     tagline: "A theme, a deadline, and a canvas for creativity.",
     body: "Part of TEXUS '26, Pixels & Plots challenged participants to turn given themes into compelling designs within a limited time. With creativity under the clock, participants explored visual storytelling, experimented with design ideas, and transformed their interpretations into engaging visual creations.",
   },
@@ -72,6 +86,7 @@ const EVENTS = [
     type: "Coding Contest",
     teamMin: 3,
     teamMax: 4,
+    date: new Date("2026-02-28T10:00:00+05:30"),
     tagline: "Think fast. Code smart. Take the risk.",
     body: "Part of TEXUS '26, CodeSprint '26 brought a game-inspired twist to competitive coding. Blending programming challenges with a gambling-style gameplay mechanic, it pushed participants to put their logic, speed, and problem-solving skills to the test in a format beyond the usual coding competition.",
   },
@@ -162,8 +177,9 @@ const UPCOMING = [
     type: "Coding Contest",
     startsAt: new Date("2026-10-15T10:00:00+05:30"), // the time of day is a placeholder: edit it in the admin screen
     location: "7th Floor Lecture Hall",
-    tagline: "Think fast. Code smart. Take the risk.",
-    body: "Part of TEXUS '26, CodeSprint '26 brought a game-inspired twist to competitive coding. Blending programming challenges with a gambling-style gameplay mechanic, it pushed participants to put their logic, speed, and problem-solving skills to the test in a format beyond the usual coding competition.",
+    tagline: "Remember our clue? “Where bugs cost more than marks.” 👀💻",
+    // The body starts with a line break so a blank line separates it from the tagline.
+    body: "\nThe tables are set, the chips are ready, and it's time to put your strategy to the test! 🎰 Get ready for a casino-themed technical experience where coding meets strategy, every move counts, and your chips are yours to win or lose. 🎲💻\n\nThey say the house always wins… 👀 But who knows? Maybe it's YOUR lucky day! 🍀🃏 Think you can beat the odds and stack up those chips? 😏",
   },
   {
     id: "ai-symposium",
@@ -185,7 +201,7 @@ async function main() {
   let updated = 0;
   for (const e of EVENTS) {
     const description = `${e.tagline}\n${e.body}`;
-    const startsAt = new Date(base + ARCHIVE_ORDER.indexOf(e.id) * 1000); // placeholder only: never shown while dateTbc is on; keeps the list order
+    const startsAt = e.date ?? new Date(base + ARCHIVE_ORDER.indexOf(e.id) * 1000); // without a date this is a placeholder: never shown while dateTbc is on; keeps the list order
     // CodeSprint used to be added with another id by an older script; treat that one as the same event.
     const existing =
       (await prisma.event.findUnique({ where: { id: e.id } })) ??
@@ -193,7 +209,7 @@ async function main() {
     if (existing) {
       await prisma.event.update({
         where: { id: existing.id },
-        data: { title: e.title, type: e.type, description, ...(existing.dateTbc ? { startsAt } : {}) },
+        data: { title: e.title, type: e.type, description, ...(existing.dateTbc ? { startsAt, dateTbc: !e.date } : {}) },
       });
       updated++;
       console.log(`Updated ${e.title}.`);
@@ -214,7 +230,7 @@ async function main() {
         prize: null,
         isPublished: true,
         registrationOpen: false,
-        dateTbc: true,
+        dateTbc: !e.date,
       },
     });
     added++;

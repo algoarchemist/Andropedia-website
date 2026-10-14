@@ -1,4 +1,4 @@
-import { Code2, Cpu, Globe, Megaphone, Palette, Video, Trophy, CheckCircle2, Users, Zap, type LucideIcon } from "lucide-react";
+import { Cpu, Globe, Lightbulb, Megaphone, Palette, Video, Trophy, CheckCircle2, Users, Zap, type LucideIcon } from "lucide-react";
 
 // Copy and data for the home page. Edit text here; the layout lives in src/components/home.
 
@@ -15,45 +15,46 @@ export interface HomeDomain {
   stats: string;
 }
 
-/** All six domains, including R&D. R&D is not recruited into directly (members are moved there later), so only the team honeycomb uses this list. */
+/** All six domains, in the order of the team honeycomb. R&D is not recruited into directly (members are moved there later). */
 export const HEX_DOMAINS: HomeDomain[] = [
   {
     id: "Technical", apiDomain: "Technical", title: "Technical", subtitle: "Because there's always more than one way to solve a problem.", icon: Cpu,
-    description: "Technology doesn't stand still, and neither does curiosity. The Technical domain is where ideas are explored, challenges are tackled, and different approaches are put to the test. It's all about thinking beyond the obvious, learning by doing, and finding smarter ways to turn ideas into solutions.",
+    description: "Technology never sits still, and neither do we. We poke at problems from every angle until one of them gives in. Curiosity required, caffeine optional.",
     activities: ["Exploring New Approaches", "Hands-on Problem Solving", "Building Smarter Solutions"], stats: "15+ Medals Won",
   },
   {
     id: "Web", apiDomain: "Web", title: "Web Development", subtitle: "The best experiences don't happen by accident.", icon: Globe,
-    description: "Every great website has more going on than what meets the eye. From crafting smooth interfaces to building functional, interactive websites, this domain brings together design and code to create digital experiences that people actually enjoy using.",
+    description: "The browser is our canvas. We turn code and design into sites people actually enjoy using, and yes, we also fix the button that doesn't click.",
     activities: ["Smooth UI Crafting", "Interactive Web Experiences", "Design Meets Code"], stats: "20+ Apps Deployed",
   },
   {
-    id: "RD", apiDomain: "R&D", title: "Research & Development", subtitle: "Good ideas start conversations. Great plans make them happen.", icon: Code2,
-    description: "Every memorable event starts with a spark, but turning that spark into something real takes a solid plan. R&D takes ideas from brainstorming to detailed proposals, works through the logistics, and reviews and approves events before they move forward. It's where creative thinking meets careful planning and ambitious ideas get the structure they need.",
-    activities: ["Brainstorming to Proposals", "Event Planning & Logistics", "Review & Approval Process"], stats: "4 Papers Drafted",
+    id: "RD", apiDomain: "R&D", title: "Research & Development", subtitle: "Good ideas start conversations. Great plans make them happen.", icon: Lightbulb,
+    description: "The club's idea factory. We dream up new concepts, bring fresh thinking into Andropedia, and plan the events that help us grow. It all starts with \"what if we...\"",
+    activities: ["Developing New Concepts", "Bringing New Ideas into the Club", "Growth & Event Organization"], stats: "4 Papers Drafted",
   },
   {
     id: "Design", apiDomain: "Design", title: "Design", subtitle: "Making ideas impossible to scroll past.", icon: Palette,
-    description: "First impressions matter, and design makes them count. From striking posters and event creatives to branding and visual storytelling, this domain gives Andropedia its look and feel, turning ordinary ideas into visuals that grab attention and stick in people's minds.",
+    description: "First impressions take a split second, so we make ours count. Posters, branding and visuals so good you'll forget to keep scrolling.",
     activities: ["Posters & Event Creatives", "Branding & Visual Identity", "Visual Storytelling"], stats: "100+ UI Components",
   },
   {
     id: "Media", apiDomain: "Media", title: "Media", subtitle: "The moments pass. The stories stay.", icon: Video,
-    description: "The event might end, but the memories don't have to. Through photography, videography, and creative content, Media captures the energy and behind-the-scenes moments that make Andropedia special. From documenting events to creating reels and posts for our Instagram page, the domain brings the club's experiences online and keeps our community connected beyond every event.",
+    description: "Events end, memories shouldn't. We catch the big moments and the behind-the-scenes chaos, then turn them into reels that make everyone say \"wait, that was us?\"",
     activities: ["Photography & Videography", "Reels & Social Media Content", "Event Documentation"], stats: "50k+ Video Views",
   },
   {
     id: "PR", apiDomain: "PR", title: "Public Relations", subtitle: "Opening doors, one connection at a time.", icon: Megaphone,
-    description: "Great ideas deserve to travel far. From building partnerships and reaching out to new communities to getting people excited about club events, PR keeps Andropedia connected, visible, and growing. It's where conversations turn into collaborations and introductions become opportunities.",
+    description: "Great ideas deserve an audience. We build partnerships, reach new communities and get everyone hyped, turning awkward small talk into real opportunities.",
     activities: ["Building Partnerships", "Community Outreach", "Collaborations & Opportunities"], stats: "$15k+ Grants Raised",
   },
 ];
 
-/** The five domains people can join, in the order they are shown: Technical, Web, Design, Media, PR. */
-export const HOME_DOMAINS: HomeDomain[] = HEX_DOMAINS.filter((d) => d.id !== "RD");
+/** The domains of the home page's domain wheel (and its card grid), in the order they are shown: Technical, Web Development, Design, Media, R&D, then PR last. */
+const HOME_ORDER: HomeDomain["id"][] = ["Technical", "Web", "Design", "Media", "RD", "PR"];
+export const HOME_DOMAINS: HomeDomain[] = HOME_ORDER.map((id) => HEX_DOMAINS.find((d) => d.id === id)!);
 
 export const HOME_METRICS: Array<{ label: string; value: string; icon: LucideIcon; sub: string }> = [
-  { label: "Active Members", value: "48+", icon: Users, sub: "Across 5 domains" },
+  { label: "Active Members", value: "48+", icon: Users, sub: "Across 6 domains" },
   { label: "Weekly Tasks Evaluated", value: "240+", icon: CheckCircle2, sub: "Strict rubric scoring" },
   { label: "Hackathon Podiums", value: "14", icon: Trophy, sub: "National & regional wins" },
   { label: "Open-Source Projects", value: "18+", icon: Zap, sub: "Deployed & live" },
@@ -111,7 +112,7 @@ export const HOME_HIGHLIGHTS = [
 export const ABOUT_POINTS = [
   { title: "Weekly task cycles", text: "Hands-on challenges graded under comprehensive rubrics by domain leads." },
   { title: "Real-time transparency", text: "A live leaderboard that fosters healthy competition across the club." },
-  { title: "Cross-domain synergy", text: "Technical, Web, Design, Media and PR working as one team." },
+  { title: "Cross-domain synergy", text: "Technical, Web, Design, Media, R&D and PR working as one team." },
 ];
 
 /** The week in a sprint, shown as a card on the home page (day label, title, description). */

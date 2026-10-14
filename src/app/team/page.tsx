@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Users, Crown, Shield, Star, ArrowRight } from "lucide-react";
 import { AvatarRing, MemberModal, RoleChips, RoleIcon, Socials, type Selected } from "@/components/team/MemberProfile";
@@ -9,6 +9,7 @@ import { armSoundUnlock } from "@/lib/dial-sound";
 import { cardClick, cardGlow, cardHover } from "@/lib/tile-sound";
 import { accentVars } from "@/content/accents";
 import { DOMAIN_THEME, themeFor, themeVars } from "@/content/team-theme";
+import { getCachedMembers, setCachedMembers } from "@/lib/members-cache";
 import { POSITION_LABELS, TEAM_DOMAINS, groupTeam, type TeamMember } from "@/lib/team";
 
 type Size = "large" | "medium" | "compact";
@@ -148,8 +149,12 @@ function SubHeading({ icon: Icon, children }: { icon: typeof Crown; children: Re
   );
 }
 
+// Runs before the browser paints, so the page is already at the right place on the first frame (falls back to a normal effect on the server).
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export default function TeamPage() {
-  const [members, setMembers] = useState<TeamMember[] | null>(null);
+  // Starts from the list the home page already fetched, if there is one, so the sections exist on the very first render.
+  const [members, setMembers] = useState<TeamMember[] | null>(() => getCachedMembers());
   const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<Selected | null>(null);
   // Stable, so the 49 memoised cards don't re-render when a profile opens.
@@ -164,10 +169,12 @@ export default function TeamPage() {
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
-        if (data.success) setMembers(data.members);
-        else setLoadError(true);
+        if (data.success) {
+          setCachedMembers(data.members);
+          setMembers(data.members);
+        } else if (!getCachedMembers()) setLoadError(true);
       })
-      .catch(() => !cancelled && setLoadError(true));
+      .catch(() => !cancelled && !getCachedMembers() && setLoadError(true));
     return () => {
       cancelled = true;
     };
@@ -175,17 +182,24 @@ export default function TeamPage() {
 
   const groups = useMemo(() => (members ? groupTeam(members) : null), [members]);
 
-  // The sections only exist once the members have loaded, so a link like /team#pr has to be followed after that.
+  // The sections only exist once the members are there, so a link like /team#pr has to be followed after that. Arriving on the page
+  // jumps straight to the section; the jump links at the top then slide.
   const ready = groups !== null;
-  useEffect(() => {
+  const arrived = useRef(false);
+  useIsoLayoutEffect(() => {
     if (!ready) return;
     const go = () => {
       const id = decodeURIComponent(window.location.hash.slice(1));
-      if (id) document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (id) document.getElementById(id)?.scrollIntoView({ behavior: arrived.current ? "smooth" : "instant", block: "start" });
+      arrived.current = true;
     };
     go();
     window.addEventListener("hashchange", go);
     return () => window.removeEventListener("hashchange", go);
+  }, [ready]);
+  // Still loading and heading for a section: wait at the top, not wherever the previous page was scrolled to (the footer of a short page).
+  useIsoLayoutEffect(() => {
+    if (!ready && window.location.hash) window.scrollTo({ top: 0, behavior: "instant" });
   }, [ready]);
   const domainLabel = (id: string) => TEAM_DOMAINS.find((d) => d.id === id)?.label ?? id;
   const hasCore = groups && (groups.president.length || groups.vicePresident.length || groups.chiefs.length);

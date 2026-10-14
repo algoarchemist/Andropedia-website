@@ -553,7 +553,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
   /** The one note that is open for editing, if any. */
   const [openKey, setOpenKey] = useState<string | null>(() =>
     firstOpen(initialDraft?.step ?? 0, initialDraft?.form.domain ?? "", initialDraft?.pinned ?? []));
-  /** What Andy says after a note is pinned or a level is cleared, until the player changes something. */
+  /** What Thambi says after a note is pinned or a level is cleared, until the player changes something. */
   const [andyMsg, setAndyMsg] = useState<string | null>(null);
   const [stamp, setStamp] = useState<{ id: number; key: string; text: string; big: boolean } | null>(null);
   const [restored, setRestored] = useState(initialDraft !== null);
@@ -1141,7 +1141,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
     };
   };
 
-  // Andy reacts to what is on this level right now.
+  // Thambi reacts to what is on this level right now.
   const stepErrors = stepKeys(step, form.domain).filter((k) => errors[k]).length + levelNotes.filter((n) => errors[flagKey(n)]).length;
   const mood: Mood = stepErrors > 0 || serverError ? "oops" : andyMsg ? "cheer" : "hi";
   const andyText =

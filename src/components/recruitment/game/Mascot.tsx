@@ -10,7 +10,7 @@ const BOB: Record<Mood, { y?: number[]; x?: number[]; rotate?: number[] }> = {
   oops: { x: [0, -4, 4, -3, 3, 0] },
 };
 
-/** Andy, the club robot. A small blocky inline SVG in the site's blue; three moods. */
+/** Thambi, the club robot. A small blocky inline SVG in the site's blue; three moods. */
 export function Mascot({ mood, size = 44 }: { mood: Mood; size?: number }) {
   const face =
     mood === "cheer" ? (
@@ -52,13 +52,13 @@ export function Mascot({ mood, size = 44 }: { mood: Mood; size?: number }) {
   );
 }
 
-/** Andy plus a speech bubble. The bubble is a polite live region, so changes are announced. */
+/** Thambi plus a speech bubble. The bubble is a polite live region, so changes are announced. */
 export function AndySays({ mood, message }: { mood: Mood; message: string }) {
   return (
     <div className="flex items-center gap-3 lg:max-w-[620px] lg:gap-3.5">
       <Mascot mood={mood} size={44} />
       <div className={`pb-say ${mood === "oops" ? "oops" : ""}`} role="status">
-        <b>Andy says</b>
+        <b>Thambi says</b>
         <AnimatePresence mode="wait" initial={false}>
           <motion.p
             key={message}

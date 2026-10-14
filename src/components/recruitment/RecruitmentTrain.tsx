@@ -15,6 +15,7 @@ import {
 import { ArrowRight, Volume2, VolumeX } from "lucide-react";
 import { createTrainSound, type TrainSound } from "@/lib/train-sound";
 import { useSiteSound } from "@/lib/use-site-sound";
+import { useStepGuard } from "@/lib/use-step-guard";
 import { ACCENTS, accentVars } from "@/content/accents";
 import { PROCESS_STEPS } from "@/content/recruitment";
 
@@ -58,6 +59,7 @@ PROCESS_STEPS.forEach((_, i) => {
 });
 
 const stopCentre = (i: number) => i * (DWELL + RIDE) + DWELL / 2;
+const STOP_CENTRES = PROCESS_STEPS.map((_, i) => stopCentre(i));
 
 // Deterministic skyline so server and client markup match.
 function skyline(seed: number, count: number) {
@@ -98,19 +100,50 @@ function Skyline({ buildings, tint, dots }: { buildings: { w: number; h: number 
 const WHEEL_X = [70, 120, 230, 280, 395, 445, 555, 605, 720, 770, 860, 910];
 const COACH_X = [20, 345];
 
+const ART_W = 960; // the train artwork's viewBox, so overlays below can be placed in percentages of it
+const ART_H = 170;
+const pctX = (x: number) => `${(x / ART_W) * 100}%`;
+const pctY = (y: number) => `${(y / ART_H) * 100}%`;
+
+// The wheels and door glows are not part of the SVG: they are small separate layers on top of it. Rotating SVG
+// shapes or fading an SVG blur filter repaints the whole train every frame, while a transform or opacity on an
+// HTML layer is handled by the compositor, so the train body is painted once and never again.
 function Wheel({ cx, rot }: { cx: number; rot: MotionValue<number> }) {
   return (
-    <motion.g style={{ rotate: rot }}>
-      <circle cx={cx} cy={147} r={13} fill="#0a0d1c" stroke="url(#tr-rim)" strokeWidth={2} />
-      <path d={`M${cx - 10} 147 H${cx + 10} M${cx} 137 V157`} stroke="#ffffff" strokeOpacity={0.45} strokeWidth={1.5} />
-      <circle cx={cx} cy={147} r={3} fill="#8cbfff" />
-    </motion.g>
+    <motion.div
+      aria-hidden="true"
+      className="absolute will-change-transform"
+      style={{ left: pctX(cx - 14), top: pctY(147 - 14), width: pctX(28), height: pctY(28), rotate: rot }}
+    >
+      <svg viewBox="-14 -14 28 28" className="block h-full w-full" fill="none" focusable="false">
+        <defs>
+          <linearGradient id="tr-rim-w" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#8cbfff" />
+            <stop offset="1" stopColor="#af52de" />
+          </linearGradient>
+        </defs>
+        <circle r={13} fill="#0a0d1c" stroke="url(#tr-rim-w)" strokeWidth={2} />
+        <path d="M-10 0 H10 M0 -10 V10" stroke="#ffffff" strokeOpacity={0.45} strokeWidth={1.5} />
+        <circle r={3} fill="#8cbfff" />
+      </svg>
+    </motion.div>
+  );
+}
+
+function DoorGlow({ x, opacity }: { x: number; opacity: MotionValue<number> }) {
+  return (
+    <motion.div
+      aria-hidden="true"
+      className="absolute rounded-[2px] bg-[#2dd4bf] shadow-[0_0_7px_1px_#2dd4bf] will-change-[opacity]"
+      style={{ left: pctX(x), top: pctY(44), width: pctX(6), height: pctY(74), opacity }}
+    />
   );
 }
 
 function TrainArt({ rot, doorGlow }: { rot: MotionValue<number>; doorGlow: MotionValue<number> }) {
   return (
-    <svg viewBox="0 0 960 170" className="block h-auto w-full" fill="none" aria-hidden="true" focusable="false">
+    <>
+    <svg viewBox={`0 0 ${ART_W} ${ART_H}`} className="block h-auto w-full" fill="none" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="tr-body" x1="0" y1="30" x2="0" y2="132" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#222a4d" />
@@ -125,10 +158,6 @@ function TrainArt({ rot, doorGlow }: { rot: MotionValue<number>; doorGlow: Motio
         <linearGradient id="tr-glass" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#dbe9ff" stopOpacity="0.95" />
           <stop offset="1" stopColor="#6fa8ff" stopOpacity="0.55" />
-        </linearGradient>
-        <linearGradient id="tr-rim" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#8cbfff" />
-          <stop offset="1" stopColor="#af52de" />
         </linearGradient>
         <filter id="tr-glow" x="-100%" y="-100%" width="300%" height="300%">
           <feGaussianBlur stdDeviation="3.5" result="b" />
@@ -155,8 +184,6 @@ function TrainArt({ rot, doorGlow }: { rot: MotionValue<number>; doorGlow: Motio
           ))}
           {/* doors: dark panels that light up while the train is stopped */}
           <rect x={x + 12} y={44} width={6} height={74} rx={2} fill="#05070f" />
-          <motion.rect x={x + 12} y={44} width={6} height={74} rx={2} fill="#2dd4bf" style={{ opacity: doorGlow }} filter="url(#tr-glow)" />
-          <motion.rect x={x + 292} y={44} width={6} height={74} rx={2} fill="#2dd4bf" style={{ opacity: doorGlow }} filter="url(#tr-glow)" />
           <rect x={x} y={96} width={310} height={5} fill="url(#tr-stripe)" opacity={0.95} />
           <rect x={x + 10} y={118} width={290} height={12} rx={3} fill="#070914" />
         </g>
@@ -171,11 +198,15 @@ function TrainArt({ rot, doorGlow }: { rot: MotionValue<number>; doorGlow: Motio
       <rect x={684} y={118} width={262} height={12} rx={3} fill="#070914" />
       <circle cx={943} cy={106} r={6} fill="#8ff0e1" filter="url(#tr-glow)" />
 
-      {/* wheels */}
-      {WHEEL_X.map((cx) => (
-        <Wheel key={cx} cx={cx} rot={rot} />
-      ))}
     </svg>
+
+    {COACH_X.flatMap((x) => [x + 12, x + 292]).map((dx) => (
+      <DoorGlow key={dx} x={dx} opacity={doorGlow} />
+    ))}
+    {WHEEL_X.map((cx) => (
+      <Wheel key={cx} cx={cx} rot={rot} />
+    ))}
+    </>
   );
 }
 
@@ -212,7 +243,12 @@ function Station({ index, world, title, text }: { index: number; world: MotionVa
 
   return (
     <div className="absolute bottom-[20%] top-[126px] flex w-[min(88vw,480px)] -translate-x-1/2 flex-col items-center" style={{ left: `calc(${index} * var(--st-gap))` }}>
-      <motion.div style={{ opacity, scale, y: lift, ...accentVars(accent) }} className="glass-card w-full p-6 will-change-[transform,opacity] sm:p-7">
+      {/* No backdrop blur and no CSS transition here: the card moves every scroll frame, a blur behind it is redone each
+          frame, and .glass-card's 0.3s transform transition would make it lag behind the scroll. The tint stands in for the blur. */}
+      <motion.div
+        style={{ opacity, scale, y: lift, ...accentVars(accent) }}
+        className="glass-card w-full bg-[rgba(2,6,16,0.55)] p-6 will-change-[transform,opacity] [backdrop-filter:none] [transition:none] sm:p-7"
+      >
         <div className="flex items-start gap-4">
           <span
             aria-hidden="true"
@@ -224,7 +260,7 @@ function Station({ index, world, title, text }: { index: number; world: MotionVa
           <div>
             <h3 className="text-accent text-[24px] font-medium leading-[1.15] tracking-[-0.8px] sm:text-[30px]">{title}</h3>
             <p className="mt-2 text-[15px] leading-6 text-white/70">{text}</p>
-            {index === 0 && (
+            {index === LAST && (
               <a href="#apply" className="btn-glass mt-4 !py-[7px]" data-cursor-text="Apply">
                 Apply now <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </a>
@@ -236,14 +272,14 @@ function Station({ index, world, title, text }: { index: number; world: MotionVa
       {/* post from the card down to the platform */}
       <motion.div
         aria-hidden="true"
-        className="w-px flex-1"
+        className="w-px flex-1 will-change-[opacity]"
         style={{ opacity: edge, background: `linear-gradient(to bottom, ${accent.a1}00, ${accent.a1})` }}
       />
 
       {/* platform slab behind the train; its edge lights up on arrival */}
       <motion.div
         aria-hidden="true"
-        className="absolute bottom-0 left-1/2 h-9 w-[min(96vw,860px)] -translate-x-1/2 rounded-t-md border-t"
+        className="absolute bottom-0 left-1/2 h-9 w-[min(96vw,860px)] -translate-x-1/2 rounded-t-md border-t will-change-[opacity]"
         style={{
           borderColor: accent.a1,
           opacity: edge,
@@ -262,6 +298,8 @@ function TrainRide() {
   const firedRef = useRef(false);
   const [active, setActive] = useState(0);
 
+  // One swipe, however hard, carries the train one stop at a time (a fling would otherwise ride through all five).
+  useStepGuard(sectionRef, STOP_CENTRES, DWELL / 2);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end end"] });
   const smooth = useSpring(scrollYProgress, { stiffness: 120, damping: 28, mass: 0.35, restDelta: 0.00005 });
   // Distance between two stops in px (the CSS --st-gap), so the moving layers use plain numeric transforms.

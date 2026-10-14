@@ -16,8 +16,9 @@ const GlobeBackground = dynamic(() => import("@/components/design/GlobeBackgroun
 // headline sits BEHIND them and is hidden while they touch. Scrolling down pulls the hands apart, the headline is revealed between them, and the intro
 // copy and buttons fade in. The page then continues into the domain marquee.
 //
-// Assets (public/hero/): hand.png and robot.png, 1376x768, each shot on a PURE BLACK background and
-// blended with `mix-blend-mode: screen`, so the black disappears against the dark theme (no cut-outs).
+// Assets (public/hero/): hand-a.webp and robot-a.webp, 1376x768, made from hand.png / robot.png (shot on pure black) by turning
+// brightness into transparency and baking in the contrast boost. That replaces a full-screen `mix-blend-mode: screen`, which
+// forced the browser to re-blend two huge layers every frame and made the hero scroll at a fraction of 60 fps.
 //   hand.png  - forearm enters from the LEFT edge, index finger points right
 //   robot.png - forearm enters from the RIGHT edge, index finger points left
 //
@@ -71,7 +72,8 @@ export function HandRobotHero() {
 
   // Headline: small and centred behind the hands. It is hidden while they touch and is revealed as they part.
   const headScale = useTransform(p, [0.1, 0.6], [0.92, 1]);
-  const headBlur = useTransform(p, [0.1, 0.5], ["blur(6px)", "blur(0px)"]);
+  // "none" once sharp: even blur(0px) keeps the headline on its own filter layer for the whole rest of the page.
+  const headBlur = useTransform(p, (v) => (v >= 0.5 ? "none" : `blur(${(6 * Math.min(1, (0.5 - v) / 0.4)).toFixed(2)}px)`));
   const headDim = useTransform(p, [0.12, 0.55], [0, 1]);
   // Intro copy + buttons appear once there is room.
   const subOpacity = useTransform(p, [0.35, 0.62], [0, 1]);
@@ -125,16 +127,16 @@ export function HandRobotHero() {
           {/* The hands. Each image is positioned so its index fingertip lands on the stage centre. */}
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
             <div className="absolute" style={{ left: `calc(50% - ${HAND_TIP.x} * var(--hr-w))`, top: `calc(50% - ${HAND_TIP.y} * var(--hr-h))`, width: "var(--hr-w)" }}>
-              <motion.div className="mix-blend-screen will-change-transform" style={{ x: handX, y: handY, scale: handScale, opacity: partOpacity, transformOrigin: `${HAND_TIP.x * 100}% ${HAND_TIP.y * 100}%` }}>
+              <motion.div className="will-change-transform" style={{ x: handX, y: handY, scale: handScale, opacity: partOpacity, transformOrigin: `${HAND_TIP.x * 100}% ${HAND_TIP.y * 100}%` }}>
                 <div className="animate-float">
-                  <Image src="/hero/hand.png" alt="" width={1376} height={768} priority sizes="150vw" draggable={false} className="h-auto w-full select-none [filter:contrast(1.15)]" />
+                  <Image src="/hero/hand-a.webp" alt="" width={1376} height={768} priority sizes="150vw" draggable={false} className="h-auto w-full select-none" />
                 </div>
               </motion.div>
             </div>
             <div className="absolute" style={{ left: `calc(50% - ${ROBOT_TIP.x} * var(--hr-w))`, top: `calc(50% - ${ROBOT_TIP.y} * var(--hr-h))`, width: "var(--hr-w)" }}>
-              <motion.div className="mix-blend-screen will-change-transform" style={{ x: robotX, y: robotY, scale: robotScale, opacity: partOpacity, transformOrigin: `${ROBOT_TIP.x * 100}% ${ROBOT_TIP.y * 100}%` }}>
+              <motion.div className="will-change-transform" style={{ x: robotX, y: robotY, scale: robotScale, opacity: partOpacity, transformOrigin: `${ROBOT_TIP.x * 100}% ${ROBOT_TIP.y * 100}%` }}>
                 <div className="animate-float" style={{ animationDelay: "-3s" }}>
-                  <Image src="/hero/robot.png" alt="" width={1376} height={768} priority sizes="150vw" draggable={false} className="h-auto w-full select-none [filter:contrast(1.15)]" />
+                  <Image src="/hero/robot-a.webp" alt="" width={1376} height={768} priority sizes="150vw" draggable={false} className="h-auto w-full select-none" />
                 </div>
               </motion.div>
             </div>

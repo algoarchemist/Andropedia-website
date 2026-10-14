@@ -24,9 +24,9 @@
 
 ## Domains
 
-Five domains are open to applicants and shown publicly, in this order: **Technical**, **Web Development**, **Design**, **Media**, **PR**. Each is one vertex of the Andropedia logo.
+Five domains are open to applicants, in this order: **Technical**, **Web Development**, **Design**, **Media**, **PR**. The home page's domain wheel shows all six: Technical, Web Development, Design, Media, **R&D**, then PR last. Each of the five is one vertex of the Andropedia logo.
 
-**R&D / AI Labs** is internal: nobody applies to it directly. Members join one of the five domains and are moved to R&D later, so R&D stays in the member list, team page and portal but not in recruitment or the public domain pages.
+**R&D / AI Labs** is not applied to directly: members join one of the five domains and are moved to R&D later, so R&D stays in the member list, team page and portal, and is shown on the home page's domain wheel (new concepts, fresh ideas for the club, growth and event organisation) but not in recruitment or the public domain pages.
 
 ---
 
@@ -34,7 +34,7 @@ Five domains are open to applicants and shown publicly, in this order: **Technic
 
 ### Public site
 
-- **Landing page (`/`)**: a human hand and a robot arm touch at the fingertips; scrolling parts them and reveals the ANDROPEDIA headline. It continues into pinned storytelling, including a **domain wheel** where the logo is the progress bar (it lights from grey to blue through the five domains and shines at the end), the sprint snapshot, event highlights, and a honeycomb of the team.
+- **Landing page (`/`)**: a human hand and a robot arm touch at the fingertips; scrolling parts them and reveals the ANDROPEDIA headline. It continues into pinned storytelling, including a **domain wheel** where the logo is the progress bar (it lights from grey to blue through the six domains and shines at the end), the sprint snapshot, event highlights, and a honeycomb of the team.
 - **Navigation**: no bar. The wordmark goes home, **Recruitment** (top right) goes to the train on `/join`, and a handle at the top centre drops a **half rotary dial**: press a numbered hole, pull it round to the stop and let go to dial a page. Plain links under the dial cover keyboards and screen readers.
 - **Team (`/team`)**: core council, leads, co-leads and members with role badges. Clicking a card opens the member's profile.
 - **Projects (`/projects`)**: project cards with tech tags, demos and source links (managed by admins).

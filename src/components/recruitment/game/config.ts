@@ -41,9 +41,9 @@ export const DOMAIN_CLASS: Record<DomainId, DomainClass> = {
   pr: { title: "Hype Bard", tagline: "Talks sponsors into saying yes.", icon: Megaphone, type: "PR" },
 };
 
-/** Andy's lines. Index = level. */
+/** Thambi's lines. Index = level. */
 export const ANDY_HI = [
-  "Hi, I'm Andy! Tell me who you are and we're off.",
+  "Hi, I'm Thambi! Tell me who you are and we're off.",
   "Two quick ones. There are no wrong answers, only revealing ones.",
   "Pick your class. It decides your round and the team that reads you.",
   "Boss round! Be specific, we read every word.",

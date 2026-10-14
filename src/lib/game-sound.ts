@@ -1,5 +1,5 @@
 // Sounds for the gamified application form (the pin board), synthesised with the Web Audio API.
-// Only moments that matter get a sound, and none of them play while typing.
+// Only moments that matter get a sound. Typing has its own NK Cream keyboard sound (components/ui/KeyboardSound).
 //
 //   pin / boardClear   a note is pinned (a thock and a coin blip); the last note of a level adds a chime
 //   unpin              a note is opened for editing: paper rustle and a soft pop

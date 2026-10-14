@@ -11,7 +11,7 @@ export function Hero() {
       <BlurOrb variant="hero" size={1054} opacity={0.3} position={{ left: "50%", top: "62%" }} />
 
       <div className="relative z-10 mx-auto flex max-w-[850px] flex-col items-center gap-5 px-5 text-center">
-        <Link href="/join#how-selection-works" className="btn-glass" data-cursor-text="Join">
+        <Link href="/join" className="btn-glass" data-cursor-text="Join">
           Recruitment 2026 is open
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </Link>
