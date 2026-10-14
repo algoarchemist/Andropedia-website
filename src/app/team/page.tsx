@@ -2,9 +2,11 @@
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Users, Crown, Shield, Star, ArrowRight } from "lucide-react";
-import { AvatarRing, MemberModal, RoleChips, RoleIcon, Socials, type Selected } from "@/components/team/MemberProfile";
+import { Users, Crown, Shield, Star } from "lucide-react";
+import { AvatarRing, MemberModal, Socials, type Selected } from "@/components/team/MemberProfile";
 import { SoundButton } from "@/components/ui/SoundButton";
+import ProfileCard from "@/components/ui/ProfileCard";
+import { GithubIcon, InstagramIcon, LinkedinIcon } from "@/components/ui/SocialIcons";
 import { armSoundUnlock } from "@/lib/dial-sound";
 import { cardClick, cardGlow, cardHover } from "@/lib/tile-sound";
 import { accentVars } from "@/content/accents";
@@ -20,6 +22,32 @@ const hoverSpring = { type: "spring", stiffness: 320, damping: 22 } as const;
 
 /** Headings take the same colour as the domain's cards. */
 const sectionAccent = (id: keyof typeof DOMAIN_THEME) => accentVars({ name: id, a1: DOMAIN_THEME[id].a1, a2: DOMAIN_THEME[id].a2 });
+
+/** GitHub, LinkedIn and Instagram: only the ones the member has. */
+function SocialRow({ member }: { member: TeamMember }) {
+  const links = [
+    { url: member.github, label: "GitHub", Icon: GithubIcon },
+    { url: member.linkedin, label: "LinkedIn", Icon: LinkedinIcon },
+    { url: member.instagram, label: "Instagram", Icon: InstagramIcon },
+  ].filter((l) => l.url);
+  if (links.length === 0) return null;
+  return (
+    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      {links.map(({ url, label, Icon }) => (
+        <a key={label} href={url!} target="_blank" rel="noreferrer" className="tc-sq tc-sq-sm" aria-label={`${member.name} on ${label}`}>
+          <Icon className="h-3.5 w-3.5" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
+/** A stand-in photo for members without one: their initials on the card's colour, as an inline SVG. */
+const initialsPhoto = (name: string, a1: string, d: string) => {
+  const letters = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='500'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${a1}'/><stop offset='1' stop-color='${d}'/></linearGradient></defs><rect width='400' height='500' fill='url(#g)'/><text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle' font-family='monospace' font-weight='700' font-size='150' fill='white' fill-opacity='.9'>${letters}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+};
 
 /**
  * `title` is the line under the name, e.g. "President" or "Chief, Technical". Click or Enter opens the profile.
@@ -87,6 +115,7 @@ const MemberCard = memo(function MemberCard({ member, size, title, className = "
     <span key={ripple.id} aria-hidden="true" className="tc-ripple" style={{ left: ripple.x, top: ripple.y }} onAnimationEnd={() => setRipple(null)} />
   );
 
+  const large = size === "large";
   if (size === "compact") {
     return (
       <motion.div {...interactive} className="group tc tc-row cursor-pointer">
@@ -102,36 +131,50 @@ const MemberCard = memo(function MemberCard({ member, size, title, className = "
     );
   }
 
-  const large = size === "large";
+  // President, Vice President, Chiefs, Leads and Co-Leads get the tilting, holographic React Bits profile card. Click it (or its
+  // Profile button) to open the full profile, with the same ripple and sound as the other cards.
+  const photo = member.avatar || initialsPhoto(member.name, theme.a1, theme.d);
+  const handleOf = (url?: string | null) => url?.replace(/\/+$/, "").split("/").pop()?.replace(/^@/, "") || "";
   return (
-    <motion.div {...interactive} className={`group tc ${large ? "tc-lg w-full sm:w-80" : ""} flex cursor-pointer flex-col rounded-[20px] pb-5 text-center ${className}`}>
-      <div className="w-full flex-1 pb-[18px]">
-        <div className="tc-banner">
-          <span className="tc-dom">{theme.label}</span>
-        </div>
-        <AvatarRing member={member} ringClass={`tc-ring-ov ${large ? "tc-ring-lg" : ""}`} textClass={large ? "text-4xl" : "text-3xl"} />
-        <h3 className={`${large ? "text-2xl leading-[30px]" : "text-xl leading-[26px]"} mx-4 mt-3.5 break-words font-semibold uppercase text-white`}>{member.name}</h3>
-        {title && (
-          <p className="mx-4 mt-1 inline-flex items-center gap-1.5 text-[13px] font-medium leading-[18px]" style={{ color: "var(--t2)" }}>
-            <RoleIcon member={member} />
-            {title}
-          </p>
-        )}
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          <RoleChips member={member} />
-        </div>
-        {member.bio && <p className="mx-6 mt-4 line-clamp-3 text-xs leading-relaxed text-slate-400">{member.bio}</p>}
-      </div>
-      <div className="tc-foot">
-        <Socials member={member} />
-        <span className="tc-view">
-          Profile
-          <ArrowRight className="h-3 w-3" aria-hidden="true" />
-        </span>
-      </div>
-      <span className="tc-bar" aria-hidden="true" />
+    <div
+      ref={card}
+      className={`tc-pcard relative flex justify-center ${className}`}
+      role="button"
+      tabIndex={0}
+      aria-haspopup="dialog"
+      aria-label={`Open ${member.name}'s profile`}
+      data-cursor-text="View profile"
+      onClick={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        open(e.clientX - r.left, e.clientY - r.top);
+      }}
+      onPointerEnter={(e) => {
+        if (e.pointerType !== "touch") cardHover();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          const r = e.currentTarget.getBoundingClientRect();
+          open(r.width / 2, r.height * 0.35);
+        }
+      }}
+    >
+      <ProfileCard
+        name={member.name.toUpperCase()}
+        title={title ?? theme.label}
+        avatarUrl={photo}
+        miniAvatarUrl={photo}
+        handle={handleOf(member.github) || handleOf(member.instagram) || member.name.split(/\s+/)[0].toLowerCase()}
+        status={theme.label}
+        statusColor={theme.a1}
+        actions={<SocialRow member={member} />}
+        backdropColor={theme.d}
+        theme="dark"
+        radius={18}
+        className={large ? "w-full max-w-[340px]" : "w-full max-w-[300px]"}
+      />
       {burst}
-    </motion.div>
+    </div>
   );
 });
 

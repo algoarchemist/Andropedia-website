@@ -6,6 +6,7 @@ import { useRef } from "react";
 import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { AndropediaMark } from "@/components/design/AndropediaMark";
+import TechText from "@/components/ui/TechText";
 
 // three.js is about half a megabyte: load it after the page is interactive. The globe is a decorative backdrop, so the hands and
 // the headline never wait for it.
@@ -113,8 +114,13 @@ export function HandRobotHero() {
                 />
               </div>
 
-              <h1 className="font-mono font-bold uppercase tracking-[0.08em] text-[clamp(36px,8vw,110px)] leading-[0.9] bg-gradient-to-b from-white via-white/95 to-[#0066ff] bg-clip-text text-transparent filter drop-shadow-[0_0_35px_rgba(0,102,255,0.45)] select-none">
-                ANDROPEDIA
+              {/* The wordmark is drawn by React Bits' TechText (letters turn into dashed vector paths under the cursor), in the site's
+                  Space Mono. The h1 keeps the real text for screen readers and search engines. */}
+              <h1 aria-label="ANDROPEDIA" className="font-mono select-none">
+                <span className="sr-only">ANDROPEDIA</span>
+                <span aria-hidden="true" className="pointer-events-auto block h-[clamp(36px,8vw,110px)] w-[min(92vw,calc(clamp(36px,8vw,110px)*7.2))] drop-shadow-[0_0_35px_rgba(0,102,255,0.45)]">
+                  <TechText text="ANDROPEDIA" fontWeight={700} letterSpacing={0.08} color="#ffffff" colorEnd="#0066ff" accentColor="#38bdf8" reach={170} labels={false} specks={10} />
+                </span>
               </h1>
               <p className="font-mono text-[clamp(12px,1.6vw,20px)] font-bold uppercase tracking-[0.14em] drop-shadow-[0_0_15px_rgba(0,102,255,0.4)] sm:tracking-[0.18em]">
                 <span className="text-white">CREATE !</span>{" "}

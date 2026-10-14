@@ -22,6 +22,7 @@ import {
 import * as sfx from "@/lib/game-sound";
 import { GameBoard } from "./game/GameBoard";
 import { SoundToggle } from "./game/SoundToggle";
+import { HoldToConfirm } from "./HoldToConfirm";
 import { AndySays, type Mood } from "./game/Mascot";
 import { PowerBar } from "./game/PowerBar";
 import { StarterChips } from "./game/StarterChips";
@@ -1354,10 +1355,10 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
               Continue <ArrowRight className="h-[18px] w-[18px]" strokeWidth={2.5} aria-hidden="true" />
             </button>
           ) : (
-            <button type="submit" disabled={submitting} data-cursor-text="Apply" className="pb-btn">
+            <HoldToConfirm armed={form.consent} disabled={submitting} onStart={() => sfx.tile()} onConfirm={() => void submit()} onBlocked={() => void submit()}>
               <Send className="h-[18px] w-[18px]" strokeWidth={2.5} aria-hidden="true" />
-              {submitting ? "Submitting..." : "Submit application"}
-            </button>
+              {submitting ? "Submitting..." : form.consent ? "Hold to submit" : "Submit application"}
+            </HoldToConfirm>
           )}
           {step > 0 && (
             <button type="button" onClick={() => { sfx.tile(); goToStep(step - 1); }} className="pb-btn ghost">
@@ -1366,7 +1367,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
           )}
         </div>
         {step !== CLASS_STEP && (
-          <p className="pb-help">{step === LAST_STEP ? "Edit unpins that note and jumps you back to its level." : "Unpinned notes get flagged, never skipped."}</p>
+          <p className="pb-help">{step === LAST_STEP ? "Hold the button to confirm. Edit unpins that note and jumps you back to its level." : "Unpinned notes get flagged, never skipped."}</p>
         )}
       </form>
       <ToastRegion toasts={toasts} onDismiss={dismiss} />
