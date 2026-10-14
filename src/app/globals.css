@@ -585,3 +585,11 @@ html:has(body.gallery-open) { overflow: hidden; }
   .tc:hover .tc-ring, .tc:focus-visible .tc-ring, .tc:hover .tc-view svg, .tc:focus-visible .tc-view svg { transform: none; }
   .tc-ripple { display: none; }
 }
+
+/* ---- Intro ---- */
+html[data-intro-seen] #intro-root { display: none; }
+/* The navbar logo waits (invisible) while the intro's drawn logo flies toward its slot, then fades in as the drawn one fades out. */
+[data-intro-target] { transition: opacity 0.25s ease; }
+html[data-intro] [data-intro-target] { opacity: 0; }
+/* The page behind is revealed simply by the black fading away. (An animation on the whole hero section made the browser render it
+   offscreen on every frame, which cost more than the rest of the intro together.) */

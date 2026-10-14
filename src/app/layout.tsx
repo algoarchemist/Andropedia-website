@@ -3,6 +3,7 @@ import { Inter, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ConnectionBanner } from "@/components/ui/ConnectionBanner";
+import { IntroReveal } from "@/components/intro/IntroReveal";
 import { AnimationGovernor } from "@/components/ui/AnimationGovernor";
 import { KeyboardSound } from "@/components/ui/KeyboardSound";
 import { CustomCursor } from "@/components/ui/CustomCursor";
@@ -60,13 +61,20 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${spaceMono.variable} h-full antialiased dark`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* If the intro was already seen this session, say so before the first paint, so the black cover never flashes on a reload. */}
+        <script dangerouslySetInnerHTML={{ __html: `try{if(sessionStorage.getItem("andropedia:intro-seen")==="1")document.documentElement.setAttribute("data-intro-seen","1")}catch(e){}` }} />
+        <noscript><style>{`#intro-root{display:none!important}`}</style></noscript>
+      </head>
       <body className="relative min-h-full flex flex-col bg-black text-white font-sans selection:bg-[#0066ff]/40 selection:text-white">
         {/* Light highlighted blue gradient across the whole website */}
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_-8%,rgba(0,102,255,0.16),transparent_70%),radial-gradient(ellipse_70%_45%_at_50%_105%,rgba(0,82,204,0.12),transparent_70%)]"
         />
+        <IntroReveal />
         <MotionProvider>
           <AuthProvider>
             <CustomCursor />

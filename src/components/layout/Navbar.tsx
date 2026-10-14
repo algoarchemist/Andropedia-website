@@ -37,6 +37,11 @@ const subscribePhone = (onChange: () => void) => {
   return () => query.removeEventListener("change", onChange);
 };
 
+/** How long the pointer rests on the handle before the dial opens. */
+const OPEN_DELAY_MS = 130;
+/** The dial's easing: quick at first, then settling, no overshoot. */
+const OPEN_EASE = [0.16, 1, 0.3, 1] as const;
+
 export function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -47,25 +52,32 @@ export function Navbar() {
   const cardRef = useRef<HTMLDivElement>(null);
   const dialRef = useRef<HTMLDivElement>(null);
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const openTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const dragging = useRef(false);
   const open = hovered || pinned;
   const phone = useSyncExternalStore(subscribePhone, () => window.matchMedia(PHONE).matches, () => false);
 
   const close = useCallback(() => {
     clearTimeout(leaveTimer.current);
+    clearTimeout(openTimer.current);
     setHovered(false);
     setPinned(false);
   }, []);
 
   // Hover is for mice only. A touch screen fakes mouse events after a tap, which would open the menu
   // and swap the handle out before its click lands.
+  // Opening waits a moment (hover intent), so the dial does not fire when the pointer merely passes over the handle on its way
+  // elsewhere; once the dial is open, moving between its parts keeps it open at once.
   const enter = (e: React.PointerEvent) => {
     if (e.pointerType !== "mouse" || phone) return;
     clearTimeout(leaveTimer.current);
-    setHovered(true);
+    if (open) return;
+    clearTimeout(openTimer.current);
+    openTimer.current = setTimeout(() => setHovered(true), OPEN_DELAY_MS);
   };
   const leave = (e: React.PointerEvent) => {
     if (e.pointerType !== "mouse") return;
+    clearTimeout(openTimer.current); // the pointer left before the delay was up: do not open
     clearTimeout(leaveTimer.current);
     leaveTimer.current = setTimeout(() => {
       if (!dragging.current) setHovered(false);
@@ -188,6 +200,7 @@ export function Navbar() {
               <img
                 src="/logo.png"
                 alt="Andropedia"
+                data-intro-target
                 className="h-10 w-auto object-contain drop-shadow-[0_0_16px_rgba(0,102,255,0.75)] transition-all duration-300 group-hover:drop-shadow-[0_0_24px_rgba(0,212,255,0.95)]"
               />
             </Link>
@@ -241,19 +254,28 @@ export function Navbar() {
             id="site-menu"
             aria-label="Main"
             className="pointer-events-none fixed inset-0"
-            // No entrance or exit animation on the menu itself: it must be there the moment you hover and gone the moment you leave,
-            // even on a heavy page where every frame takes a while to draw.
+            // The nav itself stays until its parts have finished fading, so the dial and the dimmed page leave smoothly too.
             initial={false}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0 } }}
+            exit={{ opacity: 1, transition: { duration: reduce ? 0 : 0.2 } }}
           >
-            <div aria-hidden="true" className="pointer-events-auto absolute inset-0 touch-none bg-black/80" onPointerDown={close} />
+            {/* the dimmed page fades in and out (opacity only) */}
+            <motion.div
+              aria-hidden="true"
+              className="pointer-events-auto absolute inset-0 touch-none bg-black/80"
+              onPointerDown={close}
+              initial={reduce ? false : { opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: reduce ? 0 : 0.28, ease: "easeOut" } }}
+              exit={{ opacity: 0, transition: { duration: reduce ? 0 : 0.18, ease: "easeIn" } }}
+            />
+            {/* the dial unfolds out of the handle: it grows from the top centre while it fades in (transform and opacity only, so it
+                stays smooth even on a busy page) and folds back a little faster on the way out */}
             <motion.div
               className="absolute inset-0"
-              // Only a very short fade in, no movement: a slide or a spring takes several slow frames to play and feels like lag.
-              initial={reduce ? false : { opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: reduce ? 0 : 0.09 } }}
-              exit={{ opacity: 0, transition: { duration: 0 } }}
+              style={{ transformOrigin: "50% 0%", willChange: "transform, opacity" }}
+              initial={reduce ? false : { opacity: 0, scale: 0.9, y: -14 }}
+              animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: reduce ? 0 : 0.42, ease: OPEN_EASE } }}
+              exit={{ opacity: 0, scale: 0.94, y: -8, transition: { duration: reduce ? 0 : 0.2, ease: "easeIn" } }}
             >
               <RingDial
                 items={items}
@@ -266,17 +288,20 @@ export function Navbar() {
                 onPointerLeave={leave}
               />
             </motion.div>
-            <button
+            <motion.button
               type="button"
               onClick={close}
               aria-label="Close the dial menu"
+              initial={reduce ? false : { opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: reduce ? 0 : 0.3, delay: reduce ? 0 : 0.12 } }}
+              exit={{ opacity: 0, transition: { duration: reduce ? 0 : 0.15 } }}
               data-dial-zone
               onPointerEnter={enter}
               onPointerLeave={leave}
               className="pointer-events-auto absolute left-1/2 top-3 h-[30px] w-[100px] -translate-x-1/2 rounded-full border border-white/30 bg-white/[0.08] font-mono text-[11px] text-white shadow-[inset_0_0_20px_rgba(204,215,255,0.08)] backdrop-blur-[12px] transition-colors hover:bg-white/[0.14] focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400"
             >
               Close ×
-            </button>
+            </motion.button>
           </motion.nav>
         )}
       </AnimatePresence>

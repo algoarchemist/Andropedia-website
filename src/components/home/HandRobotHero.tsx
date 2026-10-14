@@ -92,7 +92,7 @@ export function HandRobotHero() {
           <div className="pointer-events-none absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2" aria-hidden="true">
             <motion.div style={{ scale: ringScale, opacity: ringOpacity }}>
               <div
-                className="h-[min(78vw,560px)] w-[min(78vw,560px)] rounded-full"
+                className="h-[min(78vw,560px,calc((max(100svh,640px)-56px)/1.35))] w-[min(78vw,560px,calc((max(100svh,640px)-56px)/1.35))] rounded-full"
                 style={{
                   background: "conic-gradient(from 210deg, #00d4ff, #0066ff, #001a66, #0044cc, #00d4ff)",
                   WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 22px), #000 calc(100% - 21px))",
@@ -118,7 +118,7 @@ export function HandRobotHero() {
                   Space Mono. The h1 keeps the real text for screen readers and search engines. */}
               <h1 aria-label="ANDROPEDIA" className="font-mono select-none">
                 <span className="sr-only">ANDROPEDIA</span>
-                <span aria-hidden="true" className="pointer-events-auto block h-[clamp(36px,8vw,110px)] w-[min(92vw,calc(clamp(36px,8vw,110px)*7.2))] drop-shadow-[0_0_35px_rgba(0,102,255,0.45)]">
+                <span aria-hidden="true" className="pointer-events-auto block h-[clamp(40px,8.7vw,123px)] w-[min(94vw,calc(clamp(40px,8.7vw,123px)*7.2))] drop-shadow-[0_0_35px_rgba(0,102,255,0.45)]">
                   <TechText text="ANDROPEDIA" fontWeight={700} letterSpacing={0.08} color="#ffffff" colorEnd="#0066ff" accentColor="#38bdf8" reach={170} labels={false} specks={10} />
                 </span>
               </h1>
@@ -134,14 +134,16 @@ export function HandRobotHero() {
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
             <div className="absolute" style={{ left: `calc(50% - ${HAND_TIP.x} * var(--hr-w))`, top: `calc(50% - ${HAND_TIP.y} * var(--hr-h))`, width: "var(--hr-w)" }}>
               <motion.div className="will-change-transform" style={{ x: handX, y: handY, scale: handScale, opacity: partOpacity, transformOrigin: `${HAND_TIP.x * 100}% ${HAND_TIP.y * 100}%` }}>
-                <div className="animate-float">
+                {/* (no idle bobbing here: animating two full-width photographs forced the browser to recomposite them every frame,
+                    which alone held the hero near 45 fps on modest GPUs) */}
+                <div>
                   <Image src="/hero/hand-a.webp" alt="" width={1376} height={768} priority sizes="150vw" draggable={false} className="h-auto w-full select-none" />
                 </div>
               </motion.div>
             </div>
             <div className="absolute" style={{ left: `calc(50% - ${ROBOT_TIP.x} * var(--hr-w))`, top: `calc(50% - ${ROBOT_TIP.y} * var(--hr-h))`, width: "var(--hr-w)" }}>
               <motion.div className="will-change-transform" style={{ x: robotX, y: robotY, scale: robotScale, opacity: partOpacity, transformOrigin: `${ROBOT_TIP.x * 100}% ${ROBOT_TIP.y * 100}%` }}>
-                <div className="animate-float" style={{ animationDelay: "-3s" }}>
+                <div>
                   <Image src="/hero/robot-a.webp" alt="" width={1376} height={768} priority sizes="150vw" draggable={false} className="h-auto w-full select-none" />
                 </div>
               </motion.div>
