@@ -28,6 +28,7 @@ export default function EvaluationsPage() {
   const [feedback, setFeedback] = useState("");
   const [evalSubmitting, setEvalSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const totalScore = technicalDepth + innovation + completion + documentation;
 
@@ -58,6 +59,7 @@ export default function EvaluationsPage() {
     if (!selectedTask) return;
     setEvalSubmitting(true);
     setSuccessMsg("");
+    setErrorMsg("");
 
     try {
       const res = await fetch("/api/evaluations", {
@@ -81,9 +83,12 @@ export default function EvaluationsPage() {
         setSuccessMsg(`Task "${selectedTask.title}" successfully graded with ${totalScore} pts!`);
         fetchTasks();
         setTimeout(() => setSuccessMsg(""), 4000);
+      } else {
+        setErrorMsg(data.error ?? "Could not save the grade.");
       }
     } catch (err) {
       console.error("Evaluation error:", err);
+      setErrorMsg("Could not reach the server. Try again.");
     } finally {
       setEvalSubmitting(false);
     }
@@ -115,6 +120,10 @@ export default function EvaluationsPage() {
               <ExternalLink className="h-3.5 w-3.5" />
             </Link>
           </div>
+
+          {errorMsg && (
+            <div role="alert" className="rounded-2xl border border-rose-500/35 bg-rose-500/10 p-4 text-sm text-rose-200">{errorMsg}</div>
+          )}
 
           {successMsg && (
             <div className="flex items-center gap-2 rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4 text-sm text-emerald-300">

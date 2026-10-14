@@ -8,6 +8,7 @@ import {
   Send,
   Trophy,
   CheckSquare,
+  ClipboardList,
   ShieldAlert,
   Sparkles,
   LogOut,
@@ -32,7 +33,12 @@ export function PortalNav() {
     { name: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
     { name: "Submit Task", href: "/portal/submit-task", icon: Send },
     { name: "Leaderboard", href: "/portal/leaderboard", icon: Trophy, highlight: true },
-    ...(isLead ? [{ name: "Evaluations", href: "/portal/evaluations", icon: CheckSquare }] : []),
+    ...(isLead
+      ? [
+          { name: "Post Tasks", href: "/portal/tasks", icon: ClipboardList },
+          { name: "Evaluations", href: "/portal/evaluations", icon: CheckSquare },
+        ]
+      : []),
     ...(isAdmin ? [{ name: "Admin Panel", href: "/portal/admin", icon: ShieldAlert }] : []),
     { name: "Password", href: "/portal/account", icon: KeyRound },
   ];

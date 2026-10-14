@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { hashPassword, normalizeRegisterNo } from "./password";
 import { prisma } from "./prisma";
 import {
-  User, Week, Task, Evaluation, LeaderboardEntry, DomainType, RoleType, ClubPosition,
+  User, Week, Task, TaskPrompt, Evaluation, LeaderboardEntry, DomainType, RoleType, ClubPosition,
 } from "./types";
 import { recordAudit } from "./audit";
 import { computeLeaderboard, type BoardPeriod } from "./leaderboard";
@@ -537,4 +537,135 @@ export async function removeMemberPhoto(actorId: string, id: string): Promise<Us
 export async function getMemberPhoto(id: string): Promise<{ mime: string; data: Uint8Array } | null> {
   const photo = await prisma.memberPhoto.findUnique({ where: { userId: id } });
   return photo ? { mime: photo.mime, data: photo.data } : null;
+}
+
+// ---------------------------------------------------------------- task prompts (set by leads)
+
+export interface TaskPromptInput {
+  weekId: string;
+  domain: DomainType;
+  title: string;
+  description: string;
+  resourceUrl?: string | null;
+  dueDate?: string | null;
+}
+
+const promptInclude = { week: true, file: { select: { name: true, size: true } } } as const;
+type DbPrompt = Prisma.TaskPromptGetPayload<{ include: typeof promptInclude }>;
+
+export const MAX_PROMPT_PDF_BYTES = 4 * 1024 * 1024;
+
+function mapPrompt(p: DbPrompt): TaskPrompt {
+  return {
+    id: p.id,
+    weekId: p.weekId,
+    weekNumber: p.week.weekNumber,
+    domain: DOMAIN_FROM_DB[p.domain],
+    title: p.title,
+    description: p.description,
+    resourceUrl: p.resourceUrl ?? undefined,
+    dueDate: p.dueDate ? dateOnly(p.dueDate) : undefined,
+    fileName: p.file?.name,
+    fileSize: p.file?.size,
+    createdById: p.createdById,
+    updatedAt: p.updatedAt.toISOString(),
+  };
+}
+
+export async function getTaskPrompts(filters: { weekId?: string | null; domain?: DomainType | null } = {}): Promise<TaskPrompt[]> {
+  const where: Prisma.TaskPromptWhereInput = {};
+  if (filters.weekId) where.weekId = filters.weekId;
+  if (filters.domain) {
+    const domain = toDbDomain(filters.domain);
+    if (!domain) return [];
+    where.domain = domain;
+  }
+  const rows = await prisma.taskPrompt.findMany({
+    where,
+    include: promptInclude,
+    orderBy: [{ week: { weekNumber: "desc" } }, { domain: "asc" }],
+  });
+  return rows.map(mapPrompt);
+}
+
+type PromptActor = { id: string; role: RoleType; domain: DomainType };
+
+/** Sets (or edits) the task for one domain in one week. Domain leads may only touch their own domain. */
+export async function saveTaskPrompt(input: TaskPromptInput, actor: PromptActor): Promise<TaskPrompt> {
+  if (actor.role !== "domain_admin" && actor.role !== "super_admin") throw new ForbiddenError("Only leads can set tasks.");
+  const domain = toDbDomain(input.domain);
+  if (!domain) throw new NotFoundError(`Unknown domain: ${input.domain}`);
+  if (actor.role === "domain_admin" && actor.domain !== input.domain) {
+    throw new ForbiddenError("You can only set tasks for your own domain.");
+  }
+
+  const week = await prisma.week.findUnique({ where: { id: input.weekId }, select: { id: true } });
+  if (!week) throw new NotFoundError("Sprint week not found");
+
+  const fields = {
+    title: input.title,
+    description: input.description,
+    resourceUrl: input.resourceUrl || null,
+    dueDate: input.dueDate ? new Date(input.dueDate) : null,
+  };
+  const saved = await prisma.$transaction(async (tx) => {
+    const row = await tx.taskPrompt.upsert({
+      where: { weekId_domain: { weekId: input.weekId, domain } },
+      create: { weekId: input.weekId, domain, createdById: actor.id, ...fields },
+      update: fields,
+      include: promptInclude,
+    });
+    await recordAudit({ actorId: actor.id, action: "prompt.save", target: row.id, meta: { weekId: input.weekId, domain: input.domain } }, tx);
+    return row;
+  });
+  return mapPrompt(saved);
+}
+
+export async function deleteTaskPrompt(id: string, actor: PromptActor): Promise<void> {
+  if (actor.role !== "domain_admin" && actor.role !== "super_admin") throw new ForbiddenError("Only leads can remove tasks.");
+  const row = await prisma.taskPrompt.findUnique({ where: { id }, select: { id: true, domain: true } });
+  if (!row) throw new NotFoundError("Task not found");
+  if (actor.role === "domain_admin" && DOMAIN_FROM_DB[row.domain] !== actor.domain) {
+    throw new ForbiddenError("You can only remove tasks for your own domain.");
+  }
+  await prisma.$transaction(async (tx) => {
+    await tx.taskPrompt.delete({ where: { id } });
+    await recordAudit({ actorId: actor.id, action: "prompt.delete", target: id, meta: { domain: DOMAIN_FROM_DB[row.domain] } }, tx);
+  });
+}
+/** Attaches (or replaces) the PDF brief. Same rule as editing the task: leads for their own domain, super admins for any. */
+export async function setPromptFile(id: string, file: { name: string; data: Uint8Array }, actor: PromptActor): Promise<TaskPrompt> {
+  await assertCanEditPrompt(id, actor);
+  const fields = { name: file.name, size: file.data.length, data: file.data as Uint8Array<ArrayBuffer> };
+  const saved = await prisma.$transaction(async (tx) => {
+    await tx.taskPromptFile.upsert({ where: { promptId: id }, create: { promptId: id, ...fields }, update: fields });
+    await recordAudit({ actorId: actor.id, action: "prompt.file", target: id, meta: { name: file.name, size: file.data.length } }, tx);
+    return tx.taskPrompt.findUniqueOrThrow({ where: { id }, include: promptInclude });
+  });
+  return mapPrompt(saved);
+}
+
+export async function removePromptFile(id: string, actor: PromptActor): Promise<void> {
+  await assertCanEditPrompt(id, actor);
+  await prisma.$transaction(async (tx) => {
+    await tx.taskPromptFile.deleteMany({ where: { promptId: id } });
+    await recordAudit({ actorId: actor.id, action: "prompt.file.remove", target: id }, tx);
+  });
+}
+
+async function assertCanEditPrompt(id: string, actor: PromptActor): Promise<void> {
+  if (actor.role !== "domain_admin" && actor.role !== "super_admin") throw new ForbiddenError("Only leads can change tasks.");
+  const row = await prisma.taskPrompt.findUnique({ where: { id }, select: { domain: true } });
+  if (!row) throw new NotFoundError("Task not found");
+  if (actor.role === "domain_admin" && DOMAIN_FROM_DB[row.domain] !== actor.domain) {
+    throw new ForbiddenError("You can only change tasks for your own domain.");
+  }
+}
+
+/** The PDF, for anyone allowed to see the task: its own domain, or any domain for a super admin. */
+export async function getPromptFile(id: string, viewer: { role: RoleType; domain: DomainType }): Promise<{ name: string; data: Uint8Array } | null> {
+  const row = await prisma.taskPrompt.findUnique({ where: { id }, select: { domain: true, file: true } });
+  if (!row?.file) return null;
+  if (viewer.role !== "super_admin" && DOMAIN_FROM_DB[row.domain] !== viewer.domain) return null;
+  return { name: row.file.name, data: row.file.data };
 }

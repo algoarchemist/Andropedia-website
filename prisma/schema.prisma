@@ -109,6 +109,37 @@ model Week {
   createdAt         DateTime     @default(now())
 
   tasks             Task[]
+  prompts           TaskPrompt[]
+}
+
+// The task a domain lead sets for their domain in a given week. Members of that domain see it on the
+// submit page; their submission (`Task`) is the answer. One per week per domain (posting again edits it).
+model TaskPrompt {
+  id          String   @id @default(cuid())
+  weekId      String
+  week        Week     @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  domain      Domain
+  title       String
+  description String
+  resourceUrl String?  // brief, starter repo, Figma file...
+  dueDate     DateTime?
+  createdById String   // no foreign key on purpose, like AuditLog
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  file        TaskPromptFile?
+
+  @@unique([weekId, domain])
+  @@index([domain])
+}
+
+// A PDF brief attached to a task. Kept apart so listing tasks never loads the file bytes.
+model TaskPromptFile {
+  promptId  String     @id
+  prompt    TaskPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  name      String
+  size      Int
+  data      Bytes
+  updatedAt DateTime   @updatedAt
 }
 
 model Task {
