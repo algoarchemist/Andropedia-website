@@ -192,6 +192,7 @@ export default function Events() {
         : a.dateTbc ? Date.parse(a.startsAt) - Date.parse(b.startsAt) : Date.parse(b.startsAt) - Date.parse(a.startsAt)
     );
   const currentList = activeTab === "upcoming" ? upcoming : past;
+  const archive = activeTab === "past";
 
   const tab = (id: "upcoming" | "past", label: string, count: number) => (
     <button
@@ -241,7 +242,8 @@ export default function Events() {
           </p>
         )}
 
-        <div className="space-y-6 max-w-5xl mx-auto">
+        {/* Upcoming events stay a list. The archive is long, so it is a grid, three cards to a row on a wide screen, to cut the scrolling. */}
+        <div className={archive ? "mx-auto grid max-w-6xl grid-cols-1 items-stretch gap-5 md:grid-cols-2 lg:grid-cols-3" : "space-y-6 max-w-5xl mx-auto"}>
           {currentList.map((ev) => {
             const badge = BADGE[ev.status];
             const photos = ev.images.length;
@@ -256,7 +258,7 @@ export default function Events() {
             return (
               <div
                 key={ev.id}
-                className={`glass-panel p-8 rounded-3xl border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 ${open ? "cursor-pointer" : ""}`}
+                className={`glass-panel border border-white/10 hover:border-emerald-500/30 transition-all flex justify-between gap-6 ${archive ? "h-full flex-col rounded-2xl p-6" : "flex-col rounded-3xl p-8 md:flex-row md:items-center"} ${open ? "cursor-pointer" : ""}`}
                 data-cursor-text={open ? "View photos" : "Event"}
                 onClick={open}
                 onPointerEnter={open && ((e) => e.pointerType !== "touch" && cardHover())}
@@ -265,13 +267,13 @@ export default function Events() {
                 tabIndex={open ? 0 : undefined}
                 aria-label={open ? `${ev.title}: view event photos` : undefined}
               >
-                <div className="space-y-3 max-w-2xl">
+                <div className={`space-y-3 ${archive ? "w-full" : "max-w-2xl"}`}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-slate-400 uppercase">{ev.type}</span>
                     <span className={`text-xs font-mono font-medium px-2.5 py-0.5 rounded-full border ${badge.color}`}>{badge.label}</span>
                   </div>
-                  <h2 className="text-2xl font-bold text-white hover:text-emerald-300 transition-colors">{ev.title}</h2>
-                  <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">{ev.description}</p>
+                  <h2 className={`${archive ? "text-xl" : "text-2xl"} font-bold text-white hover:text-emerald-300 transition-colors`}>{ev.title}</h2>
+                  <p className={`text-sm text-slate-300 leading-relaxed whitespace-pre-line ${archive && open ? "line-clamp-5" : ""}`}>{ev.description}</p>
                   <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 font-mono pt-2">
                     <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-emerald-400" /><span>{when(ev)}</span></div>
                     <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-cyan-400" /><span>{ev.location}</span></div>

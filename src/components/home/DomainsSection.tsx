@@ -15,7 +15,7 @@ export function DomainsSection() {
         <div className="relative mx-auto max-w-[800px] space-y-3 pt-6 text-center">
           <TitleLines className="-top-2 hidden sm:block" />
           <Reveal>
-            <p className="text-fade text-[20px] leading-7 tracking-[-0.96px] sm:text-[24px]">Five specialised domains</p>
+            <p className="text-fade text-[20px] leading-7 tracking-[-0.96px] sm:text-[24px]">Six specialised domains</p>
           </Reveal>
           <RevealLines className="text-[34px] font-medium leading-[1.1] tracking-[-2px] sm:text-[50px]">
             <span className="text-fade">Find the track that fits</span>
@@ -26,8 +26,8 @@ export function DomainsSection() {
         <DomainsWheel className="hidden motion-safe:block" />
 
         <Stagger as="ul" className="grid gap-6 md:grid-cols-2 lg:grid-cols-6 motion-safe:hidden" stagger={0.09}>
-          {HOME_DOMAINS.map((d, i) => (
-            <StaggerItem as="li" key={d.id} className={`h-full lg:col-span-2 ${i === 3 ? "lg:col-start-2" : ""}`}>
+          {HOME_DOMAINS.map((d) => (
+            <StaggerItem as="li" key={d.id} className="h-full lg:col-span-2">
               <DomainCard d={d} />
             </StaggerItem>
           ))}

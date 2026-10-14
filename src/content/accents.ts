@@ -18,6 +18,8 @@ export const ACCENTS = {
   amber: { name: "amber", a1: "#0052cc", a2: "#8cbfff" },
   coral: { name: "coral", a1: "#0284c7", a2: "#60a5fa" },
   indigo: { name: "indigo", a1: "#1d4ed8", a2: "#93c5fd" },
+  // Only the "Join us" ring on the dial menu is red, so the call to action stands out.
+  red: { name: "red", a1: "#ef4444", a2: "#fca5a5" },
 } satisfies Record<string, Accent>;
 
 export const DOMAIN_ACCENT: Record<DomainType, Accent> = {

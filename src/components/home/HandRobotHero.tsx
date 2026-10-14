@@ -6,6 +6,7 @@ import { useRef } from "react";
 import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { AndropediaMark } from "@/components/design/AndropediaMark";
+import TechText from "@/components/ui/TechText";
 
 // three.js is about half a megabyte: load it after the page is interactive. The globe is a decorative backdrop, so the hands and
 // the headline never wait for it.
@@ -16,8 +17,9 @@ const GlobeBackground = dynamic(() => import("@/components/design/GlobeBackgroun
 // headline sits BEHIND them and is hidden while they touch. Scrolling down pulls the hands apart, the headline is revealed between them, and the intro
 // copy and buttons fade in. The page then continues into the domain marquee.
 //
-// Assets (public/hero/): hand.png and robot.png, 1376x768, each shot on a PURE BLACK background and
-// blended with `mix-blend-mode: screen`, so the black disappears against the dark theme (no cut-outs).
+// Assets (public/hero/): hand-a.webp and robot-a.webp, 1376x768, made from hand.png / robot.png (shot on pure black) by turning
+// brightness into transparency and baking in the contrast boost. That replaces a full-screen `mix-blend-mode: screen`, which
+// forced the browser to re-blend two huge layers every frame and made the hero scroll at a fraction of 60 fps.
 //   hand.png  - forearm enters from the LEFT edge, index finger points right
 //   robot.png - forearm enters from the RIGHT edge, index finger points left
 //
@@ -71,7 +73,8 @@ export function HandRobotHero() {
 
   // Headline: small and centred behind the hands. It is hidden while they touch and is revealed as they part.
   const headScale = useTransform(p, [0.1, 0.6], [0.92, 1]);
-  const headBlur = useTransform(p, [0.1, 0.5], ["blur(6px)", "blur(0px)"]);
+  // "none" once sharp: even blur(0px) keeps the headline on its own filter layer for the whole rest of the page.
+  const headBlur = useTransform(p, (v) => (v >= 0.5 ? "none" : `blur(${(6 * Math.min(1, (0.5 - v) / 0.4)).toFixed(2)}px)`));
   const headDim = useTransform(p, [0.12, 0.55], [0, 1]);
   // Intro copy + buttons appear once there is room.
   const subOpacity = useTransform(p, [0.35, 0.62], [0, 1]);
@@ -111,8 +114,13 @@ export function HandRobotHero() {
                 />
               </div>
 
-              <h1 className="font-mono font-bold uppercase tracking-[0.08em] text-[clamp(36px,8vw,110px)] leading-[0.9] bg-gradient-to-b from-white via-white/95 to-[#0066ff] bg-clip-text text-transparent filter drop-shadow-[0_0_35px_rgba(0,102,255,0.45)] select-none">
-                ANDROPEDIA
+              {/* The wordmark is drawn by React Bits' TechText (letters turn into dashed vector paths under the cursor), in the site's
+                  Space Mono. The h1 keeps the real text for screen readers and search engines. */}
+              <h1 aria-label="ANDROPEDIA" className="font-mono select-none">
+                <span className="sr-only">ANDROPEDIA</span>
+                <span aria-hidden="true" className="pointer-events-auto block h-[clamp(36px,8vw,110px)] w-[min(92vw,calc(clamp(36px,8vw,110px)*7.2))] drop-shadow-[0_0_35px_rgba(0,102,255,0.45)]">
+                  <TechText text="ANDROPEDIA" fontWeight={700} letterSpacing={0.08} color="#ffffff" colorEnd="#0066ff" accentColor="#38bdf8" reach={170} labels={false} specks={10} />
+                </span>
               </h1>
               <p className="font-mono text-[clamp(12px,1.6vw,20px)] font-bold uppercase tracking-[0.14em] drop-shadow-[0_0_15px_rgba(0,102,255,0.4)] sm:tracking-[0.18em]">
                 <span className="text-white">CREATE !</span>{" "}
@@ -125,16 +133,16 @@ export function HandRobotHero() {
           {/* The hands. Each image is positioned so its index fingertip lands on the stage centre. */}
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
             <div className="absolute" style={{ left: `calc(50% - ${HAND_TIP.x} * var(--hr-w))`, top: `calc(50% - ${HAND_TIP.y} * var(--hr-h))`, width: "var(--hr-w)" }}>
-              <motion.div className="mix-blend-screen will-change-transform" style={{ x: handX, y: handY, scale: handScale, opacity: partOpacity, transformOrigin: `${HAND_TIP.x * 100}% ${HAND_TIP.y * 100}%` }}>
+              <motion.div className="will-change-transform" style={{ x: handX, y: handY, scale: handScale, opacity: partOpacity, transformOrigin: `${HAND_TIP.x * 100}% ${HAND_TIP.y * 100}%` }}>
                 <div className="animate-float">
-                  <Image src="/hero/hand.png" alt="" width={1376} height={768} priority sizes="150vw" draggable={false} className="h-auto w-full select-none [filter:contrast(1.15)]" />
+                  <Image src="/hero/hand-a.webp" alt="" width={1376} height={768} priority sizes="150vw" draggable={false} className="h-auto w-full select-none" />
                 </div>
               </motion.div>
             </div>
             <div className="absolute" style={{ left: `calc(50% - ${ROBOT_TIP.x} * var(--hr-w))`, top: `calc(50% - ${ROBOT_TIP.y} * var(--hr-h))`, width: "var(--hr-w)" }}>
-              <motion.div className="mix-blend-screen will-change-transform" style={{ x: robotX, y: robotY, scale: robotScale, opacity: partOpacity, transformOrigin: `${ROBOT_TIP.x * 100}% ${ROBOT_TIP.y * 100}%` }}>
+              <motion.div className="will-change-transform" style={{ x: robotX, y: robotY, scale: robotScale, opacity: partOpacity, transformOrigin: `${ROBOT_TIP.x * 100}% ${ROBOT_TIP.y * 100}%` }}>
                 <div className="animate-float" style={{ animationDelay: "-3s" }}>
-                  <Image src="/hero/robot.png" alt="" width={1376} height={768} priority sizes="150vw" draggable={false} className="h-auto w-full select-none [filter:contrast(1.15)]" />
+                  <Image src="/hero/robot-a.webp" alt="" width={1376} height={768} priority sizes="150vw" draggable={false} className="h-auto w-full select-none" />
                 </div>
               </motion.div>
             </div>

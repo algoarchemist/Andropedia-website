@@ -53,7 +53,7 @@ export default function JoinPage() {
             Take the leap. Build real systems, solve high-stakes problems, and climb the club leaderboard alongside the sharpest minds on campus.
           </p>
           <a
-            href="#apply"
+            href="#how-selection-works"
             className="btn-glow"
             data-cursor-text="Apply"
           >

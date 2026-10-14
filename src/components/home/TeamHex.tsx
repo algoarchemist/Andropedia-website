@@ -13,6 +13,7 @@ import { MemberModal, type Selected } from "@/components/team/MemberProfile";
 import { GithubIcon, InstagramIcon, LinkedinIcon } from "@/components/ui/SocialIcons";
 import { HEX_DOMAINS } from "@/content/home";
 import { armSoundUnlock } from "@/lib/dial-sound";
+import { getCachedMembers, setCachedMembers } from "@/lib/members-cache";
 import { tileBreak, tileHover } from "@/lib/tile-sound";
 import { ACCENTS, DOMAIN_ACCENT, accentVars, type Accent } from "@/content/accents";
 import { POSITION_LABELS, TEAM_DOMAINS, groupTeam, type TeamMember } from "@/lib/team";
@@ -358,7 +359,7 @@ function PersonTile({ member, title, accent, big, onSelect }: TileProps) {
 }
 
 export function TeamHex() {
-  const [members, setMembers] = useState<TeamMember[] | null>(null);
+  const [members, setMembers] = useState<TeamMember[] | null>(() => getCachedMembers());
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [selected, setSelected] = useState<Selected | null>(null);
 
@@ -369,7 +370,10 @@ export function TeamHex() {
     fetch("/api/members")
       .then((r) => r.json())
       .then((d) => {
-        if (!cancelled && d.success) setMembers(d.members);
+        if (!cancelled && d.success) {
+          setCachedMembers(d.members); // the team page starts from this, so /team#core can show Core immediately
+          setMembers(d.members);
+        }
       })
       .catch(() => undefined);
     return () => {

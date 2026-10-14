@@ -145,17 +145,36 @@ export function dragStart(turn: number) {
 /** Ratchet clicks as the dial turns, one every few degrees, a little higher in pitch the further it is pulled. */
 export function dragMove(turn: number) {
   const c = audio();
-  if (!c) return;
   let clicks = 0;
   while (Math.abs(turn - lastTick) >= TICK_EVERY && clicks < 3) {
     lastTick += Math.sign(turn - lastTick) * TICK_EVERY;
-    click(c, c.currentTime + clicks * 0.004, { freq: 1800 + lastTick * 12, vol: 0.2 });
+    if (c) click(c, c.currentTime + clicks * 0.004, { freq: 1800 + lastTick * 12, vol: 0.2 });
     clicks++;
+  }
+  if (clicks) haptic(3); // a faint tick under the finger for each ratchet click
+}
+
+/**
+ * A very short vibration on phones that support it (Chrome on Android; iPhones ignore it). Kept deliberately subtle: a few
+ * milliseconds, at most one every 30 ms, and none for visitors who asked for reduced motion.
+ */
+let lastBuzz = 0;
+function haptic(ms: number) {
+  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const now = performance.now();
+  if (now - lastBuzz < 30) return;
+  lastBuzz = now;
+  try {
+    navigator.vibrate(ms);
+  } catch {
+    // vibration is a nicety; ignore browsers that refuse it
   }
 }
 
 /** The hole reaches the finger stop: a dull knock. */
 export function stopThunk() {
+  haptic(14); // the dial hits its finger stop: one slightly firmer pulse
   const c = audio();
   if (!c) return;
   const t = c.currentTime;

@@ -21,7 +21,7 @@
 .pb *, .pb *::before, .pb *::after { box-sizing: border-box; }
 .pb button, .pb input, .pb textarea { font-family: inherit; }
 
-/* ------------------------------------------------------------ header: level, xp, track, Andy */
+/* ------------------------------------------------------------ header: level, xp, track, Thambi */
 .pb-eyebrow { margin: 0; font: 700 11px/16px var(--pb-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--pb-soft); }
 .pb-xp { display: inline-flex; align-items: center; border: 1px solid var(--pb-blue); border-radius: 2px; padding: 4px 8px; font: 700 11px/16px var(--pb-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--pb-sky); }
 .pb-h { margin: 0; font: 700 28px/1.05 var(--pb-mono); letter-spacing: -0.04em; text-transform: uppercase; color: #fff; outline: none; }

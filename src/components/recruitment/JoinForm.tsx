@@ -22,6 +22,7 @@ import {
 import * as sfx from "@/lib/game-sound";
 import { GameBoard } from "./game/GameBoard";
 import { SoundToggle } from "./game/SoundToggle";
+import { HoldToConfirm } from "./HoldToConfirm";
 import { AndySays, type Mood } from "./game/Mascot";
 import { PowerBar } from "./game/PowerBar";
 import { StarterChips } from "./game/StarterChips";
@@ -553,7 +554,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
   /** The one note that is open for editing, if any. */
   const [openKey, setOpenKey] = useState<string | null>(() =>
     firstOpen(initialDraft?.step ?? 0, initialDraft?.form.domain ?? "", initialDraft?.pinned ?? []));
-  /** What Andy says after a note is pinned or a level is cleared, until the player changes something. */
+  /** What Thambi says after a note is pinned or a level is cleared, until the player changes something. */
   const [andyMsg, setAndyMsg] = useState<string | null>(null);
   const [stamp, setStamp] = useState<{ id: number; key: string; text: string; big: boolean } | null>(null);
   const [restored, setRestored] = useState(initialDraft !== null);
@@ -1141,7 +1142,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
     };
   };
 
-  // Andy reacts to what is on this level right now.
+  // Thambi reacts to what is on this level right now.
   const stepErrors = stepKeys(step, form.domain).filter((k) => errors[k]).length + levelNotes.filter((n) => errors[flagKey(n)]).length;
   const mood: Mood = stepErrors > 0 || serverError ? "oops" : andyMsg ? "cheer" : "hi";
   const andyText =
@@ -1354,10 +1355,10 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
               Continue <ArrowRight className="h-[18px] w-[18px]" strokeWidth={2.5} aria-hidden="true" />
             </button>
           ) : (
-            <button type="submit" disabled={submitting} data-cursor-text="Apply" className="pb-btn">
+            <HoldToConfirm armed={form.consent} disabled={submitting} onStart={() => sfx.tile()} onConfirm={() => void submit()} onBlocked={() => void submit()}>
               <Send className="h-[18px] w-[18px]" strokeWidth={2.5} aria-hidden="true" />
-              {submitting ? "Submitting..." : "Submit application"}
-            </button>
+              {submitting ? "Submitting..." : form.consent ? "Hold to submit" : "Submit application"}
+            </HoldToConfirm>
           )}
           {step > 0 && (
             <button type="button" onClick={() => { sfx.tile(); goToStep(step - 1); }} className="pb-btn ghost">
@@ -1366,7 +1367,7 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
           )}
         </div>
         {step !== CLASS_STEP && (
-          <p className="pb-help">{step === LAST_STEP ? "Edit unpins that note and jumps you back to its level." : "Unpinned notes get flagged, never skipped."}</p>
+          <p className="pb-help">{step === LAST_STEP ? "Hold the button to confirm. Edit unpins that note and jumps you back to its level." : "Unpinned notes get flagged, never skipped."}</p>
         )}
       </form>
       <ToastRegion toasts={toasts} onDismiss={dismiss} />

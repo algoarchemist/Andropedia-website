@@ -17,9 +17,17 @@ export function GlobeBackground() {
     const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
     camera.position.z = 3.2;
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: "low-power" });
+    // A faint wireframe does not need a full-resolution canvas: drawing it at 3/4 size and letting the browser scale it keeps the
+    // hero scrolling smoothly on weaker GPUs. (setSize is called with updateStyle=false so the canvas still fills its box.)
+    const SCALE = 0.75;
+    renderer.setPixelRatio(1);
+    const resize = (w: number, h: number) => {
+      renderer.setSize(Math.max(1, Math.round(w * SCALE)), Math.max(1, Math.round(h * SCALE)), false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    };
+    resize(container.clientWidth, container.clientHeight);
 
     // Globe Container Group
     const globeGroup = new THREE.Group();
@@ -65,33 +73,50 @@ export function GlobeBackground() {
     const particles = new THREE.Points(particleGeo, particleMat);
     globeGroup.add(particles);
 
-    let animationFrameId: number;
-
-    // Smooth continuous rotation loop
-    function animate() {
-      animationFrameId = requestAnimationFrame(animate);
-      
-      globeGroup.rotation.y += 0.0018;
-      globeGroup.rotation.x += 0.0004;
-
+    // Draw only while the hero is on screen and the tab is visible, and at most ~30 times a second: the globe turns very slowly, and
+    // a full-screen WebGL canvas drawn at 60 fps (even after scrolling past the hero) was what dragged the whole page down.
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let animationFrameId = 0;
+    let onScreen = true;
+    let last = 0;
+    function frame(now: number) {
+      animationFrameId = 0;
+      if (!onScreen || document.hidden) return;
+      animationFrameId = requestAnimationFrame(frame);
+      if (now - last < 33) return;
+      const dt = Math.min(3, (now - last) / 16.7);
+      last = now;
+      if (!reduceMotion) {
+        globeGroup.rotation.y += 0.0018 * dt;
+        globeGroup.rotation.x += 0.0004 * dt;
+      }
       renderer.render(scene, camera);
     }
-    animate();
+    const start = () => {
+      if (!animationFrameId && onScreen && !document.hidden) animationFrameId = requestAnimationFrame(frame);
+    };
+    start();
+
+    const io = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      if (onScreen) start();
+    });
+    io.observe(container);
+    document.addEventListener("visibilitychange", start);
 
     // Handle resizing dynamically based on the container
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height);
+        if (width > 0 && height > 0) resize(width, height);
       }
     });
-    
     resizeObserver.observe(container);
 
     return () => {
       resizeObserver.disconnect();
+      io.disconnect();
+      document.removeEventListener("visibilitychange", start);
       cancelAnimationFrame(animationFrameId);
       
       // Cleanup Three.js resources
