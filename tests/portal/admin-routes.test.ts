@@ -17,7 +17,6 @@ const db = vi.hoisted(() => {
     user: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(async () => []), update: vi.fn(), count: vi.fn(), create: vi.fn() },
     session: { deleteMany: vi.fn() },
     week: { findMany: vi.fn(async () => []), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-    application: { findMany: vi.fn(async () => []) },
     event: { findMany: vi.fn(async () => []) },
     project: { findMany: vi.fn(async () => []) },
   };
@@ -26,7 +25,6 @@ const db = vi.hoisted(() => {
 });
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 
-import { GET as applications } from "@/app/api/admin/applications/route";
 import { GET as audit } from "@/app/api/admin/audit/route";
 import { GET as events } from "@/app/api/admin/events/route";
 import { GET as members, POST as addMember } from "@/app/api/admin/members/route";
@@ -48,7 +46,6 @@ afterEach(() => vi.clearAllMocks());
 
 describe("every admin endpoint is super-admin only", () => {
   const routes: Array<[string, () => Promise<Response>]> = [
-    ["GET applications", () => applications(req())],
     ["GET audit", () => audit(req())],
     ["GET events", () => events(req())],
     ["GET members", () => members(req())],

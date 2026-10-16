@@ -26,7 +26,7 @@ export function MemberAvatar({ member, className = "h-9 w-9 rounded-xl" }: { mem
   const [failedSrc, setFailedSrc] = useState("");
   if (member.avatar && failedSrc !== member.avatar) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img loading="lazy" decoding="async" src={member.avatar} alt={member.name} onError={() => setFailedSrc(member.avatar)} className={`${className} object-cover`} />;
+    return <img loading="lazy" decoding="async" src={member.avatar} alt={member.name} onError={() => setFailedSrc(member.avatar)} className={`${className} object-cover object-top`} />;
   }
   const initials = member.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
   return (

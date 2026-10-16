@@ -29,7 +29,7 @@ export default function LeaderboardPage() {
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await fetch(`/api/leaderboard?domain=${domain}&period=${period}`);
+      const res = await fetch(`/api/leaderboard?domain=${encodeURIComponent(domain)}&period=${period}`);
       const data = await res.json();
       if (data.success) {
         setEntries(data.leaderboard);
@@ -248,7 +248,7 @@ export default function LeaderboardPage() {
                       <td className="px-6 py-4 text-center">
                         <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/10 px-2 py-0.5 text-[10px] font-mono text-rose-300">
                           <Flame className="h-3 w-3" />
-                          {entry.streakWeeks}w
+                          {entry.streakDays}d
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center font-mono font-semibold text-emerald-300">{entry.avgScore}%</td>

@@ -1,3 +1,4 @@
+import { istDay, loginStreak } from "./login-streak";
 import type { DomainType, LeaderboardEntry } from "./types";
 
 // Leaderboard maths, kept free of any database code so it can be tested directly.
@@ -25,10 +26,14 @@ export interface BoardInput {
   evaluations: BoardEvaluation[];
   /** The week currently open for submissions, if any. Used for the "weekly" view. */
   activeWeekId?: string | null;
+  /** "YYYY-MM-DD" days each member (by id) signed in on. The streak is counted from these. */
+  loginDays?: Record<string, string[]>;
   now?: Date;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Days in a row signed in for the "Streak Fire" badge. */
+const STREAK_FIRE_DAYS = 7;
 
 const DOMAIN_BADGE: Partial<Record<DomainType, string>> = {
   Web: "Fullstack Pioneer",
@@ -63,22 +68,6 @@ export function evaluationsForPeriod(
   return evaluations;
 }
 
-/**
- * Consecutive weeks with a graded task, ending at the latest graded week in the club (or the one
- * before it, so a member whose latest task simply hasn't been graded yet keeps their streak).
- */
-export function streakWeeks(userWeekNumbers: number[], latestClubWeek: number): number {
-  const weeks = new Set(userWeekNumbers);
-  let cursor = weeks.has(latestClubWeek) ? latestClubWeek : weeks.has(latestClubWeek - 1) ? latestClubWeek - 1 : null;
-  if (cursor === null) return 0;
-  let streak = 0;
-  while (weeks.has(cursor)) {
-    streak++;
-    cursor--;
-  }
-  return streak;
-}
-
 function rankEntries(users: BoardUser[], evaluations: BoardEvaluation[]) {
   const totals = new Map<string, { total: number; count: number }>();
   for (const e of evaluations) {
@@ -106,19 +95,18 @@ export function computeLeaderboard(input: BoardInput, domain: DomainType | "All"
     if (before.length > 0) rankEntries(users, before).forEach((r, i) => previousRank.set(r.user.id, i + 1));
   }
 
-  const weeksByUser = new Map<string, number[]>();
-  for (const e of input.evaluations) weeksByUser.set(e.userId, [...(weeksByUser.get(e.userId) ?? []), e.weekNumber]);
+  const today = istDay(now);
   const allTime = new Map<string, number>();
   for (const e of input.evaluations) allTime.set(e.userId, (allTime.get(e.userId) ?? 0) + e.score);
 
   return ranked.map((r, index) => {
     const rank = index + 1;
-    const streak = streakWeeks(weeksByUser.get(r.user.id) ?? [], latestWeek);
+    const streak = loginStreak(input.loginDays?.[r.user.id] ?? [], today);
     const prev = previousRank.get(r.user.id);
 
     const badges: string[] = [];
     if ((allTime.get(r.user.id) ?? 0) >= 350) badges.push("Grandmaster");
-    if (streak >= 4) badges.push("Streak Fire");
+    if (streak >= STREAK_FIRE_DAYS) badges.push("Streak Fire");
     const domainBadge = DOMAIN_BADGE[r.user.domain];
     if (domainBadge) badges.push(domainBadge);
 
@@ -131,7 +119,7 @@ export function computeLeaderboard(input: BoardInput, domain: DomainType | "All"
       totalScore: r.total,
       avgScore: r.count > 0 ? Math.round(r.total / r.count) : 0,
       tasksCompleted: r.count,
-      streakWeeks: streak,
+      streakDays: streak,
       rankChange: prev === undefined ? 0 : prev - rank,
       badges,
     };

@@ -6,6 +6,7 @@ import {
 } from "./types";
 import { recordAudit } from "./audit";
 import { computeLeaderboard, type BoardPeriod } from "./leaderboard";
+import { getLoginDays } from "./login-days";
 import { checkMemberChange, checkMemberDelete, checkWeekDates, decideSubmission, type MemberPatch } from "./rules";
 import { memberPhotoUrl } from "./member-profile";
 
@@ -20,7 +21,7 @@ export class ConflictError extends Error {}
 const DOMAIN_TO_DB = {
   Technical: "TECHNICAL", Web: "WEB", PR: "PR", "R&D": "RD", Design: "DESIGN", Media: "MEDIA",
 } as const;
-const DOMAIN_FROM_DB: Record<string, DomainType> = {
+export const DOMAIN_FROM_DB: Record<string, DomainType> = {
   TECHNICAL: "Technical", WEB: "Web", PR: "PR", RD: "R&D", DESIGN: "Design", MEDIA: "Media",
 };
 const ROLE_FROM_DB: Record<string, RoleType> = {
@@ -310,15 +311,23 @@ export async function getLeaderboard(domain?: string, period?: string): Promise<
   if (domainFilter === null) return []; // unknown domain -> no results
 
   const [users, evaluations, activeWeek] = await Promise.all([
-    prisma.user.findMany({ where: { role: "MEMBER", isActive: true }, select: { id: true, name: true, avatar: true, domain: true } }),
+    // Members compete, and so do co-leads even when they hold lead access to grade. Leads and super admins do not.
+    prisma.user.findMany({
+      where: { isActive: true, OR: [{ role: "MEMBER" }, { position: "CO_LEAD", role: { not: "SUPER_ADMIN" } }] },
+      select: { id: true, name: true, avatar: true, domain: true },
+    }),
     prisma.evaluation.findMany({
       select: { score: true, evaluatedAt: true, task: { select: { userId: true, weekId: true, week: { select: { weekNumber: true } } } } },
     }),
     prisma.week.findFirst({ where: { isActive: true }, select: { id: true } }),
   ]);
 
+  // A streak that cannot be read (the table is missing before migrations run) leaves the board at 0 days instead of failing it.
+  const loginDays = await getLoginDays(users.map((u) => u.id)).catch(() => ({}));
+
   return computeLeaderboard(
     {
+      loginDays,
       users: users.map((u) => ({ id: u.id, name: u.name, avatar: u.avatar ?? "", domain: DOMAIN_FROM_DB[u.domain] })),
       evaluations: evaluations.map((e) => ({
         userId: e.task.userId,
@@ -484,6 +493,32 @@ export async function updateMember(actorId: string, id: string, patch: MemberPat
       },
       tx
     );
+    return user;
+  });
+  return mapUser(updated);
+}
+
+export interface OwnProfilePatch {
+  bio?: string;
+  /** Cleaned links; an empty string clears the field. */
+  linkedin?: string;
+  github?: string;
+  instagram?: string;
+}
+
+/** A member edits their own about text and social links. Name, role, position and the rest stay with the super admins. */
+export async function updateOwnProfile(userId: string, patch: OwnProfilePatch): Promise<User> {
+  const data: Prisma.UserUpdateInput = {};
+  const changed: string[] = [];
+  for (const key of ["bio", "linkedin", "github", "instagram"] as const) {
+    const value = patch[key];
+    if (value === undefined) continue;
+    data[key] = value.trim() || null;
+    changed.push(key);
+  }
+  const updated = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({ where: { id: userId }, data });
+    await recordAudit({ actorId: userId, action: "member.profile", target: userId, meta: { fields: changed } }, tx);
     return user;
   });
   return mapUser(updated);

@@ -71,6 +71,18 @@ model User {
   passwordResets  PasswordReset[]
   photo           MemberPhoto?
   attendance      AttendanceRecord[]
+  loginDays       LoginDay[]
+  announcementReads AnnouncementRead[]
+}
+
+// One row per member per day (India time, "YYYY-MM-DD") on which they signed in or opened the portal. The streak and the
+// "days logged in" count come from these rows.
+model LoginDay {
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day    String
+
+  @@id([userId, day])
 }
 
 // Profile picture uploaded by a super admin from the portal (already resized in the browser).
@@ -229,10 +241,51 @@ model Application {
   emailSentAt   DateTime?
   sheetSyncedAt DateTime?
   createdAt     DateTime  @default(now())
+  reviews       ApplicationReview[]
 
   @@index([createdAt])
   @@index([status])
   @@index([domain])
+}
+
+// A reviewer's private rating (1 to 10) and comment on one application, for their own reference. One per reviewer per application:
+// saving again edits it. Leads see only their own; super admins see everyone's. `reviewerId` has no foreign key, like AuditLog.
+model ApplicationReview {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  reviewerId    String
+  rating        Int?
+  comment       String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([applicationId, reviewerId])
+  @@index([applicationId])
+}
+
+// A message a lead posts for their domain's members (`domain` null = everyone, super admins only), shown on the dashboard.
+model Announcement {
+  id        String             @id @default(cuid())
+  domain    Domain?
+  title     String
+  body      String
+  authorId  String             // no foreign key on purpose, like AuditLog
+  createdAt DateTime           @default(now())
+  reads     AnnouncementRead[]
+
+  @@index([createdAt])
+}
+
+// Which announcements a member has already seen, so the dashboard can mark the rest "new".
+model AnnouncementRead {
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, announcementId])
+  @@index([announcementId])
 }
 
 // Who changed what: grading, week changes, role and account changes. No foreign key on purpose,

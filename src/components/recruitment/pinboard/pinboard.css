@@ -217,9 +217,12 @@ textarea.pb-in { height: auto; padding: 10px 12px; resize: none; margin-top: 10p
 .pb-ref { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 2px; padding: 8px 8px 8px 12px; font: 400 12px/16px var(--pb-mono); color: rgba(255, 255, 255, 0.8); }
 .pb-ref b { color: var(--pb-bright); font-weight: 700; user-select: all; overflow-wrap: anywhere; }
 .pb-cp { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 2px solid #fff; border-radius: 4px; background: transparent; color: #fff; font: 700 11px/1 var(--pb-mono); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; flex: none; }
-.pb-wa { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 96px; padding: 16px; border: 2px solid #fff; border-radius: 4px; background: var(--pb-blue); color: #fff; box-shadow: 0 6px 0 var(--pb-dark); text-align: left; text-decoration: none; }
-.pb-wa b { display: block; font: 700 20px/1.15 var(--pb-mono); letter-spacing: -0.02em; text-transform: uppercase; }
-.pb-wa span span { display: block; margin-top: 4px; font: 500 13px/18px var(--pb-sans); color: #dbeafe; }
+.pb-wa { display: flex; flex-direction: column; gap: 12px; width: 100%; padding: 16px; border: 2px solid #fff; border-radius: 4px; background: var(--pb-blue); box-shadow: 0 6px 0 var(--pb-dark); }
+.pb-wa-msg { margin: 0; font: 700 18px/1.2 var(--pb-mono); letter-spacing: -0.02em; text-transform: uppercase; color: #fff; }
+.pb-wa-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 52px; border: 2px solid #fff; border-radius: 4px; background: #1a9c4b; color: #fff; font: 700 14px/1 var(--pb-mono); letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none; box-shadow: 0 4px 0 var(--pb-dark); }
+.pb-wa-btn:hover { background: #17893f; }
+.pb-wa-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--pb-dark); }
+.pb-wa-btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .pb-btn.outline { background: transparent; border-color: #fff; box-shadow: none; }
 
 /* ------------------------------------------------------------ progress track (square tiles) */

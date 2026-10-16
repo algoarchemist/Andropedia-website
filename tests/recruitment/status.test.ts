@@ -9,7 +9,7 @@ vi.mock("@/lib/recruitment/decision", async (importOriginal) => {
 });
 vi.mock("@/lib/prisma", () => ({ prisma: { application: { findUnique: vi.fn(), update: vi.fn() } } }));
 
-import { PATCH } from "@/app/api/admin/applications/[id]/route";
+import { PATCH } from "@/app/api/applications/[id]/route";
 import { POST as lookup } from "@/app/api/recruitment/lookup/route";
 import { recordAudit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
@@ -17,11 +17,11 @@ import { prisma } from "@/lib/prisma";
 import { sendDecision } from "@/lib/recruitment/decision";
 import { resetRateLimits } from "@/lib/recruitment/rate-limit";
 
-const admin = { id: "u1", role: "super_admin" };
+const admin = { id: "u1", role: "super_admin", domain: "Web" };
 const app = { id: "a1", reference: "REC-AAAA1111", name: "Priya", email: "priya@college.edu", status: "new" };
 
 const patch = (body: unknown) =>
-  PATCH(new NextRequest("http://localhost/api/admin/applications/a1", { method: "PATCH", body: JSON.stringify(body) }), {
+  PATCH(new NextRequest("http://localhost/api/applications/a1", { method: "PATCH", body: JSON.stringify(body) }), {
     params: Promise.resolve({ id: "a1" }),
   });
 const find = (body: unknown, ip = "1.1.1.1") =>
@@ -38,12 +38,12 @@ beforeEach(() => {
 });
 afterEach(() => vi.clearAllMocks());
 
-describe("PATCH /api/admin/applications/[id]", () => {
+describe("PATCH /api/applications/[id]", () => {
   it("is refused for anyone who is not a super admin", async () => {
     vi.mocked(requireUser).mockResolvedValue({ ok: false, response: new Response(null, { status: 403 }) } as never);
     expect((await patch({ status: "accepted" })).status).toBe(403);
     expect(prisma.application.update).not.toHaveBeenCalled();
-    expect(vi.mocked(requireUser).mock.calls[0][1]).toEqual(["super_admin"]);
+    expect(vi.mocked(requireUser).mock.calls[0][1]).toEqual(["domain_admin", "super_admin"]);
   });
 
   it("changes the status, emails the applicant when asked, and records an audit entry", async () => {

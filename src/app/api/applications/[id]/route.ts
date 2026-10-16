@@ -6,16 +6,20 @@ import { jsonError, readJson } from "@/lib/http";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { APPLICATION_STATUSES, sendDecision } from "@/lib/recruitment/decision";
+import { applicationScope, canAccessApplication } from "@/lib/recruitment/scope";
 
 const patchSchema = z.object({
   status: z.enum(APPLICATION_STATUSES),
   notify: z.boolean().optional().default(false),
 });
 
-// Move an applicant to a new status, optionally emailing them the decision (super admin only).
+// Move an applicant to a new status (accept, reject, shortlist), optionally emailing them the decision.
+// A lead can decide only applicants to their own domain; a super admin can decide any.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireUser(request, ["super_admin"]);
+  const auth = await requireUser(request, ["domain_admin", "super_admin"]);
   if (!auth.ok) return auth.response;
+  const scope = applicationScope(auth.user);
+  if (!scope) return jsonError("Your club role does not have access to this.", 403);
   const { id } = await params;
 
   const body = await readJson(request, 2 * 1024);
@@ -27,7 +31,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const existing = await prisma.application.findUnique({ where: { id } });
-    if (!existing) return jsonError("Application not found.", 404);
+    // The same answer for "no such application" and "another domain's": a lead learns nothing about other domains.
+    if (!existing || !canAccessApplication(scope, existing.domain)) return jsonError("Application not found.", 404);
     const application = await prisma.application.update({ where: { id }, data: { status } });
 
     let emailed: boolean | null = null;
@@ -44,7 +49,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       actorId: auth.user.id,
       action: "application.status",
       target: id,
-      meta: { reference: application.reference, from: existing.status, to: status, emailed },
+      meta: { reference: application.reference, domain: application.domain, from: existing.status, to: status, emailed },
     });
     return NextResponse.json({ success: true, application, emailed });
   } catch (err) {

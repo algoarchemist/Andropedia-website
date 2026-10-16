@@ -20,3 +20,28 @@ export async function shrinkImage(file: File, opts: { maxEdge: number; square?: 
     bitmap.close();
   }
 }
+
+const canvasToBlob = (canvas: HTMLCanvasElement, quality: number) =>
+  new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+
+/**
+ * Browser-only: encodes a canvas as a JPEG of at most `maxBytes`, whatever the picture. It lowers the quality first and, if that is
+ * not enough, the size, so a result always comes back. Transparent areas turn white (JPEG has no transparency).
+ */
+export async function jpegUnder(canvas: HTMLCanvasElement, maxBytes: number): Promise<Blob> {
+  let current = canvas;
+  for (let round = 0; round < 8; round++) {
+    for (const quality of [0.9, 0.8, 0.7, 0.6, 0.5]) {
+      const blob = await canvasToBlob(current, quality);
+      if (blob && blob.size <= maxBytes) return blob;
+    }
+    const smaller = document.createElement("canvas");
+    smaller.width = Math.max(64, Math.round(current.width * 0.8));
+    smaller.height = Math.max(64, Math.round(current.height * 0.8));
+    const ctx = smaller.getContext("2d");
+    if (!ctx) break;
+    ctx.drawImage(current, 0, 0, smaller.width, smaller.height);
+    current = smaller;
+  }
+  throw new Error("Could not make that photo small enough. Try a different one.");
+}

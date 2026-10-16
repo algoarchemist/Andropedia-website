@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { hashPassword, normalizeRegisterNo, verifyPassword } from "./password";
 import { prisma } from "./prisma";
 import { mapUser } from "./data-store";
+import { recordLoginDay } from "./login-days";
+import { istDay } from "./login-streak";
 import type { RoleType, User } from "./types";
 
 export const SESSION_COOKIE = "andropedia_session";
@@ -20,6 +22,7 @@ export async function createSession(userId: string): Promise<{ token: string; ex
   const token = crypto.randomBytes(32).toString("base64url");
   const expires = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   await prisma.session.create({ data: { tokenHash: sha256(token), userId, expiresAt: expires } });
+  await recordLoginDay(userId); // signing in counts as a day for the streak
 
   // Keep at most MAX_SESSIONS_PER_USER sessions: the oldest ones are signed out.
   const stale = await prisma.session.findMany({
@@ -64,6 +67,8 @@ export async function getSessionUser(): Promise<User | null> {
   }
   if (Date.now() - session.lastUsedAt.getTime() > SESSION_TOUCH_MS) {
     await prisma.session.update({ where: { id: session.id }, data: { lastUsedAt: new Date() } });
+    // Sessions last two weeks, so a member who opens the portal on a new day without signing in again still counts for that day.
+    if (istDay(session.lastUsedAt) !== istDay(new Date())) await recordLoginDay(session.userId);
   }
   return mapUser(session.user);
 }
