@@ -4,9 +4,10 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { KeyboardEvent, ReactNode, Ref } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, CalendarClock, Check, Copy, Lock, MessageSquareText, Pencil, Pin, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarClock, Check, Copy, Lock, Pencil, Pin, Send } from "lucide-react";
 import { RECRUIT_DOMAINS } from "@/content/recruitment";
 import { ToastRegion, useToasts } from "@/components/ui/Toast";
+import { WhatsappIcon } from "@/components/ui/SocialIcons";
 import { DOMAIN_ACCENT, ACCENTS } from "@/content/accents";
 import {
   ALL_QUESTION_IDS,
@@ -70,7 +71,8 @@ const TILTS = [-1.1, 0.9, -0.7, 0.8];
 /** The class cards lean a little more, like notes dropped on the board. */
 const CLASS_TILTS = [2.2, -2.4, 1.6, -1.8, 2];
 const FUN_LINE = "Error 404: boring application not found";
-const WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? "";
+// The club community invite. NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL overrides it when the link is rotated.
+const WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL || "https://chat.whatsapp.com/EzHzmH66GkU2Qx6LtNDJ4T";
 
 const ALL_QUESTIONS: Question[] = [...UNIVERSAL_QUESTIONS, ...DOMAIN_IDS.flatMap((d) => DOMAIN_QUESTIONS[d])];
 const QUESTION_BY_ID = new Map(ALL_QUESTIONS.map((q) => [q.id, q]));
@@ -946,13 +948,13 @@ function ApplicationForm({ initialDraft }: { initialDraft: Draft | null }) {
           </div>
 
           {WHATSAPP_URL && (
-            <a className="pb-wa" href={WHATSAPP_URL} target="_blank" rel="noreferrer">
-              <MessageSquareText className="h-10 w-10 shrink-0" aria-hidden="true" />
-              <span>
-                <b>Join the WhatsApp community</b>
-                <span>Domain challenges drop here first.</span>
-              </span>
-            </a>
+            <div className="pb-wa">
+              <p className="pb-wa-msg">Join our WhatsApp community</p>
+              <a className="pb-wa-btn" href={WHATSAPP_URL} target="_blank" rel="noreferrer">
+                <WhatsappIcon className="h-6 w-6 shrink-0 text-white" />
+                Join now
+              </a>
+            </div>
           )}
 
           <Link href="/" className="pb-btn outline">
