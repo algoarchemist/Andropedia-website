@@ -16,7 +16,6 @@ import { useAuth } from "@/lib/auth-context";
 import { Week, User, ClubPosition, RoleType } from "@/lib/types";
 import { PortalAccessGate } from "@/components/portal/PortalAccessGate";
 import { EventsAdmin } from "@/components/portal/EventsAdmin";
-import { ApplicantsAdmin } from "@/components/portal/ApplicantsAdmin";
 import { ProjectsAdmin } from "@/components/portal/ProjectsAdmin";
 import { AuditAdmin } from "@/components/portal/AuditAdmin";
 import { WeekCreate } from "@/components/portal/WeekCreate";
@@ -352,7 +351,6 @@ export default function AdminPage() {
               </table>
             </div>
           </div>
-          <ApplicantsAdmin />
           <EventsAdmin />
           <ProjectsAdmin />
           <AuditAdmin names={Object.fromEntries(members.map((m) => [m.id, m.name]))} />

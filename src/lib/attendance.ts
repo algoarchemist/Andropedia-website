@@ -166,3 +166,31 @@ export async function deleteAttendanceSession(actorId: string, sessionId: string
   await prisma.attendanceSession.delete({ where: { id: sessionId } });
   await recordAudit({ actorId, action: "attendance.session.delete", target: sessionId, meta: { title: session.title } });
 }
+
+export interface MemberAttendance {
+  attended: Array<{ id: string; kind: "event" | "club_hour"; title: string; heldOn: string; hours: number | null }>;
+  /** Sessions held so far (events and club hours), whether or not this member was there. */
+  sessionsHeld: number;
+  /** How many of those this member was at. A session marked ahead of its date is listed in `attended` but not counted here yet. */
+  attendedCount: number;
+  /** Club hours across the sessions this member attended. */
+  clubHours: number;
+}
+
+/** The sessions and events a member was marked present at, newest first, with how many were held in all. */
+export async function getMemberAttendance(userId: string, now: Date = new Date()): Promise<MemberAttendance> {
+  const [records, sessionsHeld] = await Promise.all([
+    prisma.attendanceRecord.findMany({
+      where: { userId },
+      include: { session: { select: { id: true, kind: true, title: true, heldOn: true, hours: true } } },
+    }),
+    prisma.attendanceSession.count({ where: { heldOn: { lte: now } } }),
+  ]);
+  const attended = records
+    .map((r) => r.session)
+    .sort((a, b) => b.heldOn.getTime() - a.heldOn.getTime())
+    .map((s) => ({ id: s.id, kind: (s.kind === "EVENT" ? "event" : "club_hour") as "event" | "club_hour", title: s.title, heldOn: s.heldOn.toISOString(), hours: s.hours }));
+  const clubHours = attended.reduce((sum, s) => sum + (s.kind === "club_hour" ? (s.hours ?? 0) : 0), 0);
+  const attendedCount = attended.filter((s) => new Date(s.heldOn).getTime() <= now.getTime()).length;
+  return { attended, sessionsHeld, attendedCount, clubHours };
+}

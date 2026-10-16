@@ -98,7 +98,8 @@ export interface LeaderboardEntry {
   totalScore: number;
   avgScore: number;
   tasksCompleted: number;
-  streakWeeks: number;
+  /** Consecutive days signed in, counted back from today. */
+  streakDays: number;
   rankChange: number; // e.g. +2, -1, 0
   badges: string[];
 }

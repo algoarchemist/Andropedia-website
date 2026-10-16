@@ -69,3 +69,21 @@ export const linkedinField = z
     if (cleaned === null) ctx.addIssue({ code: "custom", message: "Paste a LinkedIn profile link (linkedin.com/in/...)." });
     return cleaned ?? "";
   });
+
+/** Builds a form field from a link cleaner: a cleaned link, an empty string to clear it, or a validation message. */
+const profileField = (clean: (value: string) => string | null, message: string) =>
+  z
+    .string()
+    .max(300)
+    .transform((value, ctx) => {
+      if (!value.trim()) return "";
+      const cleaned = clean(value);
+      if (cleaned === null) ctx.addIssue({ code: "custom", message });
+      return cleaned ?? "";
+    });
+
+/** Form field: a GitHub profile link or username, cleaned. An empty string clears it. */
+export const githubField = profileField(normalizeGithub, "Paste your GitHub profile link or username.");
+
+/** Form field: an Instagram profile link or handle, cleaned. An empty string clears it. */
+export const instagramField = profileField(normalizeInstagram, "Paste your Instagram profile link or handle.");

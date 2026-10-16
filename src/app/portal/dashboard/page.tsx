@@ -13,17 +13,23 @@ import {
   ArrowRight,
   ExternalLink,
   Star,
+  Hourglass,
+  MessageSquareQuote,
 } from "lucide-react";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { useAuth } from "@/lib/auth-context";
-import { Task, Week } from "@/lib/types";
+import { Task, TaskPrompt, Week } from "@/lib/types";
+import { AnnouncementFeed } from "@/components/portal/AnnouncementFeed";
+import { daysLeft, describeDaysLeft } from "@/lib/days-left";
 import { PortalAccessGate } from "@/components/portal/PortalAccessGate";
 
 export default function DashboardPage() {
   const { currentUser, isLoading: authLoading } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activeWeek, setActiveWeek] = useState<Week | null>(null);
-  // Same streak the leaderboard shows (computed there from graded weeks), so the two pages always agree.
+  // The task this member's lead set for the open week, if any (its due date drives the countdown).
+  const [prompt, setPrompt] = useState<TaskPrompt | null>(null);
+  // Consecutive days signed in: the same number the leaderboard and the profile show.
   const [streak, setStreak] = useState(0);
   const [, setLoading] = useState(true);
 
@@ -40,15 +46,18 @@ export default function DashboardPage() {
         const dataWeeks = await resWeeks.json();
         if (dataWeeks.success) {
           const current = dataWeeks.weeks.find((w: Week) => w.isActive);
-          setActiveWeek(current || dataWeeks.weeks[dataWeeks.weeks.length - 1]);
+          const shown: Week | undefined = current || dataWeeks.weeks[dataWeeks.weeks.length - 1];
+          setActiveWeek(shown ?? null);
+          if (current) {
+            const resPrompt = await fetch(`/api/prompts?weekId=${encodeURIComponent(current.id)}`, { cache: "no-store" });
+            const dataPrompt = await resPrompt.json().catch(() => null);
+            if (dataPrompt?.success) setPrompt((dataPrompt.prompts as TaskPrompt[]).find((p) => p.domain === currentUser?.domain) ?? null);
+          }
         }
 
-        const resBoard = await fetch("/api/leaderboard");
-        const dataBoard = await resBoard.json();
-        if (dataBoard.success) {
-          const mine = (dataBoard.leaderboard as Array<{ userId: string; streakWeeks: number }>).find((e) => e.userId === currentUser?.id);
-          setStreak(mine?.streakWeeks ?? 0);
-        }
+        const resStreak = await fetch("/api/me/streak", { cache: "no-store" });
+        const dataStreak = await resStreak.json();
+        if (dataStreak.success) setStreak(dataStreak.streak);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
       } finally {
@@ -63,6 +72,13 @@ export default function DashboardPage() {
   const evaluatedTasks = tasks.filter((t) => t.status === "evaluated");
   const pendingTasks = tasks.filter((t) => t.status === "submitted");
   const hasSubmittedActiveWeek = tasks.some((t) => t.weekId === activeWeek?.id);
+  // Days until the lead's due date, or until the sprint week ends when no due date was set.
+  const dueText = prompt?.dueDate ?? activeWeek?.endDate;
+  const remaining = activeWeek?.isActive && dueText ? daysLeft(dueText) : null;
+  const gradedTasks = [...evaluatedTasks]
+    .filter((t) => t.evaluation)
+    .sort((a, b) => new Date(b.evaluation!.evaluatedAt).getTime() - new Date(a.evaluation!.evaluatedAt).getTime());
+  const averageScore = gradedTasks.length ? Math.round(gradedTasks.reduce((sum, t) => sum + t.evaluation!.score, 0) / gradedTasks.length) : null;
 
   return (
     <PortalAccessGate>
@@ -103,10 +119,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          <AnnouncementFeed />
+
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[
               { label: "Total points", value: currentUser?.points ?? 0, icon: Trophy, color: "amber" },
-              { label: "Active streak", value: `${streak} ${streak === 1 ? "Week" : "Weeks"}`, icon: Flame, color: "rose" },
+              { label: "Login streak", value: `${streak} ${streak === 1 ? "Day" : "Days"}`, icon: Flame, color: "rose" },
               { label: "Tasks evaluated", value: evaluatedTasks.length, icon: CheckCircle2, color: "emerald" },
               { label: "Pending review", value: pendingTasks.length, icon: Clock, color: "cyan" },
             ].map(({ label, value, icon: Icon, color }) => (
@@ -138,6 +156,18 @@ export default function DashboardPage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">{activeWeek.title}</h2>
                   <p className="mt-1 text-xs font-mono text-slate-400">Theme: {activeWeek.theme}</p>
+                  {prompt && <p className="mt-2 text-sm text-slate-200">Your {prompt.domain} task: <strong className="text-white">{prompt.title}</strong></p>}
+                  {remaining !== null && !hasSubmittedActiveWeek && (
+                    <p
+                      className={`mt-3 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-mono ${
+                        remaining <= 1 ? "border-rose-400/40 bg-rose-500/10 text-rose-200" : remaining <= 3 ? "border-amber-400/40 bg-amber-500/10 text-amber-200" : "border-cyan-400/30 bg-cyan-500/10 text-cyan-200"
+                      }`}
+                    >
+                      <Hourglass className="h-3.5 w-3.5" aria-hidden="true" />
+                      {describeDaysLeft(remaining)}
+                      {prompt?.dueDate ? "" : " in this sprint week"}
+                    </p>
+                  )}
                 </div>
 
                 {hasSubmittedActiveWeek ? (
@@ -231,20 +261,45 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    {task.evaluation && (
-                      <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-slate-900/80 p-4">
-                        <div className="mb-2 flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.2em] text-emerald-300">
-                          <span>Evaluator: {task.evaluation.adminName}</span>
-                          <span>{new Date(task.evaluation.evaluatedAt).toLocaleDateString()}</span>
-                        </div>
-                        <p className="text-sm italic leading-relaxed text-slate-300">“{task.evaluation.feedback}”</p>
-                      </div>
-                    )}
                   </motion.div>
                 ))
               )}
             </div>
           </div>
+
+          <section aria-labelledby="grades-heading" className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="grades-heading" className="flex items-center gap-2 text-xl font-bold text-white">
+                <MessageSquareQuote className="h-5 w-5 text-emerald-300" aria-hidden="true" /> Grades &amp; feedback
+              </h2>
+              {averageScore !== null && <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-mono text-amber-300">Average {averageScore} / 100</span>}
+            </div>
+            {gradedTasks.length === 0 ? (
+              <div className="rounded-[24px] border border-sky-400/10 bg-white/[0.04] p-6 text-center text-sm text-slate-400">
+                No graded work yet. Feedback from your lead shows up here once a task is evaluated.
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {gradedTasks.map((task) => (
+                  <li key={task.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-emerald-300">Week {task.weekNumber}</span>
+                        <h3 className="truncate text-base font-bold text-white">{task.title}</h3>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-1 font-mono text-sm font-bold text-amber-300">
+                        <Star className="h-3.5 w-3.5 fill-amber-300" aria-hidden="true" /> {task.evaluation!.score} / 100
+                      </span>
+                    </div>
+                    <p className="mt-3 whitespace-pre-line break-words text-sm italic leading-6 text-slate-300">“{task.evaluation!.feedback}”</p>
+                    <p className="mt-2 text-[11px] font-mono text-slate-500">
+                      {task.evaluation!.adminName} · {new Date(task.evaluation!.evaluatedAt).toLocaleDateString()}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </motion.div>
       </div>
     </PortalAccessGate>

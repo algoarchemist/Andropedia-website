@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   computeLeaderboard,
   evaluationsForPeriod,
-  streakWeeks,
   type BoardEvaluation,
   type BoardUser,
 } from "@/lib/leaderboard";
@@ -102,25 +101,26 @@ describe("filters", () => {
   });
 });
 
-describe("streakWeeks", () => {
-  it("counts consecutive weeks ending at the latest club week", () => {
-    expect(streakWeeks([1, 2, 3, 4], 4)).toBe(4);
-    expect(streakWeeks([1, 3, 4], 4)).toBe(2);
-  });
-  it("keeps the streak if the latest week simply isn't graded yet", () => {
-    expect(streakWeeks([2, 3, 4], 5)).toBe(3);
-  });
-  it("is zero when the member missed the last two weeks", () => {
-    expect(streakWeeks([1, 2], 5)).toBe(0);
-    expect(streakWeeks([], 3)).toBe(0);
+describe("login streak on the board", () => {
+  const days = (n: number) => Array.from({ length: n }, (_, i) => new Date(NOW.getTime() - i * 86_400_000).toISOString().slice(0, 10));
+  it("counts consecutive login days ending today, per member", () => {
+    const board = computeLeaderboard({ users, evaluations: [], loginDays: { a: days(5), b: [days(3)[2]] }, now: NOW });
+    expect(board.find((e) => e.userId === "a")?.streakDays).toBe(5);
+    expect(board.find((e) => e.userId === "b")?.streakDays).toBe(0);
+    expect(board.find((e) => e.userId === "c")?.streakDays).toBe(0);
   });
 });
 
 describe("badges", () => {
-  it("awards Grandmaster at 350 all-time points and Streak Fire at 4 weeks, plus the domain badge", () => {
+  it("awards Grandmaster at 350 all-time points and Streak Fire at 7 login days in a row, plus the domain badge", () => {
     const many = [1, 2, 3, 4].map((w) => ev("a", w, 90, `2026-10-0${w}T00:00:00Z`));
-    const entry = computeLeaderboard({ users, evaluations: many, now: NOW })[0];
+    const week = Array.from({ length: 7 }, (_, i) => new Date(NOW.getTime() - i * 86_400_000).toISOString().slice(0, 10));
+    const entry = computeLeaderboard({ users, evaluations: many, loginDays: { a: week }, now: NOW })[0];
     expect(entry.badges).toEqual(expect.arrayContaining(["Grandmaster", "Streak Fire", "Fullstack Pioneer"]));
+  });
+  it("does not award Streak Fire for six days", () => {
+    const six = Array.from({ length: 6 }, (_, i) => new Date(NOW.getTime() - i * 86_400_000).toISOString().slice(0, 10));
+    expect(computeLeaderboard({ users, evaluations, loginDays: { a: six }, now: NOW })[0].badges).not.toContain("Streak Fire");
   });
   it("does not award Grandmaster below 350", () => {
     expect(computeLeaderboard({ users, evaluations, now: NOW })[0].badges).not.toContain("Grandmaster");
