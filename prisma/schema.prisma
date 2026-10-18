@@ -385,6 +385,7 @@ model EventMember {
 enum AttendanceKind {
   EVENT
   CLUB_HOUR
+  GMEET
 }
 
 model AttendanceSession {
@@ -392,7 +393,8 @@ model AttendanceSession {
   kind        AttendanceKind
   title       String
   heldOn      DateTime
-  hours       Float?           // club hours only: how long the session ran
+  hours       Float?           // club hours and Google Meets: how long the session ran
+  description String?          // a note from the super admin saying what the session was
   eventId     String?          @unique
   event       Event?           @relation(fields: [eventId], references: [id], onDelete: Cascade)
   createdById String           // no foreign key on purpose, like AuditLog

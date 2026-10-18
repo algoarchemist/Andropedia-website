@@ -5,7 +5,7 @@ import { sessionCreateSchema } from "@/lib/attendance-schema";
 import { requireUser } from "@/lib/auth";
 import { jsonError, readJson } from "@/lib/http";
 
-// Attendance sessions (events and club hours), super admins only. Also lists the events that can be picked.
+// Attendance sessions (events, club hours and Google Meets), super admins only. Also lists the events that can be picked.
 export async function GET(request: NextRequest) {
   const auth = await requireUser(request, ["super_admin"]);
   if (!auth.ok) return auth.response;
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Start a club hour, or open the session of an event (created on first use).
+// Start a club hour or Google Meet, or open the session of an event (created on first use).
 export async function POST(request: NextRequest) {
   const auth = await requireUser(request, ["super_admin"]);
   if (!auth.ok) return auth.response;

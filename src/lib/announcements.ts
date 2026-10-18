@@ -3,7 +3,7 @@ import { DOMAIN_FROM_DB, ForbiddenError, NotFoundError, toDbDomain } from "./dat
 import { prisma } from "./prisma";
 import type { DomainType, RoleType } from "./types";
 
-// Messages a lead posts for their domain's members, shown on the member dashboard. A super admin can also post to everyone.
+// Messages a lead posts for their domain's members, or for everyone, shown on the member dashboard. A super admin can also post to any other domain.
 
 export const MAX_ANNOUNCEMENTS_SHOWN = 30;
 
@@ -26,14 +26,16 @@ export interface Viewer {
   domain: DomainType;
 }
 
-/** A lead's announcements always go to their own domain. Only a super admin chooses a domain, or everyone. */
+/** A super admin chooses any domain, or everyone. A lead chooses their own domain or everyone; any other domain falls back to their own. */
 export function targetDomain(viewer: Viewer, requested: DomainType | "All" | undefined): DomainType | "All" {
   if (viewer.role === "super_admin") return requested ?? viewer.domain;
-  return viewer.domain;
+  return requested === "All" ? "All" : viewer.domain;
 }
 
-export const canDeleteAnnouncement = (viewer: Viewer, domain: DomainType | "All") =>
-  viewer.role === "super_admin" || (viewer.role === "domain_admin" && domain === viewer.domain);
+/** A lead removes their own domain's messages, plus any message for everyone that they wrote themselves. */
+export const canDeleteAnnouncement = (viewer: Viewer, domain: DomainType | "All", authorId?: string) =>
+  viewer.role === "super_admin" ||
+  (viewer.role === "domain_admin" && (domain === viewer.domain || (domain === "All" && authorId === viewer.id)));
 
 /** Newest first. A member gets their own domain's messages and the ones for everyone; a super admin gets every message. */
 export async function listAnnouncements(viewer: Viewer): Promise<Announcement[]> {
@@ -58,7 +60,7 @@ export async function listAnnouncements(viewer: Viewer): Promise<Announcement[]>
       authorName: names.get(r.authorId) ?? "A club lead",
       createdAt: r.createdAt.toISOString(),
       isNew: r.reads.length === 0 && r.authorId !== viewer.id,
-      canDelete: canDeleteAnnouncement(viewer, domain),
+      canDelete: canDeleteAnnouncement(viewer, domain, r.authorId),
     };
   });
 }
@@ -76,10 +78,10 @@ export async function createAnnouncement(
 }
 
 export async function deleteAnnouncement(viewer: Viewer, id: string): Promise<void> {
-  const row = await prisma.announcement.findUnique({ where: { id }, select: { id: true, domain: true } });
+  const row = await prisma.announcement.findUnique({ where: { id }, select: { id: true, domain: true, authorId: true } });
   if (!row) throw new NotFoundError("Announcement not found.");
   const domain = row.domain ? DOMAIN_FROM_DB[row.domain] : "All";
-  if (!canDeleteAnnouncement(viewer, domain)) throw new ForbiddenError("You can remove only your own domain's announcements.");
+  if (!canDeleteAnnouncement(viewer, domain, row.authorId)) throw new ForbiddenError("You can remove only your own domain's announcements.");
   await prisma.announcement.delete({ where: { id } });
   await recordAudit({ actorId: viewer.id, action: "announcement.delete", target: id, meta: { domain } });
 }
