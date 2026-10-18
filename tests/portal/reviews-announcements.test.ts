@@ -105,9 +105,11 @@ describe("GET /api/applications keeps notes private", () => {
 });
 
 describe("announcement rules", () => {
-  it("sends a lead's message to their own domain whatever they ask for", () => {
+  it("sends a lead's message to their own domain or everyone, never another domain", () => {
     expect(targetDomain({ id: "1", role: "domain_admin", domain: "Web" }, "Design")).toBe("Web");
-    expect(targetDomain({ id: "1", role: "domain_admin", domain: "Web" }, "All")).toBe("Web");
+    expect(targetDomain({ id: "1", role: "domain_admin", domain: "Web" }, undefined)).toBe("Web");
+    expect(targetDomain({ id: "1", role: "domain_admin", domain: "Web" }, "Web")).toBe("Web");
+    expect(targetDomain({ id: "1", role: "domain_admin", domain: "Web" }, "All")).toBe("All");
   });
   it("lets a super admin pick any domain or everyone", () => {
     expect(targetDomain({ id: "1", role: "super_admin", domain: "Web" }, "All")).toBe("All");
@@ -121,6 +123,11 @@ describe("announcement rules", () => {
     expect(canDeleteAnnouncement(lead, "All")).toBe(false);
     expect(canDeleteAnnouncement({ ...lead, role: "super_admin" }, "All")).toBe(true);
   });
+  it("lets a lead remove an everyone-message only if they wrote it", () => {
+    const lead = { id: "1", role: "domain_admin" as const, domain: "Web" as const };
+    expect(canDeleteAnnouncement(lead, "All", "1")).toBe(true);
+    expect(canDeleteAnnouncement(lead, "All", "2")).toBe(false);
+  });
 });
 
 describe("announcement routes", () => {
@@ -130,6 +137,21 @@ describe("announcement routes", () => {
     const res = await postAnnouncement(json("/x", "POST", { title: "Deadline moved", body: "Now Sunday night.", domain: "Design" }));
     expect(res.status).toBe(201);
     expect(db.announcement.create.mock.calls[0][0].data).toMatchObject({ domain: "WEB", authorId: "lead1" });
+  });
+
+  it("lets a lead post to everyone", async () => {
+    login("domain_admin", "Web", "lead1");
+    db.announcement.create.mockResolvedValue({ id: "n1" });
+    const res = await postAnnouncement(json("/x", "POST", { title: "Club meeting", body: "Friday 5pm.", domain: "All" }));
+    expect(res.status).toBe(201);
+    expect(db.announcement.create.mock.calls[0][0].data).toMatchObject({ domain: null, authorId: "lead1" });
+  });
+
+  it("lets a lead remove their own everyone-message", async () => {
+    login("domain_admin", "Web", "lead1");
+    db.announcement.findUnique.mockResolvedValue({ id: "n1", domain: null, authorId: "lead1" });
+    expect((await removeAnnouncement(json("/x", "DELETE"), { params: Promise.resolve({ id: "n1" }) })).status).toBe(200);
+    expect(db.announcement.delete).toHaveBeenCalled();
   });
 
   it("lets a super admin post to everyone", async () => {

@@ -9,15 +9,36 @@ export const MAX_ATTENDANCE_ROWS = 5000;
 
 const heldOn = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick the date.").refine((v) => !Number.isNaN(Date.parse(v)), "Pick the date.");
 
+const sessionTitle = z.string().trim().min(2, "Name the session.").max(120);
+export const MAX_SESSION_DESCRIPTION = 300;
+const sessionDescription = z.string().trim().max(MAX_SESSION_DESCRIPTION, `Keep the description under ${MAX_SESSION_DESCRIPTION} characters.`);
+/** Most sessions that can be added in one go. */
+export const MAX_SESSIONS_PER_ADD = 20;
+const sessionCount = z.number().int().min(1).max(MAX_SESSIONS_PER_ADD, `Add at most ${MAX_SESSIONS_PER_ADD} sessions at a time.`);
+const sessionHours = z.number().min(0.25, "Enter how many hours it ran.").max(24);
+
+/** What a session is. The super admin decides which of these count as attendance, and can switch a session between the first two kinds below. */
+export const SESSION_KINDS = ["event", "club_hour", "gmeet"] as const;
+export type SessionKind = (typeof SESSION_KINDS)[number];
+export const SESSION_KIND_LABEL: Record<SessionKind, string> = { event: "Event", club_hour: "Club hour", gmeet: "Google Meet" };
+
 export const sessionCreateSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("event"), eventId: z.string().min(1) }),
-  z.object({
-    kind: z.literal("club_hour"),
-    title: z.string().trim().min(2, "Name the club hour.").max(120),
-    heldOn,
-    hours: z.number().min(0.25, "Enter how many hours it ran.").max(24).optional(),
-  }),
+  // `heldOn` defaults to today (India) and `count` adds that many sessions at once, named "<title> 1", "<title> 2", ...
+  z.object({ kind: z.literal("club_hour"), title: sessionTitle, heldOn: heldOn.optional(), hours: sessionHours.optional(), description: sessionDescription.optional(), count: sessionCount.optional() }),
+  z.object({ kind: z.literal("gmeet"), title: sessionTitle, heldOn: heldOn.optional(), hours: sessionHours.optional(), description: sessionDescription.optional(), count: sessionCount.optional() }),
 ]);
+
+/** Fields a super admin can change on an existing session. An event's session keeps its kind; club hours and Google Meets can switch. */
+export const sessionUpdateSchema = z
+  .object({
+    title: sessionTitle.optional(),
+    heldOn: heldOn.optional(),
+    hours: sessionHours.nullable().optional(),
+    description: sessionDescription.nullable().optional(),
+    kind: z.enum(["club_hour", "gmeet"]).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, "Nothing to change.");
 
 export const markSchema = z.object({
   userIds: z.array(z.string().min(1)).min(1, "Pick at least one member.").max(1000),
@@ -28,6 +49,9 @@ export const importSchema = z.object({ csv: z.string().min(1, "Choose a CSV file
 
 /** A date picked in the portal means that day in India, where the club is. */
 export const heldOnDate = (day: string) => new Date(`${day}T00:00:00+05:30`);
+
+/** Today's date in India as YYYY-MM-DD. */
+export const todayInIndia = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
 
 export type CsvIdentifier = { kind: "registerNo" | "email"; value: string };
 

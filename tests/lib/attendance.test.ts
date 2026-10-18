@@ -9,7 +9,7 @@ const db = vi.hoisted(() => {
   const client = {
     user: { findMany: vi.fn(async (): Promise<unknown[]> => []) },
     event: { findMany: vi.fn(async () => []), findUnique: vi.fn() },
-    attendanceSession: { findMany: vi.fn(async () => []), findUnique: vi.fn(), create: vi.fn(), delete: vi.fn() },
+    attendanceSession: { findMany: vi.fn(async () => []), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     attendanceRecord: { findMany: vi.fn(async () => []), createMany: vi.fn(), deleteMany: vi.fn() },
   };
   return client as unknown as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
@@ -17,7 +17,7 @@ const db = vi.hoisted(() => {
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 
 import { GET as listSessions, POST as createSession } from "@/app/api/admin/attendance/route";
-import { PUT as mark } from "@/app/api/admin/attendance/[id]/route";
+import { PATCH as updateSession, PUT as mark } from "@/app/api/admin/attendance/[id]/route";
 import { POST as importCsv } from "@/app/api/admin/attendance/[id]/import/route";
 import { importAttendanceCsv } from "@/lib/attendance";
 import { parseAttendanceCsv } from "@/lib/attendance-schema";
@@ -129,6 +129,73 @@ describe("attendance routes", () => {
     db.attendanceRecord.deleteMany.mockResolvedValue({ count: 1 });
     await mark(req("PUT", { userIds: ["u1"], present: false }), ctx);
     expect(db.attendanceRecord.deleteMany).toHaveBeenCalledWith({ where: { sessionId: "s1", userId: { in: ["u1"] } } });
+  });
+
+  it("creates a Google Meet session", async () => {
+    asAdmin();
+    db.attendanceSession.create.mockResolvedValue({ id: "g1", kind: "GMEET", title: "Weekly sync", heldOn: new Date("2026-10-18T00:00:00+05:30"), hours: 1, eventId: null, _count: { records: 0 } });
+    const created = await createSession(req("POST", { kind: "gmeet", title: "Weekly sync", heldOn: "2026-10-18" }));
+    expect(created.status).toBe(201);
+    expect(db.attendanceSession.create.mock.calls[0][0].data).toMatchObject({ kind: "GMEET", title: "Weekly sync" });
+    expect((await created.json()).session).toMatchObject({ kind: "gmeet" });
+  });
+
+  it("adds several sessions at once with a shared description, dated today when no date is given", async () => {
+    asAdmin();
+    let n = 0;
+    db.attendanceSession.create.mockImplementation(async ({ data }: { data: { title: string; description: string | null } }) => ({
+      id: `n${++n}`, kind: "CLUB_HOUR", title: data.title, heldOn: new Date(), hours: 1, description: data.description, eventId: null, _count: { records: 0 },
+    }));
+    const res = await createSession(req("POST", { kind: "club_hour", title: "Club hour", count: 3, description: "Weekly web basics" }));
+    expect(res.status).toBe(201);
+    const calls = db.attendanceSession.create.mock.calls.map((c) => c[0].data);
+    expect(calls.map((d: { title: string }) => d.title)).toEqual(["Club hour 1", "Club hour 2", "Club hour 3"]);
+    expect(calls.every((d: { description: string }) => d.description === "Weekly web basics")).toBe(true);
+    expect(calls[0].heldOn).toBeInstanceOf(Date);
+    expect((await res.json()).session).toMatchObject({ id: "n1", title: "Club hour 1", description: "Weekly web basics" });
+  });
+
+  it("keeps the name as it is for a single session, and limits count and description", async () => {
+    asAdmin();
+    db.attendanceSession.create.mockResolvedValue({ id: "s1", kind: "GMEET", title: "Sync", heldOn: new Date(), hours: 1, description: null, eventId: null, _count: { records: 0 } });
+    await createSession(req("POST", { kind: "gmeet", title: "Sync" }));
+    expect(db.attendanceSession.create.mock.calls[0][0].data).toMatchObject({ title: "Sync", description: null });
+    expect((await createSession(req("POST", { kind: "gmeet", title: "Sync", count: 21 }))).status).toBe(400);
+    expect((await createSession(req("POST", { kind: "gmeet", title: "Sync", description: "x".repeat(301) }))).status).toBe(400);
+  });
+
+  it("edits a session's description, and clears it with an empty one", async () => {
+    asAdmin();
+    db.attendanceSession.findUnique.mockResolvedValue({ id: "s1", kind: "EVENT" });
+    db.attendanceSession.update.mockResolvedValue({ id: "s1", kind: "EVENT", title: "T", heldOn: new Date(), hours: null, description: "Hackathon day 1", eventId: "e1", _count: { records: 0 } });
+    expect((await updateSession(req("PATCH", { description: "Hackathon day 1" }), ctx)).status).toBe(200);
+    expect(db.attendanceSession.update.mock.calls[0][0].data).toEqual({ description: "Hackathon day 1" });
+    await updateSession(req("PATCH", { description: "" }), ctx);
+    expect(db.attendanceSession.update.mock.calls[1][0].data).toEqual({ description: null });
+  });
+
+  it("edits a session's name, date, hours and type, and only for a super admin", async () => {
+    asDenied();
+    expect((await updateSession(req("PATCH", { title: "New name" }), ctx)).status).toBe(403);
+
+    asAdmin();
+    db.attendanceSession.findUnique.mockResolvedValue({ id: "s1", kind: "CLUB_HOUR" });
+    db.attendanceSession.update.mockResolvedValue({ id: "s1", kind: "GMEET", title: "New name", heldOn: new Date("2026-10-20T00:00:00+05:30"), hours: 2, eventId: null, _count: { records: 3 } });
+    const res = await updateSession(req("PATCH", { title: "New name", heldOn: "2026-10-20", hours: 2, kind: "gmeet" }), ctx);
+    expect(res.status).toBe(200);
+    expect(db.attendanceSession.update.mock.calls[0][0].data).toMatchObject({ title: "New name", hours: 2, kind: "GMEET", heldOn: new Date("2026-10-20T00:00:00+05:30") });
+    expect((await res.json()).session).toMatchObject({ kind: "gmeet", present: 3 });
+  });
+
+  it("rejects an empty edit, and a type or hours change on an event's session", async () => {
+    asAdmin();
+    expect((await updateSession(req("PATCH", {}), ctx)).status).toBe(400);
+
+    db.attendanceSession.findUnique.mockResolvedValue({ id: "s1", kind: "EVENT" });
+    expect((await updateSession(req("PATCH", { kind: "gmeet" }), ctx)).status).toBe(409);
+    expect(db.attendanceSession.update).not.toHaveBeenCalled();
+    db.attendanceSession.update.mockResolvedValue({ id: "s1", kind: "EVENT", title: "Renamed", heldOn: new Date(), hours: null, eventId: "e1", _count: { records: 0 } });
+    expect((await updateSession(req("PATCH", { title: "Renamed" }), ctx)).status).toBe(200);
   });
 
   it("answers 404 for an unknown session", async () => {
