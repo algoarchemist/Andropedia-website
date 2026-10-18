@@ -7,13 +7,14 @@ import { PortalAccessGate } from "@/components/portal/PortalAccessGate";
 import { MemberAvatar } from "@/components/portal/MemberEditor";
 import { PhotoCropper } from "@/components/portal/PhotoCropper";
 import { GithubIcon, InstagramIcon, LinkedinIcon } from "@/components/ui/SocialIcons";
+import { SESSION_KIND_LABEL, type SessionKind } from "@/lib/attendance-schema";
 import { useAuth } from "@/lib/auth-context";
 import { POSITION_LABELS } from "@/lib/team";
 
 const BIO_MAX = 600;
 
 interface MemberAttendanceData {
-  attended: Array<{ id: string; kind: "event" | "club_hour"; title: string; heldOn: string; hours: number | null }>;
+  attended: Array<{ id: string; kind: SessionKind; title: string; heldOn: string; hours: number | null; description: string | null }>;
   sessionsHeld: number;
   attendedCount: number;
   clubHours: number;
@@ -339,9 +340,10 @@ export default function ProfilePage() {
                               <div className="min-w-0">
                                 <div className="truncate text-sm font-semibold text-white">{a.title}</div>
                                 <div className="text-[11px] text-slate-400">
-                                  {a.kind === "event" ? "Event" : "Club hour"} · {dateFormat.format(new Date(a.heldOn))}
-                                  {a.kind === "club_hour" && a.hours ? ` · ${a.hours} h` : ""}
+                                  {SESSION_KIND_LABEL[a.kind]} · {dateFormat.format(new Date(a.heldOn))}
+                                  {a.kind !== "event" && a.hours ? ` · ${a.hours} h` : ""}
                                 </div>
+                                {a.description && <div className="mt-0.5 text-[11px] leading-snug text-slate-500">{a.description}</div>}
                               </div>
                             </div>
                             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" aria-label="Present" />

@@ -311,9 +311,9 @@ export async function getLeaderboard(domain?: string, period?: string): Promise<
   if (domainFilter === null) return []; // unknown domain -> no results
 
   const [users, evaluations, activeWeek] = await Promise.all([
-    // Members compete, and so do co-leads even when they hold lead access to grade. Leads and super admins do not.
+    // Members compete, and so do co-leads even when they hold lead access to grade. Leads, super admins and Chiefs do not.
     prisma.user.findMany({
-      where: { isActive: true, OR: [{ role: "MEMBER" }, { position: "CO_LEAD", role: { not: "SUPER_ADMIN" } }] },
+      where: { isActive: true, position: { not: "CHIEF" }, OR: [{ role: "MEMBER" }, { position: "CO_LEAD", role: { not: "SUPER_ADMIN" } }] },
       select: { id: true, name: true, avatar: true, domain: true },
     }),
     prisma.evaluation.findMany({

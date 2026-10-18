@@ -1,14 +1,15 @@
 import { prisma } from "./prisma";
 import { recordAudit } from "./audit";
 import { ConflictError, NotFoundError } from "./data-store";
-import { heldOnDate, parseAttendanceCsv, type CsvIdentifier } from "./attendance-schema";
+import { heldOnDate, parseAttendanceCsv, todayInIndia, type CsvIdentifier, type SessionKind } from "./attendance-schema";
 
 export interface AttendanceSessionInfo {
   id: string;
-  kind: "event" | "club_hour";
+  kind: SessionKind;
   title: string;
   heldOn: string;
   hours: number | null;
+  description: string | null;
   eventId: string | null;
   present: number;
 }
@@ -20,14 +21,19 @@ export interface EventOption {
   hasSession: boolean;
 }
 
-type DbSession = { id: string; kind: "EVENT" | "CLUB_HOUR"; title: string; heldOn: Date; hours: number | null; eventId: string | null; _count: { records: number } };
+type DbKind = "EVENT" | "CLUB_HOUR" | "GMEET";
+type DbSession = { id: string; kind: DbKind; title: string; heldOn: Date; hours: number | null; description: string | null; eventId: string | null; _count: { records: number } };
+
+const KIND_FROM_DB: Record<DbKind, SessionKind> = { EVENT: "event", CLUB_HOUR: "club_hour", GMEET: "gmeet" };
+const KIND_TO_DB: Record<SessionKind, DbKind> = { event: "EVENT", club_hour: "CLUB_HOUR", gmeet: "GMEET" };
 
 const toInfo = (s: DbSession): AttendanceSessionInfo => ({
   id: s.id,
-  kind: s.kind === "EVENT" ? "event" : "club_hour",
+  kind: KIND_FROM_DB[s.kind],
   title: s.title,
   heldOn: s.heldOn.toISOString(),
   hours: s.hours,
+  description: s.description,
   eventId: s.eventId,
   present: s._count.records,
 });
@@ -46,9 +52,14 @@ export async function listAttendanceSessions(): Promise<{ sessions: AttendanceSe
   };
 }
 
-export type SessionInput = { kind: "event"; eventId: string } | { kind: "club_hour"; title: string; heldOn: string; hours?: number };
+export type SessionInput =
+  | { kind: "event"; eventId: string }
+  | { kind: "club_hour" | "gmeet"; title: string; heldOn?: string; hours?: number; description?: string; count?: number };
 
-/** A new club hour, or the session of an event (created the first time, reused afterwards). */
+/**
+ * A new club hour or Google Meet, or the session of an event (created the first time, reused afterwards).
+ * A count above 1 adds that many at once, named "<title> 1", "<title> 2", ... Returns the first one.
+ */
 export async function createAttendanceSession(actorId: string, input: SessionInput): Promise<AttendanceSessionInfo> {
   if (input.kind === "event") {
     const existing = await prisma.attendanceSession.findUnique({ where: { eventId: input.eventId }, include: withCount });
@@ -62,12 +73,55 @@ export async function createAttendanceSession(actorId: string, input: SessionInp
     await recordAudit({ actorId, action: "attendance.session.create", target: created.id, meta: { kind: "event", eventId: event.id } });
     return toInfo(created);
   }
-  const created = await prisma.attendanceSession.create({
-    data: { kind: "CLUB_HOUR", title: input.title, heldOn: heldOnDate(input.heldOn), hours: input.hours ?? 1, createdById: actorId },
+  const count = input.count ?? 1;
+  const heldOn = heldOnDate(input.heldOn ?? todayInIndia());
+  let first: DbSession | null = null;
+  for (let n = 1; n <= count; n++) {
+    const created = await prisma.attendanceSession.create({
+      data: {
+        kind: KIND_TO_DB[input.kind],
+        title: count > 1 ? `${input.title} ${n}` : input.title,
+        heldOn,
+        hours: input.hours ?? 1,
+        description: input.description || null,
+        createdById: actorId,
+      },
+      include: withCount,
+    });
+    first ??= created;
+    await recordAudit({ actorId, action: "attendance.session.create", target: created.id, meta: { kind: input.kind, title: created.title } });
+  }
+  return toInfo(first!);
+}
+
+export interface SessionUpdate {
+  title?: string;
+  heldOn?: string;
+  hours?: number | null;
+  description?: string | null;
+  kind?: "club_hour" | "gmeet";
+}
+
+/** Renames, re-dates or re-types a session without touching who was marked present. An event's session keeps its kind and has no hours. */
+export async function updateAttendanceSession(actorId: string, sessionId: string, patch: SessionUpdate): Promise<AttendanceSessionInfo> {
+  const existing = await prisma.attendanceSession.findUnique({ where: { id: sessionId }, select: { id: true, kind: true } });
+  if (!existing) throw new NotFoundError("Attendance session not found.");
+  if (existing.kind === "EVENT" && (patch.kind !== undefined || patch.hours !== undefined)) {
+    throw new ConflictError("An event's session keeps its type and has no hours. Edit the name or date, or delete the session and start a Google Meet or club hour.");
+  }
+  const updated = await prisma.attendanceSession.update({
+    where: { id: sessionId },
+    data: {
+      ...(patch.title !== undefined ? { title: patch.title } : {}),
+      ...(patch.heldOn !== undefined ? { heldOn: heldOnDate(patch.heldOn) } : {}),
+      ...(patch.hours !== undefined ? { hours: patch.hours } : {}),
+      ...(patch.description !== undefined ? { description: patch.description || null } : {}),
+      ...(patch.kind !== undefined ? { kind: KIND_TO_DB[patch.kind] } : {}),
+    },
     include: withCount,
   });
-  await recordAudit({ actorId, action: "attendance.session.create", target: created.id, meta: { kind: "club_hour", title: input.title } });
-  return toInfo(created);
+  await recordAudit({ actorId, action: "attendance.session.update", target: sessionId, meta: { ...patch } });
+  return toInfo(updated);
 }
 
 export async function getAttendance(sessionId: string): Promise<{ session: AttendanceSessionInfo; userIds: string[] }> {
@@ -168,7 +222,7 @@ export async function deleteAttendanceSession(actorId: string, sessionId: string
 }
 
 export interface MemberAttendance {
-  attended: Array<{ id: string; kind: "event" | "club_hour"; title: string; heldOn: string; hours: number | null }>;
+  attended: Array<{ id: string; kind: SessionKind; title: string; heldOn: string; hours: number | null; description: string | null }>;
   /** Sessions held so far (events and club hours), whether or not this member was there. */
   sessionsHeld: number;
   /** How many of those this member was at. A session marked ahead of its date is listed in `attended` but not counted here yet. */
@@ -177,19 +231,19 @@ export interface MemberAttendance {
   clubHours: number;
 }
 
-/** The sessions and events a member was marked present at, newest first, with how many were held in all. */
+/** The sessions a member was marked present at (events, club hours and Google Meets), newest first, with how many were held in all. */
 export async function getMemberAttendance(userId: string, now: Date = new Date()): Promise<MemberAttendance> {
   const [records, sessionsHeld] = await Promise.all([
     prisma.attendanceRecord.findMany({
       where: { userId },
-      include: { session: { select: { id: true, kind: true, title: true, heldOn: true, hours: true } } },
+      include: { session: { select: { id: true, kind: true, title: true, heldOn: true, hours: true, description: true } } },
     }),
     prisma.attendanceSession.count({ where: { heldOn: { lte: now } } }),
   ]);
   const attended = records
     .map((r) => r.session)
     .sort((a, b) => b.heldOn.getTime() - a.heldOn.getTime())
-    .map((s) => ({ id: s.id, kind: (s.kind === "EVENT" ? "event" : "club_hour") as "event" | "club_hour", title: s.title, heldOn: s.heldOn.toISOString(), hours: s.hours }));
+    .map((s) => ({ id: s.id, kind: KIND_FROM_DB[s.kind], title: s.title, heldOn: s.heldOn.toISOString(), hours: s.hours, description: s.description }));
   const clubHours = attended.reduce((sum, s) => sum + (s.kind === "club_hour" ? (s.hours ?? 0) : 0), 0);
   const attendedCount = attended.filter((s) => new Date(s.heldOn).getTime() <= now.getTime()).length;
   return { attended, sessionsHeld, attendedCount, clubHours };

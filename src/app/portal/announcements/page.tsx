@@ -48,7 +48,10 @@ export default function AnnouncementsPage() {
     void load();
   }, [load]);
 
-  const target = isAdmin ? domain || currentUser?.domain || "" : currentUser?.domain ?? "";
+  // A lead picks their own domain or everyone; a super admin picks any domain.
+  const ownDomain = currentUser?.domain ?? "";
+  const choices = isAdmin ? DOMAINS : ownDomain ? [ownDomain] : [];
+  const target = domain || ownDomain;
 
   const post = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +61,7 @@ export default function AnnouncementsPage() {
       const res = await fetch("/api/announcements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body, ...(isAdmin ? { domain: target } : {}) }),
+        body: JSON.stringify({ title, body, domain: target }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.error || "Could not post the announcement.");
@@ -95,20 +98,18 @@ export default function AnnouncementsPage() {
             </div>
             <h1 className="text-3xl font-black text-white sm:text-4xl">Message your members</h1>
             <p className="mt-2 text-sm text-slate-300">
-              {isAdmin ? "Post to one domain or to everyone." : `Post to the ${currentUser?.domain ?? ""} domain.`} Members see it on their dashboard with a New badge until they open it.
+              {isAdmin ? "Post to one domain or to everyone." : `Post to the ${ownDomain} domain or to everyone.`} Members see it on their dashboard with a New badge until they open it.
             </p>
           </div>
 
           <form onSubmit={post} className="glass-card space-y-4 p-5 sm:p-6">
-            {isAdmin && (
-              <div className="space-y-1.5">
-                <label htmlFor="ann-domain" className="text-[12px] font-medium uppercase tracking-[0.08em] text-white/60">Send to</label>
-                <select id="ann-domain" value={target} onChange={(e) => setDomain(e.target.value)} className={input}>
-                  <option value="All">Everyone</option>
-                  {DOMAINS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-            )}
+            <div className="space-y-1.5">
+              <label htmlFor="ann-domain" className="text-[12px] font-medium uppercase tracking-[0.08em] text-white/60">Send to</label>
+              <select id="ann-domain" value={target} onChange={(e) => setDomain(e.target.value)} className={input}>
+                <option value="All">Everyone</option>
+                {choices.map((d) => <option key={d} value={d}>{d === ownDomain && !isAdmin ? `${d} members only` : d}</option>)}
+              </select>
+            </div>
             <div className="space-y-1.5">
               <label htmlFor="ann-title" className="text-[12px] font-medium uppercase tracking-[0.08em] text-white/60">Title</label>
               <input id="ann-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} required minLength={3} placeholder="e.g. Week 5 deadline moved to Sunday" className={input} />

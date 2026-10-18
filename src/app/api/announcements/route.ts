@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
 const postSchema = z.object({
   title: z.string().trim().min(3, "Add a short title.").max(80, "Keep the title under 80 characters."),
   body: z.string().trim().min(3, "Write the message.").max(1500, "Keep the message under 1500 characters."),
-  domain: z.enum([...DOMAINS, "All"]).optional(), // super admins only; leads always post to their own domain
+  domain: z.enum([...DOMAINS, "All"]).optional(), // leads: their own domain or "All" (any other domain falls back to their own); super admins: any
 });
 
-// A lead posts a message for their domain's members. A super admin can pick any domain, or everyone.
+// A lead posts a message for their domain's members, or for everyone. A super admin can pick any domain.
 export async function POST(request: NextRequest) {
   const auth = await requireUser(request, ["domain_admin", "super_admin"]);
   if (!auth.ok) return auth.response;
