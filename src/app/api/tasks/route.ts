@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { ConflictError, getTasks, NotFoundError, submitTask } from "@/lib/data-store";
+import { isDriveUrl } from "@/lib/drive-link";
 import { readJson } from "@/lib/http";
 
 const shortText = z.string().trim().max(64).nullable().transform((v) => v || null);
@@ -52,18 +53,27 @@ const optionalUrl = z
   .refine((v) => v === "" || (/^https?:\/\//i.test(v) && URL.canParse(v)), "Enter a valid http(s) URL.")
   .optional();
 
+const driveUrl = z
+  .string()
+  .trim()
+  .max(300)
+  .refine((v) => v === "" || isDriveUrl(v), "Enter a Google Drive link (https://drive.google.com/...).")
+  .optional();
+
 const taskSchema = z.object({
   weekId: z.string().min(1, "Choose a sprint week."),
   title: z.string().trim().min(3, "Add a title.").max(120),
   description: z.string().trim().min(10, "Add a short description.").max(4000),
+  driveUrl,
   githubUrl: optionalUrl,
   liveUrl: optionalUrl,
   figmaUrl: optionalUrl,
   notes: z.string().trim().max(2000).optional(),
 });
 
+// Only members submit. Leads, co-leads and super admins set and grade the work instead.
 export async function POST(request: NextRequest) {
-  const auth = await requireUser(request);
+  const auth = await requireUser(request, ["member"]);
   if (!auth.ok) return auth.response;
   const { user } = auth;
 

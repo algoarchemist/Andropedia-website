@@ -6,10 +6,8 @@ import { log } from "@/lib/logger";
 export async function GET() {
   try {
     const weeks = await getWeeks();
-    return NextResponse.json(
-      { success: true, weeks },
-      { headers: { "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300" } }
-    );
+    // Never cached: opening or closing a week must show up for members straight away.
+    return NextResponse.json({ success: true, weeks }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     log.error("Weeks load failed", err);
     return jsonError("Could not load the sprint weeks.", 500);

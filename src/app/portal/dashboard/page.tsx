@@ -15,6 +15,8 @@ import {
   Star,
   Hourglass,
   MessageSquareQuote,
+  HardDrive,
+  Trash2,
 } from "lucide-react";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { useAuth } from "@/lib/auth-context";
@@ -69,8 +71,29 @@ export default function DashboardPage() {
     fetchData();
   }, [authLoading, currentUser]);
 
+  const [deleteError, setDeleteError] = useState("");
+
+  async function deleteSubmission(task: Task) {
+    if (!window.confirm(`Delete your Week ${task.weekNumber} submission "${task.title}"? You can send a new one while the week is open.`)) return;
+    setDeleteError("");
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!data.success) {
+        setDeleteError(data.error ?? "Could not delete the submission.");
+        return;
+      }
+      setTasks((current) => current.filter((t) => t.id !== task.id));
+    } catch {
+      setDeleteError("Could not reach the server. Try again.");
+    }
+  }
+
   const evaluatedTasks = tasks.filter((t) => t.status === "evaluated");
   const pendingTasks = tasks.filter((t) => t.status === "submitted");
+  // Members can submit only to an open week whose task their lead has posted.
+  const isMember = currentUser?.role === "member";
+  const canSubmitNow = isMember && Boolean(activeWeek?.isActive && prompt);
   const hasSubmittedActiveWeek = tasks.some((t) => t.weekId === activeWeek?.id);
   // Days until the lead's due date, or until the sprint week ends when no due date was set.
   const dueText = prompt?.dueDate ?? activeWeek?.endDate;
@@ -109,13 +132,15 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <Link
-                href="/portal/submit-task"
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-[0_16px_30px_rgba(52,211,153,0.22)] transition-transform hover:scale-[1.01]"
-              >
-                <Send className="h-4 w-4" />
-                Submit task deliverable
-              </Link>
+              {canSubmitNow && (
+                <Link
+                  href="/portal/submit-task"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-[0_16px_30px_rgba(52,211,153,0.22)] transition-transform hover:scale-[1.01]"
+                >
+                  <Send className="h-4 w-4" />
+                  Submit task deliverable
+                </Link>
+              )}
             </div>
           </div>
 
@@ -152,11 +177,10 @@ export default function DashboardPage() {
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
                   <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.24em] text-cyan-300">
-                    Active challenge · Week {activeWeek.weekNumber}
+                    Club theme · Week {activeWeek.weekNumber}
                   </div>
-                  <h2 className="text-2xl font-bold text-white">{activeWeek.title}</h2>
-                  <p className="mt-1 text-xs font-mono text-slate-400">Theme: {activeWeek.theme}</p>
-                  {prompt && <p className="mt-2 text-sm text-slate-200">Your {prompt.domain} task: <strong className="text-white">{prompt.title}</strong></p>}
+                  <h2 className="text-2xl font-bold text-white">{activeWeek.theme}</h2>
+                  <p className="mt-1 text-xs font-mono text-slate-400">{activeWeek.title}</p>
                   {remaining !== null && !hasSubmittedActiveWeek && (
                     <p
                       className={`mt-3 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-mono ${
@@ -170,12 +194,12 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {hasSubmittedActiveWeek ? (
+                {!isMember ? null : hasSubmittedActiveWeek ? (
                   <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs font-mono text-emerald-300">
                     <CheckCircle2 className="h-4 w-4" />
                     Deliverable submitted
                   </span>
-                ) : (
+                ) : canSubmitNow ? (
                   <Link
                     href="/portal/submit-task"
                     className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-[0_16px_30px_rgba(6,182,212,0.25)]"
@@ -183,15 +207,41 @@ export default function DashboardPage() {
                     Submit week {activeWeek.weekNumber} task
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-mono text-slate-400">
+                    {activeWeek.isActive ? "Waiting for your lead's task" : "Submissions closed"}
+                  </span>
                 )}
               </div>
 
-              <p className="mt-4 border-t border-white/10 pt-4 text-sm leading-relaxed text-slate-300">
-                {activeWeek.promptDescription || "Finalize your production deployment, write clean documentation, and ensure all live links and repositories are publicly accessible."}
-              </p>
+              {activeWeek.promptDescription && (
+                <p className="mt-4 border-t border-white/10 pt-4 text-sm leading-relaxed text-slate-300">{activeWeek.promptDescription}</p>
+              )}
+
+              {activeWeek.isActive && (
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  {prompt ? (
+                    <>
+                      <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-emerald-300">
+                        Your {prompt.domain} task{prompt.dueDate ? ` · due ${prompt.dueDate}` : ""}
+                      </div>
+                      <div className="mt-1 text-lg font-bold text-white">{prompt.title}</div>
+                      <p className="mt-1 line-clamp-3 whitespace-pre-line text-sm leading-relaxed text-slate-300">{prompt.description}</p>
+                    </>
+                  ) : currentUser?.role === "domain_admin" ? (
+                    <p className="text-sm text-amber-200">
+                      You haven&apos;t posted the {currentUser.domain} task for this theme yet.{" "}
+                      <Link href="/portal/tasks" className="font-semibold underline">Post it now</Link>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-400">Your {currentUser?.domain} lead hasn&apos;t posted this week&apos;s task yet. Check back soon.</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
+          {isMember && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-white">Your sprint submissions</h2>
@@ -200,6 +250,10 @@ export default function DashboardPage() {
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
+
+            {deleteError && (
+              <p role="alert" className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{deleteError}</p>
+            )}
 
             <div className="space-y-4">
               {tasks.length === 0 ? (
@@ -241,6 +295,12 @@ export default function DashboardPage() {
                     <p className="mt-4 text-sm leading-relaxed text-slate-300">{task.description}</p>
 
                     <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-mono">
+                      {task.driveUrl && (
+                        <a href={task.driveUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-1.5 text-emerald-200">
+                          <HardDrive className="h-3.5 w-3.5 text-emerald-300" />
+                          Google Drive files
+                        </a>
+                      )}
                       {task.githubUrl && (
                         <a href={task.githubUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/70 px-3 py-1.5 text-slate-200">
                           <ExternalLink className="h-3.5 w-3.5 text-emerald-300" />
@@ -259,6 +319,16 @@ export default function DashboardPage() {
                           Figma design
                         </a>
                       )}
+                      {task.status === "submitted" && activeWeek?.isActive && task.weekId === activeWeek.id && (
+                        <button
+                          type="button"
+                          onClick={() => deleteSubmission(task)}
+                          className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-rose-400/25 px-3 py-1.5 text-rose-300 hover:bg-rose-500/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          Delete submission
+                        </button>
+                      )}
                     </div>
 
                   </motion.div>
@@ -266,7 +336,9 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
+          )}
 
+          {isMember && (
           <section aria-labelledby="grades-heading" className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 id="grades-heading" className="flex items-center gap-2 text-xl font-bold text-white">
@@ -300,6 +372,7 @@ export default function DashboardPage() {
               </ul>
             )}
           </section>
+          )}
         </motion.div>
       </div>
     </PortalAccessGate>

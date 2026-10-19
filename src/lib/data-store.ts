@@ -7,7 +7,7 @@ import {
 import { recordAudit } from "./audit";
 import { computeLeaderboard, type BoardPeriod } from "./leaderboard";
 import { getLoginDays } from "./login-days";
-import { checkMemberChange, checkMemberDelete, checkWeekDates, decideSubmission, type MemberPatch } from "./rules";
+import { checkMemberChange, checkMemberDelete, checkWeekDates, decideSubmission, decideTaskDelete, type MemberPatch } from "./rules";
 import { memberPhotoUrl } from "./member-profile";
 
 // Database-backed data layer. Return shapes match the types in ./types so the
@@ -118,6 +118,7 @@ function mapTask(t: DbTask): Task {
     weekNumber: t.week.weekNumber,
     title: t.title,
     description: t.description,
+    driveUrl: t.driveUrl ?? undefined,
     githubUrl: t.githubUrl ?? undefined,
     liveUrl: t.liveUrl ?? undefined,
     figmaUrl: t.figmaUrl ?? undefined,
@@ -191,6 +192,7 @@ export interface NewTask {
   domain: DomainType;
   title: string;
   description: string;
+  driveUrl?: string;
   githubUrl?: string;
   liveUrl?: string;
   figmaUrl?: string;
@@ -220,10 +222,18 @@ export async function submitTask(taskData: NewTask): Promise<{ task: Task; creat
     throw decision.status === 404 ? new NotFoundError(decision.error) : new ConflictError(decision.error);
   }
 
+  // Members answer a task their lead posted. If it was never posted, or was removed, there is nothing to submit to.
+  const posted = await prisma.taskPrompt.findUnique({
+    where: { weekId_domain: { weekId: taskData.weekId, domain } },
+    select: { id: true },
+  });
+  if (!posted) throw new ConflictError(`Your ${taskData.domain} lead hasn't posted a task for this week, so submissions are closed for now.`);
+
   const fields = {
     domain,
     title: taskData.title,
     description: taskData.description,
+    driveUrl: taskData.driveUrl || null,
     githubUrl: taskData.githubUrl || null,
     liveUrl: taskData.liveUrl || null,
     figmaUrl: taskData.figmaUrl || null,
@@ -243,6 +253,36 @@ export async function submitTask(taskData: NewTask): Promise<{ task: Task; creat
     }
     throw err;
   }
+}
+
+/**
+ * Deletes a submission. Removing a graded one also takes its grade back off the member's points.
+ * See `decideTaskDelete` for who may.
+ */
+export async function deleteTask(id: string, actor: { id: string; role: RoleType; domain: DomainType }): Promise<void> {
+  const task = await prisma.task.findUnique({
+    where: { id },
+    select: { userId: true, weekId: true, domain: true, status: true, week: { select: { isActive: true } }, evaluation: { select: { score: true } } },
+  });
+  if (!task) throw new NotFoundError("Submission not found");
+  const decision = decideTaskDelete(actor, {
+    userId: task.userId, domain: DOMAIN_FROM_DB[task.domain], status: task.status, weekIsActive: task.week.isActive,
+  });
+  if (!decision.ok) throw decision.status === 403 ? new ForbiddenError(decision.error) : new ConflictError(decision.error);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.task.delete({ where: { id } }); // the grade goes with it
+    if (task.evaluation) {
+      await tx.user.update({
+        where: { id: task.userId },
+        data: { points: { decrement: task.evaluation.score }, tasksCompleted: { decrement: 1 } },
+      });
+    }
+    await recordAudit(
+      { actorId: actor.id, action: "task.delete", target: id, meta: { memberId: task.userId, weekId: task.weekId, score: task.evaluation?.score ?? null } },
+      tx
+    );
+  });
 }
 
 export interface EvaluationInput {
@@ -311,9 +351,9 @@ export async function getLeaderboard(domain?: string, period?: string): Promise<
   if (domainFilter === null) return []; // unknown domain -> no results
 
   const [users, evaluations, activeWeek] = await Promise.all([
-    // Members compete, and so do co-leads even when they hold lead access to grade. Leads, super admins and Chiefs do not.
+    // Only members compete. Co-leads, leads, super admins and Chiefs run the club and do not submit tasks, so they stay off the board.
     prisma.user.findMany({
-      where: { isActive: true, position: { not: "CHIEF" }, OR: [{ role: "MEMBER" }, { position: "CO_LEAD", role: { not: "SUPER_ADMIN" } }] },
+      where: { isActive: true, role: "MEMBER", position: { notIn: ["CHIEF", "CO_LEAD"] } },
       select: { id: true, name: true, avatar: true, domain: true },
     }),
     prisma.evaluation.findMany({
@@ -414,6 +454,25 @@ export async function updateWeek(id: string, patch: WeekInput, actorId: string):
     return mapWeek(week);
   } catch (err) {
     if ((err as { code?: string }).code === "P2002") throw new ConflictError(`Week ${patch.weekNumber} already exists.`);
+    throw err;
+  }
+}
+
+/** Removes a week that was added by mistake, along with the tasks the leads posted for it. A week that has submissions has to be emptied first. */
+export async function deleteWeek(id: string, actorId: string): Promise<void> {
+  const week = await prisma.week.findUnique({ where: { id }, select: { weekNumber: true, _count: { select: { tasks: true } } } });
+  if (!week) throw new NotFoundError("Sprint week not found");
+  const inUse = () =>
+    new ConflictError(`Week ${week.weekNumber} already has member submissions. Delete those first, or just close the week.`);
+  if (week._count.tasks > 0) throw inUse();
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.week.delete({ where: { id } });
+      await recordAudit({ actorId, action: "week.delete", target: id, meta: { weekNumber: week.weekNumber } }, tx);
+    });
+  } catch (err) {
+    // A submission arrived between the check and the delete: the foreign key stops it.
+    if ((err as { code?: string }).code === "P2003") throw inUse();
     throw err;
   }
 }

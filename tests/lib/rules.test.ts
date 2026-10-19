@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkMemberChange, checkWeekDates, decideSubmission } from "@/lib/rules";
+import { checkMemberChange, checkWeekDates, decideSubmission, decideTaskDelete, portalRole } from "@/lib/rules";
 
 describe("decideSubmission", () => {
   it("creates a first submission in an open week", () => {
@@ -59,5 +59,44 @@ describe("checkWeekDates", () => {
   it("rejects an end before the start and invalid dates", () => {
     expect(checkWeekDates(new Date("2026-10-08"), new Date("2026-10-01"))).toMatch(/on or after/);
     expect(checkWeekDates(new Date("nope"), new Date("2026-10-01"))).toMatch(/valid/);
+  });
+});
+
+describe("decideTaskDelete", () => {
+  const task = { userId: "m1", domain: "Web" as const, status: "SUBMITTED" as const, weekIsActive: true };
+  const member = { id: "m1", role: "member" as const, domain: "Web" as const };
+
+  it("lets a member take back their own ungraded submission while the week is open", () => {
+    expect(decideTaskDelete(member, task)).toEqual({ ok: true });
+  });
+  it("keeps a member out of someone else's submission", () => {
+    expect(decideTaskDelete({ ...member, id: "m2" }, task)).toMatchObject({ ok: false, status: 403 });
+  });
+  it("won't let a member delete graded work or work in a closed week", () => {
+    expect(decideTaskDelete(member, { ...task, status: "EVALUATED" })).toMatchObject({ ok: false, status: 409 });
+    expect(decideTaskDelete(member, { ...task, weekIsActive: false })).toMatchObject({ ok: false, status: 409 });
+  });
+  it("lets the domain's leads and co-leads delete anything in that domain, graded or not", () => {
+    const lead = { id: "l1", role: "domain_admin" as const, domain: "Web" as const };
+    expect(decideTaskDelete(lead, { ...task, status: "EVALUATED", weekIsActive: false })).toEqual({ ok: true });
+  });
+  it("stops a lead reaching into another domain", () => {
+    expect(decideTaskDelete({ id: "l1", role: "domain_admin", domain: "Design" }, task)).toMatchObject({ ok: false, status: 403 });
+  });
+  it("lets a super admin delete any submission", () => {
+    expect(decideTaskDelete({ id: "s1", role: "super_admin", domain: "PR" }, { ...task, status: "EVALUATED" })).toEqual({ ok: true });
+  });
+});
+
+describe("portalRole", () => {
+  it("gives a Co-Lead member lead access", () => {
+    expect(portalRole("member", "co_lead")).toBe("domain_admin");
+  });
+  it("leaves everyone else as they are", () => {
+    expect(portalRole("member", "member")).toBe("member");
+    expect(portalRole("member", "lead")).toBe("member");
+    expect(portalRole("domain_admin", "co_lead")).toBe("domain_admin");
+    expect(portalRole("super_admin", "co_lead")).toBe("super_admin");
+    expect(portalRole("member", undefined)).toBe("member");
   });
 });

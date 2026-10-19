@@ -56,7 +56,8 @@ Sounds (rotary dial, domain wheel progress, hexagon tiles, member and event card
 
 - **Login** with the register number (see [Logging in](#logging-in-and-accounts)). Members still on their default password must choose a new one before the portal does anything else.
 - **Dashboard (`/portal/dashboard`)**: score radar, active sprint, streak, recent feedback.
-- **Task submission (`/portal/submit-task`)**: repositories, live demo URLs, Figma files and notes, one submission per member per open week, editable until graded.
+- **Task submission (`/portal/submit-task`)**: a Google Drive link to the member's files, repositories, live demo URLs, Figma files and notes, one submission per member per open week, editable until graded. Submitting needs an open week and a task your lead has posted for your domain.
+- **Co-Leads** get domain-lead access (post tasks, grade, announce, review applicants) from the Co-Lead position alone, with no separate role change.
 - **Evaluation queue (`/portal/evaluations`)**: domain leads score deliverables on a four-part rubric (0-100) and leave feedback.
 - **Leaderboard (`/portal/leaderboard`)**: podium, filters by domain and period (all-time, current week, monthly), rank changes and streaks.
 - **Account (`/portal/account`)**: change your password with your current one. No email or code is needed.
@@ -175,7 +176,7 @@ Setting people up:
 
 Super admins manage the club from **Portal -> Admin**, or through the API:
 
-- **Sprint weeks:** open or close a week (only one is open at a time). Members submit to the open week only, one submission each. API: `GET/POST /api/admin/weeks`, `PATCH /api/admin/weeks/:id`.
+- **Sprint weeks:** open or close a week (only one is open at a time). Members submit to the open week only, one submission each. A week added by mistake can be deleted while it has no submissions. API: `GET/POST /api/admin/weeks`, `PATCH/DELETE /api/admin/weeks/:id`.
 - **Members:** create a member, edit name, email, register number, domain, position, role, LinkedIn and bio, upload or remove a profile photo, switch someone off. You can't demote or deactivate yourself, and the last super admin can't be removed. API: `/api/admin/members`, `/api/admin/members/:id`, `/api/admin/members/:id/photo`.
 - **Events and reservations:** create and edit events, mark the date as not announced, upload up to 20 photos per event, see and export registrations. API: `/api/admin/events...`.
 - **Projects:** the cards shown on `/projects`. API: `/api/admin/projects...`.
@@ -189,6 +190,7 @@ Super admins manage the club from **Portal -> Admin**, or through the API:
 - **Reviewing applicants:** Portal -> Applications. A domain lead sees only the applications to their own domain (R&D has none: the form has no R&D option); a super admin sees every domain, with a domain filter and the CSV export. Open a row to read the answers, then accept, reject or shortlist (with an optional email to the applicant). Tabs list New, Shortlisted, Accepted and Rejected. "Export shortlisted" downloads a CSV (opens in Excel and Google Sheets) with name, department, year, phone and email of the shortlisted applicants, for leads and super admins alike; the form has no separate "section" field. API: `GET /api/applications`, `PATCH /api/applications/:id`.
 - **Private notes on applicants:** in an opened application a lead rates it 1 to 10 and leaves a comment for their own reference. Leads see only their own notes; super admins also see everyone's. API: `PUT /api/applications/:id/review`.
 - **Announcements:** Portal -> Announce. A lead posts a message to their domain (a super admin can pick any domain or everyone); members see it on the dashboard with a New badge until they have opened it. API: `/api/announcements`.
+- **Domain attendance (`/portal/attendance`, leads and co-leads):** tick which of your own domain's members were present at a club-wide event, club hour or Google Meet, or at a meet your domain ran yourselves (create and delete those here; other domains don't see them). Leads can only mark their own domain. Leads, co-leads and super admins don't submit tasks; only members do. API: `GET/POST /api/attendance`, `GET/PUT/DELETE /api/attendance/:id`.
 - **Profile:** members edit their own about text and LinkedIn, GitHub and Instagram links (shown on the Our Team page), change their photo, and see the sessions and events they attended. API: `PATCH /api/me`, `PUT /api/me/photo`, `GET /api/me/attendance`.
 - **Dashboard:** days left on this week's task (the lead's due date, or the end of the sprint week), announcements, login streak, and a list of past grades with feedback.
 - **Applicant status:** applicants use their reference ID and email on `/join` (`POST /api/recruitment/lookup`, rate-limited).

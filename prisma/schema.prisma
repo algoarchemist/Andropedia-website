@@ -163,6 +163,7 @@ model Task {
   domain        Domain
   title         String
   description   String
+  driveUrl      String?      // Google Drive share link to the member's files
   githubUrl     String?
   liveUrl       String?
   figmaUrl      String?
@@ -395,6 +396,7 @@ model AttendanceSession {
   heldOn      DateTime
   hours       Float?           // club hours and Google Meets: how long the session ran
   description String?          // a note from the super admin saying what the session was
+  domain      Domain?          // set for a meet that one domain's leads run for their own members; null means the whole club
   eventId     String?          @unique
   event       Event?           @relation(fields: [eventId], references: [id], onDelete: Cascade)
   createdById String           // no foreign key on purpose, like AuditLog

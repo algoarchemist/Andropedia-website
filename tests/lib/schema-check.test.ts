@@ -13,7 +13,7 @@ beforeEach(() => {
 
 describe("schemaProblems", () => {
   it("is empty when every table and column is there", async () => {
-    db.$queryRaw.mockResolvedValueOnce(ALL).mockResolvedValueOnce([{ table_name: "User", column_name: "mustChangePassword" }]);
+    db.$queryRaw.mockResolvedValueOnce(ALL).mockResolvedValueOnce([{ table_name: "User", column_name: "mustChangePassword" }, { table_name: "Task", column_name: "driveUrl" }, { table_name: "AttendanceSession", column_name: "domain" }]);
     expect(await schemaProblems()).toEqual([]);
   });
   it("names what is missing when migrations have not been applied", async () => {
@@ -22,6 +22,7 @@ describe("schemaProblems", () => {
     expect(problem).toMatch(/table MemberPhoto/);
     expect(problem).toMatch(/table EventImage/);
     expect(problem).toMatch(/column User.mustChangePassword/);
+    expect(problem).toMatch(/column Task.driveUrl/);
     expect(problem).toMatch(/npm run db:deploy/);
   });
   it("never throws when the database is unreachable", async () => {

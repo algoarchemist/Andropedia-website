@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { recordAudit } from "./audit";
-import { ConflictError, NotFoundError } from "./data-store";
+import { ConflictError, DOMAIN_FROM_DB, ForbiddenError, NotFoundError, toDbDomain } from "./data-store";
+import type { DomainType } from "./types";
 import { heldOnDate, parseAttendanceCsv, todayInIndia, type CsvIdentifier, type SessionKind } from "./attendance-schema";
 
 export interface AttendanceSessionInfo {
@@ -11,6 +12,8 @@ export interface AttendanceSessionInfo {
   hours: number | null;
   description: string | null;
   eventId: string | null;
+  /** The domain a meet belongs to, or null when it is for the whole club. */
+  domain: DomainType | null;
   present: number;
 }
 
@@ -22,7 +25,7 @@ export interface EventOption {
 }
 
 type DbKind = "EVENT" | "CLUB_HOUR" | "GMEET";
-type DbSession = { id: string; kind: DbKind; title: string; heldOn: Date; hours: number | null; description: string | null; eventId: string | null; _count: { records: number } };
+type DbSession = { id: string; kind: DbKind; title: string; heldOn: Date; hours: number | null; description: string | null; eventId: string | null; domain: string | null; _count: { records: number } };
 
 const KIND_FROM_DB: Record<DbKind, SessionKind> = { EVENT: "event", CLUB_HOUR: "club_hour", GMEET: "gmeet" };
 const KIND_TO_DB: Record<SessionKind, DbKind> = { event: "EVENT", club_hour: "CLUB_HOUR", gmeet: "GMEET" };
@@ -35,6 +38,7 @@ const toInfo = (s: DbSession): AttendanceSessionInfo => ({
   hours: s.hours,
   description: s.description,
   eventId: s.eventId,
+  domain: s.domain ? DOMAIN_FROM_DB[s.domain] : null,
   present: s._count.records,
 });
 
@@ -59,8 +63,9 @@ export type SessionInput =
 /**
  * A new club hour or Google Meet, or the session of an event (created the first time, reused afterwards).
  * A count above 1 adds that many at once, named "<title> 1", "<title> 2", ... Returns the first one.
+ * A `domain` makes the club hour or Google Meet that domain's own (lead-run); an event's session is always club-wide.
  */
-export async function createAttendanceSession(actorId: string, input: SessionInput): Promise<AttendanceSessionInfo> {
+export async function createAttendanceSession(actorId: string, input: SessionInput, domain?: DomainType): Promise<AttendanceSessionInfo> {
   if (input.kind === "event") {
     const existing = await prisma.attendanceSession.findUnique({ where: { eventId: input.eventId }, include: withCount });
     if (existing) return toInfo(existing);
@@ -84,6 +89,7 @@ export async function createAttendanceSession(actorId: string, input: SessionInp
         heldOn,
         hours: input.hours ?? 1,
         description: input.description || null,
+        domain: domain ? toDbDomain(domain) : null,
         createdById: actorId,
       },
       include: withCount,
@@ -232,13 +238,15 @@ export interface MemberAttendance {
 }
 
 /** The sessions a member was marked present at (events, club hours and Google Meets), newest first, with how many were held in all. */
-export async function getMemberAttendance(userId: string, now: Date = new Date()): Promise<MemberAttendance> {
+export async function getMemberAttendance(userId: string, now: Date = new Date(), domain?: DomainType): Promise<MemberAttendance> {
+  const dbDomain = domain ? toDbDomain(domain) : undefined;
   const [records, sessionsHeld] = await Promise.all([
     prisma.attendanceRecord.findMany({
       where: { userId },
       include: { session: { select: { id: true, kind: true, title: true, heldOn: true, hours: true, description: true } } },
     }),
-    prisma.attendanceSession.count({ where: { heldOn: { lte: now } } }),
+    // Another domain's meet does not count against this member.
+    prisma.attendanceSession.count({ where: { heldOn: { lte: now }, ...(dbDomain ? { OR: [{ domain: null }, { domain: dbDomain }] } : {}) } }),
   ]);
   const attended = records
     .map((r) => r.session)
@@ -247,4 +255,83 @@ export async function getMemberAttendance(userId: string, now: Date = new Date()
   const clubHours = attended.reduce((sum, s) => sum + (s.kind === "club_hour" ? (s.hours ?? 0) : 0), 0);
   const attendedCount = attended.filter((s) => new Date(s.heldOn).getTime() <= now.getTime()).length;
   return { attended, sessionsHeld, attendedCount, clubHours };
+}
+
+// ---------------------------------------------------------------- domain leads and co-leads
+
+/** The lead (or co-lead) taking attendance: they act on their own domain's members only. */
+export interface DomainActor {
+  id: string;
+  domain: DomainType;
+}
+
+export interface DomainMember {
+  id: string;
+  name: string;
+  avatar: string;
+  registerNo: string | null;
+}
+
+/**
+ * What a domain's leads see: every club-wide session (events, club hours, Google Meets run by the core team) plus the
+ * meets their own domain has run, the events (so one without a session can be started), and their domain's members.
+ */
+export async function listDomainAttendance(actor: DomainActor): Promise<{ sessions: AttendanceSessionInfo[]; events: EventOption[]; members: DomainMember[] }> {
+  const domain = toDbDomain(actor.domain);
+  if (!domain) throw new NotFoundError("Unknown domain.");
+  const [sessions, events, members] = await Promise.all([
+    prisma.attendanceSession.findMany({
+      where: { OR: [{ domain: null }, { domain }] },
+      orderBy: [{ heldOn: "desc" }, { createdAt: "desc" }],
+      include: withCount,
+    }),
+    prisma.event.findMany({ orderBy: { startsAt: "desc" }, select: { id: true, title: true, startsAt: true, attendance: { select: { id: true } } } }),
+    prisma.user.findMany({ where: { domain, isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true, avatar: true, registerNo: true } }),
+  ]);
+  return {
+    sessions: sessions.map(toInfo),
+    events: events.map((e) => ({ id: e.id, title: e.title, startsAt: e.startsAt.toISOString(), hasSession: !!e.attendance })),
+    members: members.map((m) => ({ id: m.id, name: m.name, avatar: m.avatar ?? "", registerNo: m.registerNo })),
+  };
+}
+
+/** A session a lead may work with: a club-wide one, or their own domain's. Another domain's meet is off limits. */
+async function sessionInScope(actor: DomainActor, sessionId: string): Promise<{ id: string; title: string; domain: string | null }> {
+  const session = await prisma.attendanceSession.findUnique({ where: { id: sessionId }, select: { id: true, title: true, domain: true } });
+  if (!session) throw new NotFoundError("Attendance session not found.");
+  if (session.domain && session.domain !== toDbDomain(actor.domain)) throw new ForbiddenError("That meet belongs to another domain.");
+  return session;
+}
+
+/** Starts a meet for the lead's own domain, or opens an event's session (shared by the whole club, created on first use). */
+export async function createDomainSession(actor: DomainActor, input: SessionInput): Promise<AttendanceSessionInfo> {
+  return createAttendanceSession(actor.id, input, input.kind === "event" ? undefined : actor.domain);
+}
+
+/** Who from the lead's domain was present at a session. */
+export async function getDomainAttendance(actor: DomainActor, sessionId: string): Promise<{ session: AttendanceSessionInfo; userIds: string[] }> {
+  await sessionInScope(actor, sessionId);
+  const domain = toDbDomain(actor.domain);
+  const [session, records] = await Promise.all([
+    prisma.attendanceSession.findUniqueOrThrow({ where: { id: sessionId }, include: withCount }),
+    prisma.attendanceRecord.findMany({ where: { sessionId, user: { domain } }, select: { userId: true } }),
+  ]);
+  return { session: toInfo(session), userIds: records.map((r) => r.userId) };
+}
+
+/** Marks members of the lead's own domain present or takes the mark back. Anyone from another domain is refused. */
+export async function setDomainPresence(actor: DomainActor, sessionId: string, userIds: string[], present: boolean): Promise<{ changed: number }> {
+  await sessionInScope(actor, sessionId);
+  const ids = [...new Set(userIds)];
+  const domain = toDbDomain(actor.domain);
+  const own = await prisma.user.findMany({ where: { id: { in: ids }, domain }, select: { id: true } });
+  if (own.length !== ids.length) throw new ForbiddenError("You can only mark members of your own domain.");
+  return setPresence(actor.id, sessionId, ids, present);
+}
+
+/** Deletes a meet the lead's domain ran, with its marks. Club-wide sessions stay with the super admin. */
+export async function deleteDomainSession(actor: DomainActor, sessionId: string): Promise<void> {
+  const session = await sessionInScope(actor, sessionId);
+  if (!session.domain) throw new ForbiddenError("Only a super admin can delete club-wide sessions.");
+  await deleteAttendanceSession(actor.id, sessionId);
 }

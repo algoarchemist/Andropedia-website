@@ -8,6 +8,8 @@ import {
   Clock,
   ExternalLink,
   CheckCircle2,
+  HardDrive,
+  Trash2,
 } from "lucide-react";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { MemberAvatar } from "@/components/portal/MemberEditor";
@@ -53,6 +55,30 @@ export default function EvaluationsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTasks();
   }, [authLoading, currentUser]);
+
+  const handleDelete = async (task: Task) => {
+    const warning =
+      task.status === "evaluated" && task.evaluation
+        ? `Delete ${task.userName}'s Week ${task.weekNumber} submission? Its ${task.evaluation.score} points will be taken off their total.`
+        : `Delete ${task.userName}'s Week ${task.weekNumber} submission? They can send a new one while the week is open.`;
+    if (!window.confirm(warning)) return;
+    setSuccessMsg("");
+    setErrorMsg("");
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!data.success) {
+        setErrorMsg(data.error ?? "Could not delete the submission.");
+        return;
+      }
+      setSelectedTask((current) => (current?.id === task.id ? null : current));
+      setTasks((current) => current.filter((t) => t.id !== task.id));
+      setSuccessMsg("Submission deleted.");
+      setTimeout(() => setSuccessMsg(""), 4000);
+    } catch {
+      setErrorMsg("Could not reach the server. Try again.");
+    }
+  };
 
   const handleEvaluateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,7 +218,17 @@ export default function EvaluationsPage() {
                       <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-emerald-300">
                         {selectedTask.domain} · Week {selectedTask.weekNumber}
                       </span>
-                      <span className="text-[10px] font-mono text-slate-400">Submitted {new Date(selectedTask.submittedAt).toLocaleDateString()}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono text-slate-400">Submitted {new Date(selectedTask.submittedAt).toLocaleDateString()}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(selectedTask)}
+                          aria-label={`Delete ${selectedTask.userName}'s submission`}
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-500/10 hover:text-rose-300"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                     <h2 className="text-2xl font-bold text-white">{selectedTask.title}</h2>
                     <p className="mt-3 text-sm leading-relaxed text-slate-300">{selectedTask.description}</p>
@@ -200,6 +236,12 @@ export default function EvaluationsPage() {
 
                   <div className="mt-6 space-y-4">
                     <div className="flex flex-wrap gap-3">
+                      {selectedTask.driveUrl && (
+                        <a href={selectedTask.driveUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-[11px] font-mono text-emerald-200">
+                          <HardDrive className="h-3.5 w-3.5 text-emerald-300" />
+                          Google Drive files
+                        </a>
+                      )}
                       {selectedTask.githubUrl && (
                         <a href={selectedTask.githubUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-[11px] font-mono text-slate-200">
                           <ExternalLink className="h-3.5 w-3.5 text-emerald-300" />

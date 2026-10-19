@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const auth = await requireUser(request);
   if (!auth.ok) return auth.response;
   try {
-    return NextResponse.json({ success: true, ...(await getMemberAttendance(auth.user.id)) }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ success: true, ...(await getMemberAttendance(auth.user.id, new Date(), auth.user.domain)) }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     log.error("Attendance load failed", err);
     return jsonError("Could not load your attendance.", 500);

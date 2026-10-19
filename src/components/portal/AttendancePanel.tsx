@@ -244,7 +244,7 @@ export function AttendancePanel({ attendance, visibleIds }: { attendance: Attend
               <optgroup label="Sessions">
                 {sessions.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {SESSION_KIND_LABEL[s.kind]}: {s.title} ({fmt.format(new Date(s.heldOn))}) · {s.present} present
+                    {s.domain ? `${s.domain} meet` : SESSION_KIND_LABEL[s.kind]}: {s.title} ({fmt.format(new Date(s.heldOn))}) · {s.present} present
                   </option>
                 ))}
               </optgroup>

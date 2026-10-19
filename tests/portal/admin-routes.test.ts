@@ -16,7 +16,7 @@ const db = vi.hoisted(() => {
   const client: Record<string, unknown> = {
     user: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(async () => []), update: vi.fn(), count: vi.fn(), create: vi.fn() },
     session: { deleteMany: vi.fn() },
-    week: { findMany: vi.fn(async () => []), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    week: { findMany: vi.fn(async () => []), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn(), delete: vi.fn() },
     event: { findMany: vi.fn(async () => []) },
     project: { findMany: vi.fn(async () => []) },
   };
@@ -31,7 +31,7 @@ import { GET as members, POST as addMember } from "@/app/api/admin/members/route
 import { PATCH as patchMember } from "@/app/api/admin/members/[id]/route";
 import { GET as projects } from "@/app/api/admin/projects/route";
 import { GET as weeks, POST as createWeek } from "@/app/api/admin/weeks/route";
-import { PATCH as patchWeek } from "@/app/api/admin/weeks/[id]/route";
+import { DELETE as deleteWeek, PATCH as patchWeek } from "@/app/api/admin/weeks/[id]/route";
 import { requireUser } from "@/lib/auth";
 import { sendMemberInvite } from "@/lib/member-invite";
 
@@ -53,6 +53,7 @@ describe("every admin endpoint is super-admin only", () => {
     ["GET weeks", () => weeks(req())],
     ["POST weeks", () => createWeek(req("POST", {}))],
     ["PATCH week", () => patchWeek(req("PATCH", { isActive: true }), ctx)],
+    ["DELETE week", () => deleteWeek(req("DELETE"), ctx)],
     ["POST member", () => addMember(req("POST", {}))],
     ["PATCH member", () => patchMember(req("PATCH", { role: "member" }), ctx)],
   ];
@@ -153,5 +154,34 @@ describe("POST /api/admin/members (add a member)", () => {
     expect((await addMember(req("POST", { ...body, email: "nope" }))).status).toBe(400);
     expect((await addMember(req("POST", { ...body, domain: "Cooking" }))).status).toBe(400);
     expect((await addMember(req("POST", { ...body, registerNo: "" }))).status).toBe(400);
+  });
+});
+
+describe("DELETE /api/admin/weeks/[id]", () => {
+  beforeEach(() => vi.mocked(requireUser).mockResolvedValue({ ok: true, user: { id: "admin", role: "super_admin" } } as never));
+
+  it("deletes a week nobody has submitted to", async () => {
+    db.week.findUnique.mockResolvedValue({ weekNumber: 9, _count: { tasks: 0 } });
+    expect((await deleteWeek(req("DELETE"), ctx)).status).toBe(200);
+    expect(db.week.delete).toHaveBeenCalledWith({ where: { id: "target" } });
+  });
+
+  it("refuses while members have submissions, so no work is lost", async () => {
+    db.week.findUnique.mockResolvedValue({ weekNumber: 9, _count: { tasks: 2 } });
+    const res = await deleteWeek(req("DELETE"), ctx);
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toMatch(/submissions/);
+    expect(db.week.delete).not.toHaveBeenCalled();
+  });
+
+  it("answers 409 when a submission lands between the check and the delete", async () => {
+    db.week.findUnique.mockResolvedValue({ weekNumber: 9, _count: { tasks: 0 } });
+    db.week.delete.mockRejectedValue(Object.assign(new Error("fk"), { code: "P2003" }));
+    expect((await deleteWeek(req("DELETE"), ctx)).status).toBe(409);
+  });
+
+  it("answers 404 for a week that does not exist", async () => {
+    db.week.findUnique.mockResolvedValue(null);
+    expect((await deleteWeek(req("DELETE"), ctx)).status).toBe(404);
   });
 });

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Send, CheckCircle2, AlertCircle, ArrowLeft, Globe, Palette, Sparkles } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, ArrowLeft, Globe, HardDrive, Palette, Sparkles } from "lucide-react";
 import { GithubIcon } from "@/components/ui/SocialIcons";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { useAuth } from "@/lib/auth-context";
@@ -19,10 +19,12 @@ export default function SubmitTaskPage() {
   type DomainOption = (typeof domainOptions)[number];
 
   const [weeks, setWeeks] = useState<Week[]>([]);
-  const [selectedWeekId, setSelectedWeekId] = useState("week_4");
+  const [weeksLoaded, setWeeksLoaded] = useState(false);
+  const [selectedWeekId, setSelectedWeekId] = useState("");
   const [domain, setDomain] = useState<DomainOption>(currentUser?.domain as DomainOption | undefined ?? "Web");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [driveUrl, setDriveUrl] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
   const [liveUrl, setLiveUrl] = useState("");
   const [figmaUrl, setFigmaUrl] = useState("");
@@ -43,6 +45,10 @@ export default function SubmitTaskPage() {
       .catch(() => undefined); // the brief is a convenience; submitting works without it
   }, [currentUser]);
   const brief = prompts.find((p) => p.weekId === selectedWeekId && p.domain === effectiveDomain);
+  // Only an open week takes submissions, and only once the member's lead has posted that domain's task.
+  const openWeeks = weeks.filter((w) => w.isActive);
+  const selectedWeek = openWeeks.find((w) => w.id === selectedWeekId);
+  const canSubmit = Boolean(selectedWeek && brief);
 
   useEffect(() => {
     async function fetchWeeks() {
@@ -56,6 +62,8 @@ export default function SubmitTaskPage() {
         }
       } catch (err) {
         console.error("Error loading weeks:", err);
+      } finally {
+        setWeeksLoaded(true);
       }
     }
     fetchWeeks();
@@ -71,6 +79,7 @@ export default function SubmitTaskPage() {
         weekId: selectedWeekId,
         title,
         description,
+        driveUrl: driveUrl || undefined,
         githubUrl: githubUrl || undefined,
         liveUrl: liveUrl || undefined,
         figmaUrl: figmaUrl || undefined,
@@ -101,7 +110,7 @@ export default function SubmitTaskPage() {
   };
 
   return (
-    <PortalAccessGate>
+    <PortalAccessGate allowedRoles={["member"]}>
       <div className="flex min-h-screen flex-col bg-transparent text-slate-100">
         <PortalNav />
 
@@ -143,10 +152,30 @@ export default function SubmitTaskPage() {
                   </div>
                 )}
 
+                {selectedWeek && (
+                  <div className="rounded-2xl border border-violet-400/25 bg-violet-500/5 p-5">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-violet-300">Club theme · Week {selectedWeek.weekNumber}</div>
+                    <div className="mt-1 text-lg font-bold text-white">{selectedWeek.theme}</div>
+                    {selectedWeek.promptDescription && <p className="mt-2 whitespace-pre-line text-sm text-slate-300">{selectedWeek.promptDescription}</p>}
+                  </div>
+                )}
+
+                {weeksLoaded && !selectedWeek && (
+                  <p role="status" className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm text-amber-200">
+                    No sprint week is open right now, so submissions are closed. Check back when the next theme starts.
+                  </p>
+                )}
+
+                {selectedWeek && !brief && (
+                  <p role="status" className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm text-amber-200">
+                    Your {effectiveDomain} lead hasn&apos;t posted a task for this week yet, so submissions are closed for now. Check back soon.
+                  </p>
+                )}
+
                 {brief && (
                   <div className="rounded-2xl border border-cyan-400/25 bg-cyan-500/5 p-5">
                     <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-cyan-300">
-                      This week&apos;s task from your lead{brief.dueDate ? ` · due ${brief.dueDate}` : ""}
+                      This week&apos;s {brief.domain} task from your lead{brief.dueDate ? ` · due ${brief.dueDate}` : ""}
                     </div>
                     <div className="mt-1 text-lg font-bold text-white">{brief.title}</div>
                     <p className="mt-2 whitespace-pre-line text-sm text-slate-300">{brief.description}</p>
@@ -171,9 +200,9 @@ export default function SubmitTaskPage() {
                       onChange={(e) => setSelectedWeekId(e.target.value)}
                       className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
                     >
-                      {weeks.map((w) => (
+                      {openWeeks.map((w) => (
                         <option key={w.id} value={w.id}>
-                          Week {w.weekNumber}: {w.title} {w.isActive ? "(Active)" : ""}
+                          Week {w.weekNumber}: {w.theme}
                         </option>
                       ))}
                     </select>
@@ -220,8 +249,26 @@ export default function SubmitTaskPage() {
                   />
                 </div>
 
+                <div className="space-y-2 rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-5">
+                  <label htmlFor="drive-url" className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.22em] text-emerald-300">
+                    <HardDrive className="h-3.5 w-3.5" aria-hidden="true" />
+                    Google Drive link
+                  </label>
+                  <input
+                    id="drive-url"
+                    type="url"
+                    value={driveUrl}
+                    onChange={(e) => setDriveUrl(e.target.value)}
+                    placeholder="https://drive.google.com/..."
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+                  />
+                  <p className="text-[11px] leading-relaxed text-slate-400">
+                    Upload your files to Google Drive, choose Share, set access to &ldquo;Anyone with the link&rdquo;, then paste the link here. Your lead can&apos;t open it otherwise.
+                  </p>
+                </div>
+
                 <div className="space-y-4 border-t border-white/10 pt-4">
-                  <h3 className="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-400">Project links</h3>
+                  <h3 className="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-400">Other project links</h3>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <label className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400">
@@ -280,7 +327,7 @@ export default function SubmitTaskPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !canSubmit}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 px-5 py-3.5 text-sm font-bold text-slate-950 shadow-[0_16px_30px_rgba(52,211,153,0.22)] disabled:opacity-60"
                 >
                   <Send className="h-4 w-4" />

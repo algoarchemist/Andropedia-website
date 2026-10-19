@@ -16,8 +16,9 @@ vi.mock("@/lib/audit", () => ({ recordAudit: vi.fn() }));
 const db = vi.hoisted(() => {
   const client: Record<string, unknown> = {
     user: { findUnique: vi.fn(), update: vi.fn(), count: vi.fn() },
-    task: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn(), create: vi.fn(), findUniqueOrThrow: vi.fn() },
+    task: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn(), create: vi.fn(), findUniqueOrThrow: vi.fn(), delete: vi.fn() },
     week: { findUnique: vi.fn() },
+    taskPrompt: { findUnique: vi.fn() },
     evaluation: { upsert: vi.fn() },
   };
   client.$transaction = (fn: (tx: unknown) => unknown) => fn(client);
@@ -25,6 +26,7 @@ const db = vi.hoisted(() => {
     user: Record<string, ReturnType<typeof vi.fn>>;
     task: Record<string, ReturnType<typeof vi.fn>>;
     week: Record<string, ReturnType<typeof vi.fn>>;
+    taskPrompt: Record<string, ReturnType<typeof vi.fn>>;
     evaluation: Record<string, ReturnType<typeof vi.fn>>;
   };
 });
@@ -32,6 +34,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: db }));
 
 import { POST as grade } from "@/app/api/evaluations/route";
 import { GET as listTasks, POST as submit } from "@/app/api/tasks/route";
+import { DELETE as deleteTask } from "@/app/api/tasks/[id]/route";
 import { requireUser } from "@/lib/auth";
 import { sendGradedNotice } from "@/lib/graded-email";
 
@@ -85,6 +88,17 @@ describe("GET /api/tasks scoping", () => {
 
 describe("POST /api/tasks", () => {
   const body = { weekId: "w1", title: "Realtime board", description: "A live scoreboard for the sprint" };
+  beforeEach(() => db.taskPrompt.findUnique.mockResolvedValue({ id: "p1" })); // the lead has posted this week's task
+
+  it("is for members only: leads, co-leads and super admins do not submit", async () => {
+    login("member", "Web", "m1");
+    db.user.findUnique.mockResolvedValue({ id: "m1" });
+    db.week.findUnique.mockResolvedValue({ isActive: true });
+    db.task.findUnique.mockResolvedValue(null);
+    db.task.create.mockResolvedValue(savedTask());
+    await submit(post("/api/tasks", body));
+    expect(vi.mocked(requireUser).mock.calls[0][1]).toEqual(["member"]);
+  });
 
   it("takes the author and domain from the session, never the request body", async () => {
     login("member", "Web", "m1");
@@ -95,6 +109,18 @@ describe("POST /api/tasks", () => {
     const res = await submit(post("/api/tasks", { ...body, userId: "victim", domain: "Design" }));
     expect(res.status).toBe(201);
     expect(db.task.create.mock.calls[0][0].data).toMatchObject({ userId: "m1", domain: "WEB" });
+  });
+
+  it("refuses with 409 when the lead has not posted (or has removed) the week's task", async () => {
+    login("member", "Web", "m1");
+    db.user.findUnique.mockResolvedValue({ id: "m1" });
+    db.week.findUnique.mockResolvedValue({ isActive: true });
+    db.task.findUnique.mockResolvedValue(null);
+    db.taskPrompt.findUnique.mockResolvedValue(null);
+    const res = await submit(post("/api/tasks", body));
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toMatch(/hasn't posted a task/);
+    expect(db.task.create).not.toHaveBeenCalled();
   });
 
   it("refuses a closed week with 409", async () => {
@@ -123,6 +149,25 @@ describe("POST /api/tasks", () => {
     db.week.findUnique.mockResolvedValue({ isActive: true });
     db.task.findUnique.mockResolvedValue({ id: "t1", status: "EVALUATED" });
     expect((await submit(post("/api/tasks", body))).status).toBe(409);
+  });
+
+  it("stores a Google Drive link", async () => {
+    login("member", "Web", "m1");
+    db.user.findUnique.mockResolvedValue({ id: "m1" });
+    db.week.findUnique.mockResolvedValue({ isActive: true });
+    db.task.findUnique.mockResolvedValue(null);
+    db.task.create.mockResolvedValue(savedTask());
+    const driveUrl = "https://drive.google.com/drive/folders/abc123?usp=sharing";
+    expect((await submit(post("/api/tasks", { ...body, driveUrl }))).status).toBe(201);
+    expect(db.task.create.mock.calls[0][0].data).toMatchObject({ driveUrl });
+  });
+
+  it("rejects a Drive link that points anywhere else", async () => {
+    login("member", "Web", "m1");
+    for (const driveUrl of ["https://evil.example/drive.google.com", "http://drive.google.com/file/d/1", "https://drive.google.com.evil.example/x", "not a link"]) {
+      expect((await submit(post("/api/tasks", { ...body, driveUrl }))).status).toBe(400);
+    }
+    expect(db.task.create).not.toHaveBeenCalled();
   });
 
   it("rejects a non-http link", async () => {
@@ -199,5 +244,57 @@ describe("POST /api/evaluations", () => {
     login("super_admin", "Web", "lead1");
     db.task.findUnique.mockResolvedValue(null);
     expect((await grade(post("/api/evaluations", body))).status).toBe(404);
+  });
+});
+
+describe("DELETE /api/tasks/[id]", () => {
+  const ctx = { params: Promise.resolve({ id: "t1" }) };
+  const del = () => deleteTask(new NextRequest("http://localhost/api/tasks/t1", { method: "DELETE" }), ctx);
+  const stored = (over = {}) => ({
+    userId: "m1", weekId: "w1", domain: "WEB", status: "SUBMITTED", week: { isActive: true }, evaluation: null, ...over,
+  });
+
+  it("lets a member delete their own ungraded submission", async () => {
+    login("member", "Web", "m1");
+    db.task.findUnique.mockResolvedValue(stored());
+    expect((await del()).status).toBe(200);
+    expect(db.task.delete).toHaveBeenCalledWith({ where: { id: "t1" } });
+    expect(db.user.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses a member deleting someone else's submission", async () => {
+    login("member", "Web", "m2");
+    db.task.findUnique.mockResolvedValue(stored());
+    expect((await del()).status).toBe(403);
+    expect(db.task.delete).not.toHaveBeenCalled();
+  });
+
+  it("refuses a member deleting graded work", async () => {
+    login("member", "Web", "m1");
+    db.task.findUnique.mockResolvedValue(stored({ status: "EVALUATED", evaluation: { score: 80 } }));
+    expect((await del()).status).toBe(409);
+    expect(db.task.delete).not.toHaveBeenCalled();
+  });
+
+  it("lets a lead delete graded work in their domain and takes the points back", async () => {
+    login("domain_admin", "Web", "lead1");
+    db.task.findUnique.mockResolvedValue(stored({ status: "EVALUATED", evaluation: { score: 80 } }));
+    expect((await del()).status).toBe(200);
+    expect(db.user.update).toHaveBeenCalledWith({
+      where: { id: "m1" },
+      data: { points: { decrement: 80 }, tasksCompleted: { decrement: 1 } },
+    });
+  });
+
+  it("stops a lead deleting another domain's submission", async () => {
+    login("domain_admin", "Design", "lead1");
+    db.task.findUnique.mockResolvedValue(stored());
+    expect((await del()).status).toBe(403);
+  });
+
+  it("answers 404 for a submission that is gone", async () => {
+    login("super_admin");
+    db.task.findUnique.mockResolvedValue(null);
+    expect((await del()).status).toBe(404);
   });
 });
