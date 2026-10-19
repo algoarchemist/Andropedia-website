@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { handleDataError } from "@/lib/api-errors";
 import { requireUser } from "@/lib/auth";
-import { updateWeek } from "@/lib/data-store";
+import { deleteWeek, updateWeek } from "@/lib/data-store";
 import { jsonError, readJson } from "@/lib/http";
 
 const date = z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Enter a valid date.");
@@ -33,5 +33,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ success: true, week: await updateWeek(id, parsed.data, auth.user.id) });
   } catch (err) {
     return handleDataError(err, "Updating a week");
+  }
+}
+
+// Removes a week added by mistake. Refused (409) while members have submitted to it.
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireUser(request, ["super_admin"]);
+  if (!auth.ok) return auth.response;
+  const { id } = await params;
+
+  try {
+    await deleteWeek(id, auth.user.id);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return handleDataError(err, "Deleting a week");
   }
 }

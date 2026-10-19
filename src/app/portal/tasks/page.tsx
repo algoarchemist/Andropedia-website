@@ -65,6 +65,7 @@ export default function TasksPage() {
     })();
   }, [currentUser]);
 
+  const selectedWeek = weeks.find((w) => w.id === weekId);
   const existing = prompts.find((p) => p.weekId === weekId && p.domain === targetDomain);
   const key = `${weekId}|${targetDomain}`;
   const current = draft?.key === key ? draft : null;
@@ -211,6 +212,15 @@ export default function TasksPage() {
                   </div>
                 )}
               </div>
+
+              {selectedWeek && (
+                <div className="rounded-2xl border border-violet-400/25 bg-violet-500/5 p-4">
+                  <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-violet-300">Club theme for Week {selectedWeek.weekNumber}</div>
+                  <div className="mt-1 text-lg font-bold text-white">{selectedWeek.theme}</div>
+                  {selectedWeek.promptDescription && <p className="mt-1 whitespace-pre-line text-xs text-slate-300">{selectedWeek.promptDescription}</p>}
+                  <p className="mt-2 text-[11px] text-slate-400">Set a task for {targetDomain} members that fits this theme.</p>
+                </div>
+              )}
 
               {existing && <p className="text-[11px] font-mono text-amber-300">A task is already posted for this week. Saving will replace it.</p>}
 

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { useAuth } from "@/lib/auth-context";
-import { Week, User, ClubPosition, RoleType } from "@/lib/types";
+import { Week, User, ClubPosition, RoleType, DomainType, TaskPrompt } from "@/lib/types";
 import { PortalAccessGate } from "@/components/portal/PortalAccessGate";
 import { EventsAdmin } from "@/components/portal/EventsAdmin";
 import { ProjectsAdmin } from "@/components/portal/ProjectsAdmin";
@@ -30,6 +30,7 @@ const POSITION_OPTIONS: Array<[ClubPosition, string]> = [
   ["vice_president", "Vice President"],
   ["president", "President"],
 ];
+const DOMAINS: DomainType[] = ["Web", "Technical", "R&D", "Design", "Media", "PR"];
 const ROLE_OPTIONS: Array<[RoleType, string]> = [
   ["member", "Member"],
   ["domain_admin", "Domain lead (can grade)"],
@@ -40,6 +41,8 @@ export default function AdminPage() {
   const { currentUser, isLoading: authLoading } = useAuth();
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [members, setMembers] = useState<User[]>([]);
+  // Which domains have posted their task for each week (super admins get every domain back).
+  const [prompts, setPrompts] = useState<TaskPrompt[]>([]);
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   // "new" opens the add form; a member opens the edit form; null shows neither.
@@ -50,11 +53,16 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [resWeeks, resMembers] = await Promise.all([fetch("/api/weeks", { cache: "no-store" }), fetch("/api/admin/members", { cache: "no-store" })]);
-      const [dataWeeks, dataMembers] = await Promise.all([resWeeks.json(), resMembers.json()]);
+      const [resWeeks, resMembers, resPrompts] = await Promise.all([
+        fetch("/api/weeks", { cache: "no-store" }),
+        fetch("/api/admin/members", { cache: "no-store" }),
+        fetch("/api/prompts", { cache: "no-store" }),
+      ]);
+      const [dataWeeks, dataMembers, dataPrompts] = await Promise.all([resWeeks.json(), resMembers.json(), resPrompts.json().catch(() => null)]);
 
       if (dataWeeks.success) setWeeks(dataWeeks.weeks);
       if (dataMembers.success) setMembers(dataMembers.members);
+      if (dataPrompts?.success) setPrompts(dataPrompts.prompts);
     } catch (err) {
       console.error("Admin data load error:", err);
     }
@@ -85,6 +93,24 @@ export default function AdminPage() {
       setNotice({ type: "success", text: `Week ${week.weekNumber} is now ${week.isActive ? "closed" : "open"}.` });
     } catch (err) {
       setNotice({ type: "error", text: err instanceof Error ? err.message : "Could not update the week." });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  // For a week added by mistake. The server refuses while members have submitted to it.
+  const removeWeek = async (week: Week) => {
+    if (!window.confirm(`Delete Week ${week.weekNumber} (${week.title})? The tasks leads posted for it are deleted too. This can't be undone.`)) return;
+    setBusyId(week.id);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/admin/weeks/${week.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) throw new Error(data?.error || "Could not delete the week.");
+      setWeeks((prev) => prev.filter((w) => w.id !== week.id));
+      setNotice({ type: "success", text: `Week ${week.weekNumber} was deleted.` });
+    } catch (err) {
+      setNotice({ type: "error", text: err instanceof Error ? err.message : "Could not delete the week." });
     } finally {
       setBusyId(null);
     }
@@ -187,21 +213,47 @@ export default function AdminPage() {
                         {week.isActive ? "Open" : "Closed"}
                       </span>
                     </div>
-                    <h3 className="text-sm font-bold text-white">{week.title}</h3>
-                    <p className="mt-1 text-[11px] text-slate-400">Theme: {week.theme}</p>
+                    <h3 className="text-sm font-bold text-white">{week.theme}</h3>
+                    <p className="mt-1 text-[11px] text-slate-400">{week.title}</p>
+                    <div className="mt-3 flex flex-wrap gap-1.5" aria-label={`Domain tasks posted for week ${week.weekNumber}`}>
+                      {DOMAINS.map((d) => {
+                        const posted = prompts.some((p) => p.weekId === week.id && p.domain === d);
+                        return (
+                          <span
+                            key={d}
+                            title={posted ? `${d} task posted` : `${d} hasn't posted a task`}
+                            className={`rounded-full border px-2 py-0.5 text-[9px] font-mono ${posted ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300" : "border-amber-400/30 bg-amber-500/10 text-amber-300"}`}
+                          >
+                            {posted ? "✓" : "…"} {d}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setWeekOpen(week)}
-                    disabled={busyId === week.id}
-                    className="rounded-xl border border-white/10 bg-slate-900 p-2 transition-colors hover:border-cyan-400/30 disabled:opacity-50"
-                    title={week.isActive ? "Close this week" : "Open this week"}
-                    aria-label={`${week.isActive ? "Close" : "Open"} week ${week.weekNumber}`}
-                    aria-pressed={week.isActive}
-                  >
-                    {week.isActive ? <ToggleRight className="h-8 w-8 text-emerald-400" /> : <ToggleLeft className="h-8 w-8 text-slate-600" />}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => removeWeek(week)}
+                      disabled={busyId === week.id}
+                      className="rounded-xl border border-white/10 bg-slate-900 p-2.5 text-slate-400 transition-colors hover:border-rose-400/40 hover:text-rose-300 disabled:opacity-50"
+                      title="Delete this week"
+                      aria-label={`Delete week ${week.weekNumber}`}
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWeekOpen(week)}
+                      disabled={busyId === week.id}
+                      className="rounded-xl border border-white/10 bg-slate-900 p-2 transition-colors hover:border-cyan-400/30 disabled:opacity-50"
+                      title={week.isActive ? "Close this week" : "Open this week"}
+                      aria-label={`${week.isActive ? "Close" : "Open"} week ${week.weekNumber}`}
+                      aria-pressed={week.isActive}
+                    >
+                      {week.isActive ? <ToggleRight className="h-8 w-8 text-emerald-400" /> : <ToggleLeft className="h-8 w-8 text-slate-600" />}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

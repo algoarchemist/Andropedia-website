@@ -59,8 +59,8 @@ export function WeekCreate({ nextNumber, onCreated }: { nextNumber: number; onCr
       <label className="space-y-1 text-xs text-slate-300">Title
         <input className={input} required minLength={3} maxLength={120} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Sprint 5: Realtime" />
       </label>
-      <label className="space-y-1 text-xs text-slate-300">Theme
-        <input className={input} required minLength={3} maxLength={120} value={form.theme} onChange={(e) => set("theme", e.target.value)} placeholder="WebSockets and live data" />
+      <label className="space-y-1 text-xs text-slate-300">Club theme (every domain builds around it)
+        <input className={input} required minLength={3} maxLength={120} value={form.theme} onChange={(e) => set("theme", e.target.value)} placeholder="AI" />
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="space-y-1 text-xs text-slate-300">Starts
@@ -70,7 +70,7 @@ export function WeekCreate({ nextNumber, onCreated }: { nextNumber: number; onCr
           <input className={input} type="date" required value={form.endDate} onChange={(e) => set("endDate", e.target.value)} />
         </label>
       </div>
-      <label className="space-y-1 text-xs text-slate-300 sm:col-span-2">Task prompt (shown to members)
+      <label className="space-y-1 text-xs text-slate-300 sm:col-span-2">Note for all domains (optional; leads post the actual tasks)
         <textarea className={`${input} min-h-20`} maxLength={2000} value={form.promptDescription} onChange={(e) => set("promptDescription", e.target.value)} />
       </label>
       <label className="flex items-center gap-2 text-xs text-slate-300 sm:col-span-2">

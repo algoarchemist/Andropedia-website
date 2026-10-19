@@ -64,6 +64,7 @@ export interface Task {
   weekNumber: number;
   title: string;
   description: string;
+  driveUrl?: string;
   githubUrl?: string;
   liveUrl?: string;
   figmaUrl?: string;

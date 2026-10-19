@@ -16,6 +16,7 @@ import {
   UserRound,
   ClipboardCheck,
   Megaphone,
+  CalendarCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
@@ -31,15 +32,17 @@ export function PortalNav() {
 
   const isLead = currentUser?.role === "domain_admin" || currentUser?.role === "super_admin";
   const isAdmin = currentUser?.role === "super_admin";
+  const isMember = currentUser?.role === "member";
 
   const links = [
     { name: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
-    { name: "Submit Task", href: "/portal/submit-task", icon: Send },
+    ...(isMember ? [{ name: "Submit Task", href: "/portal/submit-task", icon: Send }] : []),
     { name: "Leaderboard", href: "/portal/leaderboard", icon: Trophy, highlight: true },
     ...(isLead
       ? [
           { name: "Post Tasks", href: "/portal/tasks", icon: ClipboardList },
           { name: "Evaluations", href: "/portal/evaluations", icon: CheckSquare },
+          ...(currentUser?.role === "domain_admin" ? [{ name: "Attendance", href: "/portal/attendance", icon: CalendarCheck }] : []),
           { name: "Applications", href: "/portal/applications", icon: ClipboardCheck },
           { name: "Announce", href: "/portal/announcements", icon: Megaphone },
         ]

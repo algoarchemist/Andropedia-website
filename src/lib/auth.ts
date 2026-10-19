@@ -7,7 +7,14 @@ import { prisma } from "./prisma";
 import { mapUser } from "./data-store";
 import { recordLoginDay } from "./login-days";
 import { istDay } from "./login-streak";
+import { portalRole } from "./rules";
 import type { RoleType, User } from "./types";
+
+/** The signed-in user as the portal sees them: a Co-Lead acts as a domain lead. */
+function mapPortalUser(row: Parameters<typeof mapUser>[0]): User {
+  const user = mapUser(row);
+  return { ...user, role: portalRole(user.role, user.position) };
+}
 
 export const SESSION_COOKIE = "andropedia_session";
 const SESSION_DAYS = 14;
@@ -70,7 +77,7 @@ export async function getSessionUser(): Promise<User | null> {
     // Sessions last two weeks, so a member who opens the portal on a new day without signing in again still counts for that day.
     if (istDay(session.lastUsedAt) !== istDay(new Date())) await recordLoginDay(session.userId);
   }
-  return mapUser(session.user);
+  return mapPortalUser(session.user);
 }
 
 export async function destroyCurrentSession(): Promise<void> {
@@ -140,5 +147,5 @@ export async function loginWithPassword(
   if (!user || !user.isActive || !passwordOk) return null;
 
   const session = await createSession(user.id);
-  return { user: mapUser(user), ...session };
+  return { user: mapPortalUser(user), ...session };
 }
