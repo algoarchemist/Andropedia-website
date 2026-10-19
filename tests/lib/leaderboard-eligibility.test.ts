@@ -2,12 +2,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const db = vi.hoisted(() => ({
-  user: { findMany: vi.fn(async (): Promise<unknown[]> => []) },
-  evaluation: { findMany: vi.fn(async (): Promise<unknown[]> => []) },
-  week: { findFirst: vi.fn(async () => null) },
-  loginDay: { findMany: vi.fn(async (): Promise<unknown[]> => []) },
-}));
+const db = vi.hoisted(() => {
+  const client = {
+    user: { findMany: vi.fn(async (): Promise<unknown[]> => []) },
+    evaluation: { findMany: vi.fn(async (): Promise<unknown[]> => []) },
+    week: { findFirst: vi.fn(async () => null) },
+    loginDay: { findMany: vi.fn(async (): Promise<unknown[]> => []) },
+  };
+  return client as unknown as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+});
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 
 import { getLeaderboard } from "@/lib/data-store";
