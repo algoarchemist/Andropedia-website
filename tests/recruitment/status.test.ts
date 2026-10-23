@@ -96,6 +96,16 @@ describe("POST /api/recruitment/lookup", () => {
     expect(vi.mocked(prisma.application.findUnique).mock.calls[0][0]).toMatchObject({ where: { reference: "REC-AAAA1111" } });
   });
 
+  it("answers every status warmly, and a non-selection still says so clearly", async () => {
+    for (const status of ["new", "shortlisted", "accepted", "rejected"]) {
+      vi.mocked(prisma.application.findUnique).mockResolvedValueOnce({ ...stored, status } as never);
+      const { message } = await (await find({ reference: "REC-AAAA1111", email: "priya@college.edu" })).json();
+      expect(message).toMatch(/thank|congratulations|great news/i);
+      expect(message).not.toMatch(/^not selected/i);
+      if (status === "rejected") expect(message).toMatch(/weren't able to offer you a place/i);
+    }
+  });
+
   it("gives the same answer for a wrong email and an unknown reference", async () => {
     vi.mocked(prisma.application.findUnique).mockResolvedValueOnce(stored as never).mockResolvedValueOnce(null);
     const wrongEmail = await find({ reference: "REC-AAAA1111", email: "someone@else.edu" });

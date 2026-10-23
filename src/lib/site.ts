@@ -8,6 +8,15 @@ export function siteUrl(): URL {
   }
 }
 
+/** The live site. Used for links in emails when no public URL is configured (for example when running locally). */
+export const DEPLOYED_SITE_URL = "https://andropedia-rmp.vercel.app";
+
+/** Base URL for links inside emails to real people: never localhost, because the link is opened on someone else's device. */
+export function emailSiteUrl(): URL {
+  const url = siteUrl();
+  return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(url.hostname) ? new URL(DEPLOYED_SITE_URL) : url;
+}
+
 /** Pages that should appear in the sitemap. */
 export const PUBLIC_PATHS = ["/", "/join", "/team", "/projects", "/events", "/terms", "/privacy"] as const;
 

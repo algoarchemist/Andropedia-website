@@ -5,7 +5,7 @@ import type { KeyboardEvent, ReactNode, Ref } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, CalendarClock, Check, Copy, Lock, Pencil, Pin, Send } from "lucide-react";
-import { RECRUIT_DOMAINS } from "@/content/recruitment";
+import { RECRUIT_DOMAINS, WHATSAPP_COMMUNITY_URL } from "@/content/recruitment";
 import { ToastRegion, useToasts } from "@/components/ui/Toast";
 import { WhatsappIcon } from "@/components/ui/SocialIcons";
 import { DOMAIN_ACCENT, ACCENTS } from "@/content/accents";
@@ -71,8 +71,7 @@ const TILTS = [-1.1, 0.9, -0.7, 0.8];
 /** The class cards lean a little more, like notes dropped on the board. */
 const CLASS_TILTS = [2.2, -2.4, 1.6, -1.8, 2];
 const FUN_LINE = "Error 404: boring application not found";
-// The club community invite. NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL overrides it when the link is rotated.
-const WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL || "https://chat.whatsapp.com/EzHzmH66GkU2Qx6LtNDJ4T";
+const WHATSAPP_URL = WHATSAPP_COMMUNITY_URL;
 
 const ALL_QUESTIONS: Question[] = [...UNIVERSAL_QUESTIONS, ...DOMAIN_IDS.flatMap((d) => DOMAIN_QUESTIONS[d])];
 const QUESTION_BY_ID = new Map(ALL_QUESTIONS.map((q) => [q.id, q]));

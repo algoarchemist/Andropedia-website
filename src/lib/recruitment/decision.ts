@@ -41,10 +41,13 @@ ${copy.body.map((l) => `<p>${esc(l)}</p>`).join("\n")}
   await sendMail({ to: app.email, subject: copy.subject(app.reference), text, html });
 }
 
-/** What an applicant is allowed to see. A rejection is stated plainly, never hinted at. */
+/** What an applicant is allowed to see. A rejection is stated clearly (never hinted at), but kindly. */
 export const PUBLIC_STATUS_LABEL: Record<ApplicationStatus, string> = {
-  new: "Received. Our leads are reviewing applications.",
-  shortlisted: "Shortlisted. Watch your email for the next step.",
-  accepted: "Accepted. Welcome to Andropedia!",
-  rejected: "Not selected this time.",
+  new: "Thank you for applying to Andropedia! Your application is safely received and our domain leads are reading it with care. There's nothing more you need to do right now. We'll email you as soon as there's news, so keep an eye on your inbox (and your spam folder, just in case).",
+  shortlisted:
+    "Great news, you've been shortlisted! Your application stood out to us and we're excited about what comes next. Watch your email for the next step, and get ready to show us what you can do.",
+  accepted:
+    "Congratulations, and welcome to Andropedia! We're so happy to have you with us. Check your email for your onboarding steps and how to log in to the member portal. Your journey starts now.",
+  rejected:
+    "Thank you so much for applying to Andropedia and for the effort you put into your application. We weren't able to offer you a place in this round, and we know that's not easy to hear. Please don't be discouraged: every builder starts somewhere, and your curiosity matters more than any single result. Keep learning, keep building, and we'd be glad to see you apply again in a future cycle.",
 };

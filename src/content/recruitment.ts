@@ -4,6 +4,10 @@
 
 export const RECRUITMENT_CYCLE = "Recruitment 2026";
 
+// The club community invite, shown on the application success screen and in the confirmation email.
+// NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL overrides it when the link is rotated.
+export const WHATSAPP_COMMUNITY_URL = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL || "https://chat.whatsapp.com/EzHzmH66GkU2Qx6LtNDJ4T";
+
 export type { DomainId } from "@/lib/recruitment/questions";
 import type { DomainId } from "@/lib/recruitment/questions";
 
